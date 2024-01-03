@@ -1,0 +1,9 @@
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[patch.crates-io]
+wasmtime = { git = "https://github.com/bytecodealliance/wasmtime.git" }
+wasmtime-wasi = { git = "https://github.com/bytecodealliance/wasmtime.git" }
+wasmtime-wasi-http = { git = "https://github.com/bytecodealliance/wasmtime.git" }
+wit-bindgen = { git = "https://github.com/bytecodealliance/wit-bindgen.git" }

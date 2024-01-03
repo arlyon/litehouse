@@ -1,0 +1,53 @@
+package litehouse:plugin;
+
+interface plugin {
+    record event {
+        id: u64,
+        timestamp: u64,
+        inner: update,
+    }
+
+    variant update {
+      time(u64),
+      temperature(float64),
+      wind-speed(float64),
+    }
+
+    variant subscription {
+      time(time-subscription),
+    }
+
+    variant time-subscription {
+      every(every),
+      at(u64),
+    }
+
+    record every {
+      amount: u64,
+      unit: time-unit,
+    }
+
+    variant time-unit {
+      second,
+      minute,
+      hour,
+      day,
+      week,
+      month,
+      year,
+    }
+
+    resource runner {
+      constructor();
+      subscribe: func() -> result<list<subscription>, u32>;
+      update: func(events: list<event>) -> result<bool, u32>;
+    }
+}
+
+world plugin-host {
+  use plugin.{event, subscription};
+  import wasi:http/outgoing-handler@0.2.0-rc-2023-12-05;
+
+  import update: func(event: event);
+  export plugin;
+}
