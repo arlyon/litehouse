@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use clap::{Parser, Subcommand};
 use futures::{future::join_all, StreamExt};
@@ -12,6 +15,7 @@ use runtime::{
     },
     PluginRunner,
 };
+use serde::Deserialize;
 use tokio::{sync::Mutex, time::interval};
 
 use wasmtime::{
@@ -24,11 +28,15 @@ mod runtime;
 #[derive(Parser)]
 struct Opt {
     #[command(subcommand)]
-    command: Option<Command>,
+    command: Command,
 }
 
 #[derive(Subcommand)]
 enum Command {
+    Run {
+        #[clap(default_value = "wasm", short, long)]
+        path: PathBuf,
+    },
     Generate,
 }
 
@@ -39,16 +47,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opt = Opt::parse();
 
     match opt.command {
-        None => start().await,
-        Some(Command::Generate) => generate().await,
+        Command::Run { path } => start(&path).await,
+        Command::Generate => generate().await,
     }
 }
 
-async fn start() -> Result<(), Box<dyn std::error::Error>> {
-    let mut config = Config::new();
-    config.wasm_component_model(true).async_support(true);
+async fn start(wasm_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let file = std::fs::File::open("settings.json").unwrap();
+    let config: LitehouseConfig = serde_json::from_reader(&file).unwrap();
 
-    let engine = Engine::new(&config)?;
+    let mut wasm_config = Config::new();
+    wasm_config.wasm_component_model(true).async_support(true);
+
+    let engine = Engine::new(&wasm_config)?;
 
     let mut linker = ComponentLinker::new(&engine);
     wasmtime_wasi::preview2::command::add_to_linker(&mut linker)?;
@@ -59,11 +70,19 @@ async fn start() -> Result<(), Box<dyn std::error::Error>> {
     let store = Arc::new(Mutex::new(Store::new(&engine, PluginRunner::new())));
     let linker = Arc::new(linker);
 
+    // todo: only produce as many plugin hosts as there are plugin types rather than instances
     let bindings = join_all(
-        ["tasmota.wasm"]
+        config
+            .plugins
             .into_iter()
-            .map(|p| Component::from_file(&engine, p).unwrap())
-            .map(|c| {
+            .map(|p| {
+                (
+                    Component::from_file(&engine, wasm_path.join(format!("{}.wasm", p.identifier)))
+                        .unwrap(),
+                    p,
+                )
+            })
+            .map(|(c, p)| {
                 let store = store.clone();
                 let linker = linker.clone();
                 async move {
@@ -72,19 +91,21 @@ async fn start() -> Result<(), Box<dyn std::error::Error>> {
                             .await
                             .unwrap();
 
-                    bindings
+                    (p, bindings)
                 }
             }),
     )
     .await;
 
-    let timers = bindings.into_iter().map(|b| {
+    let timers = bindings.into_iter().map(|(p, host)| {
         let store = store.clone();
         async move {
-            let runner = b.litehouse_plugin_plugin().runner();
+            let runner = host.litehouse_plugin_plugin().runner();
+
+            let config = serde_json::to_string(&p.config).unwrap();
 
             let instance = runner
-                .call_constructor(&mut *store.lock().await)
+                .call_constructor(&mut *store.lock().await, Some(&config))
                 .await
                 .unwrap();
 
@@ -143,12 +164,12 @@ async fn start() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[derive(plugin::JsonSchema)]
+#[derive(plugin::JsonSchema, Deserialize, Debug)]
 struct LitehouseConfig {
     plugins: Vec<PluginInstance>,
 }
 
-#[derive(plugin::JsonSchema)]
+#[derive(plugin::JsonSchema, Deserialize, Debug)]
 struct PluginInstance {
     identifier: String,
     version: String,

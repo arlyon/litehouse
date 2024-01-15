@@ -8,17 +8,24 @@ use crate::{
 
 plugin::generate!(WeatherPlugin, WeatherConfig);
 
-pub struct WeatherPlugin;
+pub struct WeatherPlugin {
+    lat: f64,
+    lon: f64,
+}
 
-#[derive(plugin::JsonSchema)]
+#[derive(plugin::JsonSchema, serde::Deserialize)]
 pub struct WeatherConfig {
     pub lat: f64,
     pub lon: f64,
 }
 
 impl GuestRunner for WeatherPlugin {
-    fn new() -> Self {
-        Self
+    fn new(config: Option<String>) -> Self {
+        let config: WeatherConfig = serde_json::from_str(&config.unwrap_or_default()).unwrap();
+        Self {
+            lat: config.lat,
+            lon: config.lon,
+        }
     }
 
     fn subscribe(&self) -> Result<Vec<Subscription>, u32> {
@@ -38,7 +45,7 @@ impl GuestRunner for WeatherPlugin {
 
                     let req = OutgoingRequest::new(headers);
                     req.set_path_with_query(Some(
-                        "/v1/forecast?latitude=51.4649&longitude=-0.1087&current=temperature_2m,wind_speed_10m",
+                        &format!("/v1/forecast?latitude={}&longitude={}&current=temperature_2m,wind_speed_10m", self.lat, self.lon),
                     ))
                     .expect("ok");
                     req.set_authority(Some("api.open-meteo.com"));

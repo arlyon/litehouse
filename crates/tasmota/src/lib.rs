@@ -5,17 +5,16 @@ use wasi::http::{
     types::{Fields, OutgoingRequest, RequestOptions, Scheme},
 };
 
-use crate::exports::litehouse::plugin::plugin::{
-    Every, GuestRunner, Subscription, TimeUnit, Update,
-};
+use crate::exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit};
 
 plugin::generate!(TasmotaPlugin, TasmotaConfig);
 
 pub struct TasmotaPlugin {
     state: Mutex<bool>,
+    ip: String,
 }
 
-#[derive(plugin::JsonSchema)]
+#[derive(plugin::JsonSchema, serde::Deserialize)]
 pub struct TasmotaConfig {
     pub ip: String,
 }
@@ -31,9 +30,11 @@ impl TasmotaPlugin {
 }
 
 impl GuestRunner for TasmotaPlugin {
-    fn new() -> Self {
+    fn new(config: Option<String>) -> Self {
         plugin::tracing_subscriber();
+        let config: TasmotaConfig = serde_json::from_str(&config.unwrap_or_default()).unwrap();
         Self {
+            ip: config.ip,
             state: Mutex::new(false),
         }
     }
@@ -58,7 +59,7 @@ impl GuestRunner for TasmotaPlugin {
             if state { "OFF" } else { "ON" },
         )))
         .expect("ok");
-        req.set_authority(Some("192.168.1.71:80"));
+        req.set_authority(Some(&format!("{}:80", self.ip)));
         req.set_scheme(Some(&Scheme::Http));
 
         let opts = RequestOptions::new();
