@@ -16,14 +16,7 @@ pub struct PluginRunner {
 impl PluginRunner {
     pub fn new() -> Self {
         let mut wasi = WasiCtxBuilder::new();
-        wasi.inherit_stdio()
-            .socket_addr_check(|x1, x2| {
-                println!("{} {:?}", x1, x2);
-                true
-            })
-            .allow_tcp(true)
-            .allow_udp(true)
-            .allow_ip_name_lookup(true);
+        wasi.inherit_stdio();
         let http = WasiHttpCtx;
         Self {
             table: ResourceTable::new(),
