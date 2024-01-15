@@ -16,6 +16,7 @@ pub struct TasmotaPlugin {
 
 #[derive(plugin::JsonSchema, serde::Deserialize)]
 pub struct TasmotaConfig {
+    /// The ip address of the device to connect to.
     pub ip: String,
 }
 

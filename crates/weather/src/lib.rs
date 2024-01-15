@@ -15,7 +15,9 @@ pub struct WeatherPlugin {
 
 #[derive(plugin::JsonSchema, serde::Deserialize)]
 pub struct WeatherConfig {
+    /// The latitude to fetch the weather for.
     pub lat: f64,
+    /// The longitude to fetch the weather for.
     pub lon: f64,
 }
 
