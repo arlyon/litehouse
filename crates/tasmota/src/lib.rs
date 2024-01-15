@@ -9,10 +9,15 @@ use crate::exports::litehouse::plugin::plugin::{
     Every, GuestRunner, Subscription, TimeUnit, Update,
 };
 
-plugin::generate!(TasmotaPlugin, Config);
+plugin::generate!(TasmotaPlugin, TasmotaConfig);
 
 pub struct TasmotaPlugin {
     state: Mutex<bool>,
+}
+
+#[derive(plugin::JsonSchema)]
+pub struct TasmotaConfig {
+    pub ip: String,
 }
 
 impl TasmotaPlugin {

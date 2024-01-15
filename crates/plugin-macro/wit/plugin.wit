@@ -42,6 +42,14 @@ interface plugin {
       subscribe: func() -> result<list<subscription>, u32>;
       update: func(events: list<event>) -> result<bool, u32>;
     }
+
+    record metadata {
+      config-schema: option<string>,
+      version: string,
+      identifier: string,
+    }
+
+    get-metadata: func() -> metadata;
 }
 
 world plugin-host {

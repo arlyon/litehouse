@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
+use clap::{Parser, Subcommand};
 use futures::{future::join_all, StreamExt};
+use plugin::serde_json;
 use runtime::{
     bindings::{
         exports::litehouse::plugin::plugin::{
-            Event, Every, Subscription, TimeSubscription, TimeUnit, Update,
+            Event, Every, Metadata, Subscription, TimeSubscription, TimeUnit, Update,
         },
         PluginHost,
     },
@@ -19,10 +21,30 @@ use wasmtime::{
 
 mod runtime;
 
+#[derive(Parser)]
+struct Opt {
+    #[command(subcommand)]
+    command: Option<Command>,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    Generate,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
 
+    let opt = Opt::parse();
+
+    match opt.command {
+        None => start().await,
+        Some(Command::Generate) => generate().await,
+    }
+}
+
+async fn start() -> Result<(), Box<dyn std::error::Error>> {
     let mut config = Config::new();
     config.wasm_component_model(true).async_support(true);
 
@@ -38,7 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let linker = Arc::new(linker);
 
     let bindings = join_all(
-        ["weather.wasm", "tasmota.wasm"]
+        ["tasmota.wasm"]
             .into_iter()
             .map(|p| Component::from_file(&engine, p).unwrap())
             .map(|c| {
@@ -117,6 +139,140 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     futures::future::join_all(timers).await;
+
+    Ok(())
+}
+
+#[derive(plugin::JsonSchema)]
+struct LitehouseConfig {
+    plugins: Vec<PluginInstance>,
+}
+
+#[derive(plugin::JsonSchema)]
+struct PluginInstance {
+    identifier: String,
+    version: String,
+    config: serde_json::Map<String, serde_json::Value>,
+}
+
+async fn generate() -> Result<(), Box<dyn std::error::Error>> {
+    let mut config = Config::new();
+    config.wasm_component_model(true).async_support(true);
+
+    let engine = Engine::new(&config)?;
+
+    let mut linker = ComponentLinker::new(&engine);
+    wasmtime_wasi::preview2::command::add_to_linker(&mut linker)?;
+    wasmtime_wasi_http::bindings::http::types::add_to_linker(&mut linker, |s| s)?;
+    wasmtime_wasi_http::bindings::http::outgoing_handler::add_to_linker(&mut linker, |s| s)?;
+    PluginHost::add_root_to_linker(&mut linker, |c| c).unwrap();
+
+    let store = Arc::new(Mutex::new(Store::new(&engine, PluginRunner::new())));
+    let linker = Arc::new(linker);
+
+    let bindings = join_all(
+        std::fs::read_dir("wasm")
+            .unwrap()
+            .map(|p| Component::from_file(&engine, p.unwrap().path()).unwrap())
+            .map(|c| {
+                let store = store.clone();
+                let linker = linker.clone();
+                async move {
+                    let (bindings, _) =
+                        PluginHost::instantiate_async(&mut *store.lock().await, &c, &linker)
+                            .await
+                            .unwrap();
+
+                    bindings
+                }
+            }),
+    )
+    .await;
+
+    let jobs = bindings.into_iter().map(|plugin| {
+        let store = store.clone();
+        async move {
+            let store = &mut *store.lock().await;
+            let metadata = plugin
+                .litehouse_plugin_plugin()
+                .call_get_metadata(store)
+                .await;
+
+            match metadata {
+                Ok(Metadata {
+                    config_schema,
+                    identifier,
+                    version,
+                }) => {
+                    // write to file
+                    (
+                        identifier,
+                        version,
+                        config_schema.and_then(|s| serde_json::from_str(&s).ok()),
+                    )
+                }
+                Err(_) => {
+                    tracing::error!("failed to generate schema: {:?}", metadata);
+                    panic!();
+                }
+            }
+        }
+    });
+
+    let schemas: Vec<(_, _, Option<serde_json::Value>)> = futures::future::join_all(jobs).await;
+
+    let config_schema = schemars::schema_for!(LitehouseConfig);
+    let mut json = serde_json::to_value(&config_schema).unwrap();
+
+    let definitions = json
+        .get_mut("definitions")
+        .unwrap()
+        .get_mut("PluginInstance")
+        .unwrap()
+        .as_object_mut()
+        .unwrap();
+
+    let base = std::mem::replace(definitions, Default::default());
+
+    definitions.insert(
+        "oneOf".to_string(),
+        schemas
+            .into_iter()
+            .map(|(identifier, version, schema)| {
+                let mut config_base = base.clone();
+                *config_base
+                    .get_mut("properties")
+                    .unwrap()
+                    .get_mut("identifier")
+                    .unwrap() =
+                    serde_json::Map::from_iter([("const".into(), identifier.into())].into_iter())
+                        .into();
+                *config_base
+                    .get_mut("properties")
+                    .unwrap()
+                    .get_mut("version")
+                    .unwrap() =
+                    serde_json::Map::from_iter([("const".into(), version.into())].into_iter())
+                        .into();
+
+                let mut schema = schema.unwrap().take();
+                schema.as_object_mut().unwrap().remove("$schema");
+                schema.as_object_mut().unwrap().remove("title");
+
+                *config_base
+                    .get_mut("properties")
+                    .unwrap()
+                    .get_mut("config")
+                    .unwrap() = schema;
+
+                config_base
+            })
+            .collect(),
+    );
+
+    // write file
+    let mut file = std::fs::File::create("schema.json").unwrap();
+    serde_json::to_writer_pretty(&mut file, &json).unwrap();
 
     Ok(())
 }

@@ -6,9 +6,15 @@ use crate::{
     },
 };
 
-plugin::generate!(WeatherPlugin);
+plugin::generate!(WeatherPlugin, WeatherConfig);
 
 pub struct WeatherPlugin;
+
+#[derive(plugin::JsonSchema)]
+pub struct WeatherConfig {
+    pub lat: f64,
+    pub lon: f64,
+}
 
 impl GuestRunner for WeatherPlugin {
     fn new() -> Self {

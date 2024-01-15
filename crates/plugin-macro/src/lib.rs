@@ -1,4 +1,5 @@
 use proc_macro::TokenStream;
+use proc_macro2::Span;
 use quote::quote;
 use syn::{parse_macro_input, punctuated::Punctuated, Ident, Token};
 
@@ -8,7 +9,48 @@ pub fn generate(input: TokenStream) -> TokenStream {
     let mut list = input.into_iter();
     let plugin_type = list.next().expect("need to specify a plugin type");
 
-    // let config_type = list.next();
+    let config = list.next();
+    let config_type = config
+        .as_ref()
+        .map(|ident| {
+            quote! {
+                    "litehouse:plugin/plugin": #ident,
+            }
+        })
+        .unwrap_or_else(|| {
+            quote! {
+                    "litehouse:plugin/plugin": Config,
+            }
+        });
+
+    let (struct_def, ident, config) = config
+        .map(|ident| {
+            (
+                None,
+                ident.clone(),
+                quote! {plugin::serde_json::to_string(&plugin::schemars::schema_for!(#ident)).ok()},
+            )
+        })
+        .unwrap_or_else(|| {
+            (
+                Some(quote! {struct Config;}),
+                Ident::new("Config", Span::call_site()),
+                quote! {None},
+            )
+        });
+
+    let impl_block = quote! {
+        #struct_def
+        impl exports::litehouse::plugin::plugin::Guest for #ident {
+            fn get_metadata() -> exports::litehouse::plugin::plugin::Metadata {
+                exports::litehouse::plugin::plugin::Metadata {
+                    identifier: std::env!("CARGO_PKG_NAME").to_string(),
+                    version: std::env!("CARGO_PKG_VERSION").to_string(),
+                    config_schema: #config,
+                }
+            }
+        }
+    };
 
     let wit_dir = std::env!("WIT_DIR");
     let wit_dir = format!("{}/wit", wit_dir);
@@ -19,14 +61,12 @@ pub fn generate(input: TokenStream) -> TokenStream {
             runtime_path: "plugin::wit_bindgen::rt",
             exports: {
                 "litehouse:plugin/plugin/runner": #plugin_type,
-            },
-            // with: {
-                // "wasi:http/outgoing-handler@0.2.0-rc-2023-12-05": plugin::wasmtime_wasi_http::bindings::http::outgoing_handler,
-                // "wasi:http/types@0.2.0-rc-2023-12-05": plugin::wasmtime_wasi_http::bindings::http::types,
-            // }
+                #config_type
+
+            }
         });
 
-
+        #impl_block
     }
     .into()
 }
@@ -61,4 +101,15 @@ pub fn generate_host(_input: TokenStream) -> TokenStream {
             }
         });
     }.into()
+}
+
+#[proc_macro_derive(Config)]
+pub fn config(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as syn::ItemStruct);
+    let out = quote! {
+        #[derive(plugin::JsonSchema)]
+        #input
+    };
+    println!("{:#?}", out);
+    out.into()
 }
