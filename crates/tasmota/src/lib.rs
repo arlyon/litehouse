@@ -77,7 +77,7 @@ impl GuestRunner for TasmotaPlugin {
             .blocking_read(1024)
             .unwrap();
 
-        println!("body: {:?}", String::from_utf8(body).unwrap());
+        tracing::info!("body: {:?}", String::from_utf8(body).unwrap());
 
         self.set_state(!state);
 

@@ -33,11 +33,19 @@ struct Opt {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Run the litehouse server
     Run {
+        /// The path to look for wasm files in.
         #[clap(default_value = "wasm", short, long)]
-        path: PathBuf,
+        wasm_path: PathBuf,
     },
-    Generate,
+    /// Generate a jsonschema for the config file, based on the
+    /// plugins that are in your wasm path
+    Generate {
+        /// The path to look for wasm files in.
+        #[clap(default_value = "wasm", short, long)]
+        wasm_path: PathBuf,
+    },
 }
 
 #[tokio::main]
@@ -47,12 +55,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opt = Opt::parse();
 
     match opt.command {
-        Command::Run { path } => start(&path).await,
-        Command::Generate => generate().await,
+        Command::Run { wasm_path } => start(&wasm_path).await,
+        Command::Generate { wasm_path } => generate(&wasm_path).await,
     }
 }
 
 async fn start(wasm_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    tracing::info!("booting litehouse");
+
     let file = std::fs::File::open("settings.json").unwrap();
     let config: LitehouseConfig = serde_json::from_reader(&file).unwrap();
 
@@ -66,6 +76,8 @@ async fn start(wasm_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     wasmtime_wasi_http::bindings::http::types::add_to_linker(&mut linker, |s| s)?;
     wasmtime_wasi_http::bindings::http::outgoing_handler::add_to_linker(&mut linker, |s| s)?;
     PluginHost::add_root_to_linker(&mut linker, |c| c).unwrap();
+
+    tracing::debug!("linking complete");
 
     let store = Arc::new(Mutex::new(Store::new(&engine, PluginRunner::new())));
     let linker = Arc::new(linker);
@@ -96,6 +108,8 @@ async fn start(wasm_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
             }),
     )
     .await;
+
+    tracing::debug!("plugins instantiated");
 
     let timers = bindings.into_iter().map(|(p, host)| {
         let store = store.clone();
@@ -159,6 +173,8 @@ async fn start(wasm_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    tracing::info!("running litehouse");
+
     futures::future::join_all(timers).await;
 
     Ok(())
@@ -176,7 +192,7 @@ struct PluginInstance {
     config: serde_json::Map<String, serde_json::Value>,
 }
 
-async fn generate() -> Result<(), Box<dyn std::error::Error>> {
+async fn generate(wasm_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let mut config = Config::new();
     config.wasm_component_model(true).async_support(true);
 
@@ -192,7 +208,7 @@ async fn generate() -> Result<(), Box<dyn std::error::Error>> {
     let linker = Arc::new(linker);
 
     let bindings = join_all(
-        std::fs::read_dir("wasm")
+        std::fs::read_dir(wasm_path)
             .unwrap()
             .map(|p| Component::from_file(&engine, p.unwrap().path()).unwrap())
             .map(|c| {
@@ -294,6 +310,8 @@ async fn generate() -> Result<(), Box<dyn std::error::Error>> {
     // write file
     let mut file = std::fs::File::create("schema.json").unwrap();
     serde_json::to_writer_pretty(&mut file, &json).unwrap();
+
+    println!("wrote jsonschema to schema.json");
 
     Ok(())
 }
