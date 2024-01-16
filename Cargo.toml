@@ -1,3 +1,6 @@
+cargo-features = ["codegen-backend"]
+
+
 [workspace]
 members = ["crates/*"]
 resolver = "2"
@@ -7,8 +10,12 @@ strip = true
 opt-level = "z"
 lto = true
 
+# [profile.dev]
+# codegen-backend = "cranelift"
+
 [patch.crates-io]
 wasmtime = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "b546a5f" }
 wasmtime-wasi = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "b546a5f" }
 wasmtime-wasi-http = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "b546a5f" }
 wit-bindgen = { git = "https://github.com/bytecodealliance/wit-bindgen.git" }
+websocket = { path = "../rust-websocket" }

@@ -10,6 +10,7 @@ use crate::exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription
 plugin::generate!(TasmotaPlugin, TasmotaConfig);
 
 pub struct TasmotaPlugin {
+    nickname: String,
     state: Mutex<bool>,
     ip: String,
 }
@@ -31,11 +32,12 @@ impl TasmotaPlugin {
 }
 
 impl GuestRunner for TasmotaPlugin {
-    fn new(config: Option<String>) -> Self {
+    fn new(nickname: String, config: Option<String>) -> Self {
         plugin::tracing_subscriber();
-        let config: TasmotaConfig = serde_json::from_str(&config.unwrap_or_default()).unwrap();
+        let TasmotaConfig { ip } = serde_json::from_str(&config.unwrap_or_default()).unwrap();
         Self {
-            ip: config.ip,
+            nickname,
+            ip,
             state: Mutex::new(false),
         }
     }
@@ -50,38 +52,93 @@ impl GuestRunner for TasmotaPlugin {
     }
 
     fn update(&self, events: Vec<exports::litehouse::plugin::plugin::Event>) -> Result<bool, u32> {
-        let state = self.get_state();
+        let body = {
+            let headers = Fields::new();
 
-        let headers = Fields::new();
+            let req = OutgoingRequest::new(headers);
+            req.set_path_with_query(Some("/cm?cmnd=Status0"))
+                .expect("ok");
+            req.set_authority(Some(&format!("{}:80", self.ip))).unwrap();
+            req.set_scheme(Some(&Scheme::Http)).unwrap();
 
-        let req = OutgoingRequest::new(headers);
-        req.set_path_with_query(Some(&format!(
-            "/cm?cmnd=Power%20{}",
-            if state { "OFF" } else { "ON" },
-        )))
-        .expect("ok");
-        req.set_authority(Some(&format!("{}:80", self.ip)));
-        req.set_scheme(Some(&Scheme::Http));
+            let opts = RequestOptions::new();
 
-        let opts = RequestOptions::new();
+            let x = outgoing_handler::handle(req, Some(opts)).unwrap();
 
-        let x = outgoing_handler::handle(req, Some(opts)).unwrap();
+            x.subscribe().block();
+            let resp = x.get().unwrap().unwrap().unwrap();
 
-        x.subscribe().block();
-        let resp = x.get().unwrap().unwrap().unwrap();
+            let body = resp.consume().unwrap();
+            let stream = body.stream().unwrap();
 
-        let body = resp
-            .consume()
-            .unwrap()
-            .stream()
-            .unwrap()
-            .blocking_read(1024)
-            .unwrap();
+            let mut body = vec![];
+            loop {
+                match stream.blocking_read(1024) {
+                    Ok(data) => body.extend(data),
+                    Err(wasi::io::streams::StreamError::Closed) => break,
+                    Err(e) => {
+                        tracing::error!("could not read data: {}", e);
+                        return Err(1);
+                    }
+                }
+            }
 
-        tracing::info!("body: {:?}", String::from_utf8(body).unwrap());
+            String::from_utf8(body).unwrap()
+        };
 
-        self.set_state(!state);
+        let status: Status0 = serde_json::from_str(&body).unwrap();
+
+        self.send_update(crate::litehouse::plugin::plugin::Update::OnOff(
+            status.status_sts.power == "ON",
+        ));
+        self.send_update(crate::litehouse::plugin::plugin::Update::Current(
+            status.status_sns.energy.current,
+        ));
+        self.send_update(crate::litehouse::plugin::plugin::Update::Voltage(
+            status.status_sns.energy.voltage,
+        ));
+        self.send_update(crate::litehouse::plugin::plugin::Update::Power(
+            status.status_sns.energy.power,
+        ));
+
+        self.set_state(status.status_sts.power == "ON");
 
         Ok(true)
     }
+}
+
+impl TasmotaPlugin {
+    fn send_update(&self, update: crate::litehouse::plugin::plugin::Update) {
+        send_update(&self.nickname, update);
+    }
+}
+
+#[derive(serde::Deserialize, Debug)]
+struct Status0 {
+    #[serde(rename = "StatusSNS")]
+    status_sns: StatusSNS,
+    #[serde(rename = "StatusSTS")]
+    status_sts: StatusSTS,
+}
+
+#[derive(serde::Deserialize, Debug)]
+struct StatusSNS {
+    #[serde(rename = "ENERGY")]
+    energy: Energy,
+}
+
+#[derive(serde::Deserialize, Debug)]
+struct StatusSTS {
+    #[serde(rename = "POWER")]
+    power: String,
+}
+
+#[derive(serde::Deserialize, Debug)]
+struct Energy {
+    #[serde(rename = "Current")]
+    current: f64,
+    #[serde(rename = "Voltage")]
+    voltage: u16,
+    #[serde(rename = "Power")]
+    power: u16,
 }

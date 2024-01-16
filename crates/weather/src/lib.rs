@@ -1,5 +1,5 @@
 use crate::{
-    exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit, Update},
+    exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit},
     wasi::http::{
         outgoing_handler,
         types::{Fields, OutgoingRequest, RequestOptions, Scheme},
@@ -9,6 +9,7 @@ use crate::{
 plugin::generate!(WeatherPlugin, WeatherConfig);
 
 pub struct WeatherPlugin {
+    nickname: String,
     lat: f64,
     lon: f64,
 }
@@ -22,12 +23,9 @@ pub struct WeatherConfig {
 }
 
 impl GuestRunner for WeatherPlugin {
-    fn new(config: Option<String>) -> Self {
-        let config: WeatherConfig = serde_json::from_str(&config.unwrap_or_default()).unwrap();
-        Self {
-            lat: config.lat,
-            lon: config.lon,
-        }
+    fn new(nickname: String, config: Option<String>) -> Self {
+        let WeatherConfig { lat, lon } = serde_json::from_str(&config.unwrap_or_default()).unwrap();
+        Self { nickname, lat, lon }
     }
 
     fn subscribe(&self) -> Result<Vec<Subscription>, u32> {
@@ -42,7 +40,7 @@ impl GuestRunner for WeatherPlugin {
     fn update(&self, events: Vec<exports::litehouse::plugin::plugin::Event>) -> Result<bool, u32> {
         for event in events {
             match event.inner {
-                Update::Time(_) => {
+                exports::litehouse::plugin::plugin::Update::Time(_) => {
                     let headers = Fields::new();
 
                     let req = OutgoingRequest::new(headers);
@@ -50,8 +48,8 @@ impl GuestRunner for WeatherPlugin {
                         &format!("/v1/forecast?latitude={}&longitude={}&current=temperature_2m,wind_speed_10m", self.lat, self.lon),
                     ))
                     .expect("ok");
-                    req.set_authority(Some("api.open-meteo.com"));
-                    req.set_scheme(Some(&Scheme::Https));
+                    req.set_authority(Some("api.open-meteo.com")).unwrap();
+                    req.set_scheme(Some(&Scheme::Https)).unwrap();
 
                     let opts = RequestOptions::new();
 
@@ -66,20 +64,18 @@ impl GuestRunner for WeatherPlugin {
                         let data = stream.blocking_read(1024).unwrap();
                         let parsed = serde_json::from_slice::<WeatherResponse>(&data).unwrap();
 
-                        update(Event {
-                            id: 0,
-                            timestamp: 0,
-                            inner: litehouse::plugin::plugin::Update::Temperature(
+                        send_update(
+                            &self.nickname,
+                            litehouse::plugin::plugin::Update::Temperature(
                                 parsed.current.temperature_2m,
                             ),
-                        });
-                        update(Event {
-                            id: 0,
-                            timestamp: 0,
-                            inner: litehouse::plugin::plugin::Update::WindSpeed(
+                        );
+                        send_update(
+                            &self.nickname,
+                            litehouse::plugin::plugin::Update::WindSpeed(
                                 parsed.current.wind_speed_10m,
                             ),
-                        });
+                        );
                     }
                 }
                 _ => {}

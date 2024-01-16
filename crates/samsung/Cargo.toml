@@ -1,20 +1,22 @@
-# cargo-features = ["per-package-target"]
-
 [package]
-name = "tasmota"
+name = "samsung"
 version = "0.1.0"
 edition = "2021"
-# default-target = "wasm32-wasi"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+base64 = "0.21.7"
 plugin = { version = "0.1.0", path = "../plugin" }
 schemars = "0.8.16"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
 serde_path_to_error = "0.1.14"
 tracing = "0.1.40"
+websocket = { version = "0.27.0", features = [
+    "sync",
+    "nightly",
+], default-features = false }
 
 [lib]
 crate-type = ["cdylib"]

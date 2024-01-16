@@ -4,7 +4,7 @@ use std::{
 };
 
 use clap::{Parser, Subcommand};
-use futures::{future::join_all, StreamExt};
+use futures::future::join_all;
 use plugin::serde_json;
 use runtime::{
     bindings::{
@@ -16,8 +16,13 @@ use runtime::{
     PluginRunner,
 };
 use serde::Deserialize;
-use tokio::{sync::Mutex, time::interval};
+use tokio::{
+    sync::{broadcast::channel, Mutex},
+    time::interval,
+};
+use tokio_stream::StreamExt as _;
 
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 use wasmtime::{
     component::{Linker as ComponentLinker, *},
     Config, Engine, Store,
@@ -50,7 +55,12 @@ enum Command {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt::init();
+    let console_layer = console_subscriber::spawn();
+
+    tracing_subscriber::registry()
+        .with(console_layer)
+        .with(tracing_subscriber::fmt::layer().with_filter(EnvFilter::from_default_env()))
+        .init();
 
     let opt = Opt::parse();
 
@@ -79,8 +89,11 @@ async fn start(wasm_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
 
     tracing::debug!("linking complete");
 
-    let store = Arc::new(Mutex::new(Store::new(&engine, PluginRunner::new())));
+    let (tx, rx) = channel(1000);
+    let store = Arc::new(Mutex::new(Store::new(&engine, PluginRunner::new(tx))));
+
     let linker = Arc::new(linker);
+    let rx = Arc::new(rx);
 
     // todo: only produce as many plugin hosts as there are plugin types rather than instances
     let bindings = join_all(
@@ -89,8 +102,11 @@ async fn start(wasm_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
             .into_iter()
             .map(|p| {
                 (
-                    Component::from_file(&engine, wasm_path.join(format!("{}.wasm", p.identifier)))
-                        .unwrap(),
+                    Component::from_file(
+                        &engine,
+                        wasm_path.join(format!("{}.wasm", p.plugin_name)),
+                    )
+                    .unwrap(),
                     p,
                 )
             })
@@ -113,13 +129,14 @@ async fn start(wasm_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
 
     let timers = bindings.into_iter().map(|(p, host)| {
         let store = store.clone();
+        let rx = rx.resubscribe();
         async move {
             let runner = host.litehouse_plugin_plugin().runner();
 
             let config = serde_json::to_string(&p.config).unwrap();
 
             let instance = runner
-                .call_constructor(&mut *store.lock().await, Some(&config))
+                .call_constructor(&mut *store.lock().await, &p.nickname, Some(&config))
                 .await
                 .unwrap();
 
@@ -129,11 +146,18 @@ async fn start(wasm_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
                 .unwrap()
                 .unwrap();
 
+            let mut listen_types = vec![];
+
             let mut streams = tokio_stream::StreamMap::new();
             for (idx, sub) in subs.into_iter().enumerate() {
                 let (unit, amount) = match sub {
                     Subscription::Time(TimeSubscription::Every(Every { amount, unit })) => {
                         (unit, amount)
+                    }
+                    Subscription::Update(u) => {
+                        tracing::info!("got subscription for {:?}", u);
+                        listen_types.push(u);
+                        continue;
                     }
                     _ => continue,
                 };
@@ -154,7 +178,20 @@ async fn start(wasm_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
                 );
             }
 
-            while let Some(_next) = streams.next().await {
+            let event_stream = tokio_stream::wrappers::BroadcastStream::new(rx);
+
+            let mut merged_stream = streams
+                .map(|_| runtime::bindings::litehouse::plugin::plugin::Update::Time(0))
+                .merge(
+                    event_stream
+                        .filter_map(|u| u.ok())
+                        .filter(|(name, event)| {
+                            name != &p.nickname && listen_types.iter().any(|t| t.matches(event))
+                        })
+                        .map(|(_, update)| update),
+                );
+
+            while let Some(_next) = merged_stream.next().await {
                 let mut store = store.lock().await;
                 runner
                     .call_update(
@@ -187,8 +224,9 @@ struct LitehouseConfig {
 
 #[derive(plugin::JsonSchema, Deserialize, Debug)]
 struct PluginInstance {
-    identifier: String,
+    plugin_name: String,
     version: String,
+    nickname: String,
     config: serde_json::Map<String, serde_json::Value>,
 }
 
@@ -204,7 +242,9 @@ async fn generate(wasm_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     wasmtime_wasi_http::bindings::http::outgoing_handler::add_to_linker(&mut linker, |s| s)?;
     PluginHost::add_root_to_linker(&mut linker, |c| c).unwrap();
 
-    let store = Arc::new(Mutex::new(Store::new(&engine, PluginRunner::new())));
+    let (tx, _rx) = channel(1000);
+
+    let store = Arc::new(Mutex::new(Store::new(&engine, PluginRunner::new(tx))));
     let linker = Arc::new(linker);
 
     let bindings = join_all(
@@ -275,14 +315,14 @@ async fn generate(wasm_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         "oneOf".to_string(),
         schemas
             .into_iter()
-            .map(|(identifier, version, schema)| {
+            .map(|(plugin_name, version, schema)| {
                 let mut config_base = base.clone();
                 *config_base
                     .get_mut("properties")
                     .unwrap()
-                    .get_mut("identifier")
+                    .get_mut("plugin_name")
                     .unwrap() =
-                    serde_json::Map::from_iter([("const".into(), identifier.into())].into_iter())
+                    serde_json::Map::from_iter([("const".into(), plugin_name.into())].into_iter())
                         .into();
                 *config_base
                     .get_mut("properties")

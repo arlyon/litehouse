@@ -9,12 +9,28 @@ interface plugin {
 
     variant update {
       time(u64),
+
       temperature(float64),
       wind-speed(float64),
+
+      current(float64),
+      voltage(u16),
+      power(u16),
+      on-off(bool),
     }
 
     variant subscription {
       time(time-subscription),
+      update(update-subscription),
+    }
+
+    variant update-subscription {
+      temperature,
+      wind-speed,
+      current,
+      voltage,
+      power,
+      on-off
     }
 
     variant time-subscription {
@@ -38,7 +54,7 @@ interface plugin {
     }
 
     resource runner {
-      constructor(config: option<string>);
+      constructor(nickname: string, config: option<string>);
       subscribe: func() -> result<list<subscription>, u32>;
       update: func(events: list<event>) -> result<bool, u32>;
     }
@@ -53,9 +69,9 @@ interface plugin {
 }
 
 world plugin-host {
-  use plugin.{event, subscription};
+  use plugin.{event, update, subscription};
   import wasi:http/outgoing-handler@0.2.0-rc-2023-12-05;
 
-  import update: func(event: event);
+  import send-update: func(nickname: string, update: update);
   export plugin;
 }
