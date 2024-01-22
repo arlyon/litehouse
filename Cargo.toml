@@ -10,6 +10,13 @@ strip = true
 opt-level = "z"
 lto = true
 
+[profile.release-with-debug]
+inherits = "release"
+debug = true
+strip = false
+lto = false
+
+
 # [profile.dev]
 # codegen-backend = "cranelift"
 
@@ -18,4 +25,3 @@ wasmtime = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "b5
 wasmtime-wasi = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "b546a5f" }
 wasmtime-wasi-http = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "b546a5f" }
 wit-bindgen = { git = "https://github.com/bytecodealliance/wit-bindgen.git" }
-websocket = { path = "../rust-websocket" }

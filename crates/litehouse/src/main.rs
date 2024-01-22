@@ -96,36 +96,7 @@ async fn start(wasm_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let rx = Arc::new(rx);
 
     // todo: only produce as many plugin hosts as there are plugin types rather than instances
-    let bindings = join_all(
-        config
-            .plugins
-            .into_iter()
-            .map(|p| {
-                (
-                    Component::from_file(
-                        &engine,
-                        wasm_path.join(format!("{}.wasm", p.plugin_name)),
-                    )
-                    .unwrap(),
-                    p,
-                )
-            })
-            .map(|(c, p)| {
-                let store = store.clone();
-                let linker = linker.clone();
-                async move {
-                    let (bindings, _) =
-                        PluginHost::instantiate_async(&mut *store.lock().await, &c, &linker)
-                            .await
-                            .unwrap();
-
-                    (p, bindings)
-                }
-            }),
-    )
-    .await;
-
-    tracing::debug!("plugins instantiated");
+    let bindings = instantiate_plugins(&engine, &store, &linker, config.plugins, wasm_path).await;
 
     let timers = bindings.into_iter().map(|(p, host)| {
         let store = store.clone();
@@ -215,6 +186,44 @@ async fn start(wasm_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     futures::future::join_all(timers).await;
 
     Ok(())
+}
+
+#[tracing::instrument(skip(engine, store, linker, plugins))]
+async fn instantiate_plugins<T: Send>(
+    engine: &Engine,
+    store: &Mutex<Store<PluginRunner<T>>>,
+    linker: &ComponentLinker<PluginRunner<T>>,
+    plugins: Vec<PluginInstance>,
+    wasm_path: &Path,
+) -> Vec<(PluginInstance, PluginHost)> {
+    tracing::debug!("instantiating plugins");
+    let plugins = join_all(
+        plugins
+            .into_iter()
+            .map(|p| {
+                (
+                    Component::from_file(
+                        &engine,
+                        wasm_path.join(format!("{}.wasm", p.plugin_name)),
+                    )
+                    .unwrap(),
+                    p,
+                )
+            })
+            .map(|(c, p)| async move {
+                let (bindings, _) =
+                    PluginHost::instantiate_async(&mut *store.lock().await, &c, &linker)
+                        .await
+                        .unwrap();
+
+                tracing::debug!("instantiated plugin {:?}", p.nickname);
+
+                (p, bindings)
+            }),
+    )
+    .await;
+    tracing::debug!("plugins instantiated");
+    plugins
 }
 
 #[derive(plugin::JsonSchema, Deserialize, Debug)]

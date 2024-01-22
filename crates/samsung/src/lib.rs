@@ -1,19 +1,35 @@
+use std::{sync::Arc, time::Duration};
+
 use crate::{
     exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit},
-    wasi::http::{
-        outgoing_handler,
-        types::{Fields, OutgoingRequest, RequestOptions, Scheme},
+    wasi::sockets::{
+        instance_network::instance_network,
+        network::{self, IpSocketAddress},
+        tcp_create_socket::create_tcp_socket,
     },
 };
 use base64::{engine::general_purpose::STANDARD, Engine};
+use rustls::{client::danger::ServerCertVerifier, ClientConfig, ClientConnection};
+use serde::Serialize;
+use tungstenite::Message;
+use url::Url;
 
 plugin::generate!(SamsungPlugin, SamsungConfig);
 
 impl std::io::Read for crate::wasi::io::streams::InputStream {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        tracing::trace!("reading");
-        let d =
-            crate::wasi::io::streams::InputStream::blocking_read(self, buf.len() as u64).unwrap();
+        tracing::trace!("reading at most {} bytes", buf.len());
+
+        let d = loop {
+            tracing::trace!("waiting to read..");
+            self.subscribe().block();
+            let data = crate::wasi::io::streams::InputStream::read(self, buf.len() as u64).unwrap();
+            if data.len() > 0 {
+                break data;
+            } else {
+                std::thread::sleep(Duration::from_millis(100));
+            }
+        };
 
         tracing::trace!("read {:?}", d);
 
@@ -32,9 +48,10 @@ impl std::io::Write for crate::wasi::io::streams::OutputStream {
             tracing::error!("error checking write: {:?}", e);
             std::io::Error::new(std::io::ErrorKind::Other, "error checking write")
         })?;
-        tracing::trace!("writing {} bytes from {:?}", d, buf);
-        crate::wasi::io::streams::OutputStream::write(self, &buf[..d as usize]).unwrap();
-        Ok(d as usize)
+        let bytes = (d as usize).min(buf.len());
+        tracing::trace!("writing {} bytes from {:?}", bytes, buf);
+        crate::wasi::io::streams::OutputStream::write(self, &buf[..bytes]).unwrap();
+        Ok(bytes)
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
@@ -67,7 +84,7 @@ impl std::io::Write for IoStream {
 
 pub struct SamsungPlugin {
     nickname: String,
-    ip: String,
+    ip: (u8, u8, u8, u8),
     connection_name: String,
     token: String,
 }
@@ -76,7 +93,7 @@ pub struct SamsungPlugin {
 #[derive(plugin::JsonSchema, serde::Deserialize)]
 pub struct SamsungConfig {
     /// The IP address of the Samsung TV.
-    pub ip: String,
+    pub ip: (u8, u8, u8, u8),
     /// The name to use for this connection.
     pub name: String,
     /// The connection token to use for this connection.
@@ -110,59 +127,156 @@ impl GuestRunner for SamsungPlugin {
         for event in events {
             match event.inner {
                 exports::litehouse::plugin::plugin::Update::Time(_) => {
-                    let headers = Fields::new();
+                    let network = instance_network();
+                    let socket = create_tcp_socket(network::IpAddressFamily::Ipv4).unwrap();
+                    socket
+                        .start_connect(
+                            &network,
+                            IpSocketAddress::Ipv4(network::Ipv4SocketAddress {
+                                address: self.ip,
+                                port: 8002,
+                            }),
+                        )
+                        .unwrap();
+
+                    let (input, output) = loop {
+                        tracing::trace!("trying to finish connecting..");
+                        socket.subscribe().block();
+                        if let Ok((input, output)) = socket.finish_connect() {
+                            break (input, output);
+                        }
+                    };
+
+                    let mut stream = IoStream { output, input };
+
+                    let config = ClientConfig::builder()
+                        .dangerous()
+                        .with_custom_certificate_verifier(Arc::new(Ignore))
+                        .with_no_client_auth();
+
+                    let stream = rustls::Stream {
+                        sock: &mut stream,
+                        conn: &mut ClientConnection::new(
+                            Arc::new(config),
+                            format!("{}.{}.{}.{}", self.ip.0, self.ip.1, self.ip.2, self.ip.3)
+                                .try_into()
+                                .unwrap(),
+                        )
+                        .unwrap(),
+                    };
 
                     let name_b64 = STANDARD.encode(&self.connection_name);
 
-                    let req = OutgoingRequest::new(headers);
-                    req.set_path_with_query(Some(&format!(
-                        "/api/v2/channels/samsung.remote.control?name={}&token={}",
-                        name_b64, self.token
-                    )))
-                    .expect("ok");
-                    req.set_authority(Some(&format!("{}:8001", self.ip)))
-                        .unwrap();
-                    req.set_scheme(Some(&Scheme::Other("ws".to_string())))
-                        .unwrap();
-
-                    let req_body = req.body().unwrap();
-
-                    let x = outgoing_handler::handle(req, Some(RequestOptions::new())).unwrap();
-
-                    x.subscribe().block();
-                    let resp = x.get().unwrap().unwrap().unwrap();
-
-                    let status = resp.status();
-                    tracing::info!("status {:?}", status);
-
-                    let resp_body = resp.consume().unwrap();
-
-                    let req_stream = req_body.write().unwrap();
-                    let resp_stream = resp_body.stream().unwrap();
-
-                    let stream = IoStream {
-                        output: req_stream,
-                        input: resp_stream,
-                    };
-
-                    let mut conn = websocket::sync::client::ClientBuilder::new(&format!(
-                        "ws://{}:8001/api/v2/channels/samsung.remote.control?name={}",
-                        self.ip, name_b64
+                    let url = Url::parse(&format!(
+                        "wss://{}.{}.{}.{}:8002/api/v2/channels/samsung.remote.control?name={}&token={}",
+                        self.ip.0, self.ip.1, self.ip.2, self.ip.3, name_b64, self.token
                     ))
-                    .unwrap()
-                    .connect_on(stream)
                     .unwrap();
 
-                    for message in conn.incoming_messages() {
-                        tracing::info!("message {:?}", message);
-                    }
+                    let (mut socket, _) = tungstenite::client(url, stream).unwrap();
 
-                    tracing::info!("done");
+                    loop {
+                        let message = socket.read().unwrap();
+                        tracing::info!("message {:?}", message);
+
+                        let message = TvMessage::MsChannelEmit {
+                            params: TvEvent::Launch {
+                                to: "host".to_string(),
+                                data: LaunchData {
+                                    app_id: "11101200001".to_string(),
+                                    action_type: "DEEP_LINK".to_string(),
+                                },
+                            },
+                        };
+
+                        let message = TvMessage::MsChannelEmit {
+                            params: TvEvent::InstalledApps {
+                                to: "host".to_string(),
+                            },
+                        };
+
+                        let message = serde_json::to_string(&message).unwrap();
+                        tracing::info!("sending message {}", message);
+                        socket.send(Message::Text(message)).unwrap();
+                    }
                 }
                 _ => {}
             }
         }
 
         Ok(true)
+    }
+}
+
+#[derive(Serialize)]
+#[serde(tag = "method")]
+enum TvMessage {
+    #[serde(rename = "ms.channel.emit")]
+    MsChannelEmit { params: TvEvent },
+}
+
+#[derive(Serialize)]
+#[serde(tag = "event")]
+enum TvEvent {
+    #[serde(rename = "ed.apps.launch")]
+    Launch { to: String, data: LaunchData },
+    #[serde(rename = "ed.installedApp.get")]
+    InstalledApps { to: String },
+}
+
+#[derive(Serialize)]
+struct LaunchData {
+    #[serde(rename = "appId")]
+    app_id: String,
+    #[serde(rename = "actionType")]
+    action_type: String,
+}
+
+#[derive(Debug)]
+struct Ignore;
+
+impl ServerCertVerifier for Ignore {
+    fn verify_server_cert(
+        &self,
+        _end_entity: &rustls::pki_types::CertificateDer<'_>,
+        _intermediates: &[rustls::pki_types::CertificateDer<'_>],
+        _server_name: &rustls::pki_types::ServerName<'_>,
+        _ocsp_response: &[u8],
+        _now: rustls::pki_types::UnixTime,
+    ) -> Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
+        Ok(rustls::client::danger::ServerCertVerified::assertion())
+    }
+
+    fn verify_tls12_signature(
+        &self,
+        _message: &[u8],
+        _cert: &rustls::pki_types::CertificateDer<'_>,
+        _dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        _message: &[u8],
+        _cert: &rustls::pki_types::CertificateDer<'_>,
+        _dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
+        vec![
+            rustls::SignatureScheme::ECDSA_NISTP256_SHA256,
+            rustls::SignatureScheme::ECDSA_NISTP384_SHA384,
+            rustls::SignatureScheme::ECDSA_NISTP521_SHA512,
+            rustls::SignatureScheme::ED25519,
+            rustls::SignatureScheme::RSA_PSS_SHA256,
+            rustls::SignatureScheme::RSA_PSS_SHA384,
+            rustls::SignatureScheme::RSA_PSS_SHA512,
+            rustls::SignatureScheme::RSA_PKCS1_SHA256,
+            rustls::SignatureScheme::RSA_PKCS1_SHA384,
+            rustls::SignatureScheme::RSA_PKCS1_SHA512,
+        ]
     }
 }

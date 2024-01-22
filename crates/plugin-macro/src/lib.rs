@@ -98,6 +98,7 @@ pub fn generate_host(_input: TokenStream) -> TokenStream {
                 "wasi:io/poll": wasmtime_wasi::preview2::bindings::io::poll,
                 "wasi:random/random": wasmtime_wasi::preview2::bindings::random::random,
                 "wasi:io/error": wasmtime_wasi::preview2::bindings::io::error,
+                "wasi:sockets/tcp": wasmtime_wasi::preview2::bindings::sockets::tcp,
             }
         });
     }.into()

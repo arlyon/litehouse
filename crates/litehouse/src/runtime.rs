@@ -28,7 +28,12 @@ pub struct PluginRunner<T> {
 impl<T> PluginRunner<T> {
     pub fn new(event_sink: T) -> Self {
         let mut wasi = WasiCtxBuilder::new();
-        wasi.inherit_stdio();
+        wasi.inherit_stdio()
+            .allow_tcp(true)
+            .allow_ip_name_lookup(true)
+            .allow_udp(true)
+            .inherit_network()
+            .env("RUST_LOG", std::env::var("RUST_LOG").unwrap_or_default());
         let http = WasiHttpCtx;
         Self {
             table: ResourceTable::new(),
