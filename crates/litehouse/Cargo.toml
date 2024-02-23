@@ -5,11 +5,20 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[profile.release]
+debug = 1
+
+[features]
+dhat-heap = []    # if you are doing heap profiling
+
 [dependencies]
 async-trait = "0.1.75"
 clap = { version = "4.4.12", features = ["derive"] }
+color-eyre = "0.6.2"
 console-subscriber = "0.2.0"
+dhat = "0.3.3"
 directories = "5.0.1"
+eyre = "0.6.12"
 futures = "0.3"
 plugin = { version = "0.1.0", path = "../plugin" }
 schemars = "0.8.16"
