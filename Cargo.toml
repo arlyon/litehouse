@@ -25,3 +25,10 @@ wasmtime = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "4d
 wasmtime-wasi = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "4d54a99" }
 wasmtime-wasi-http = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "4d54a99" }
 
+[workspace.metadata.groups]
+plugins = [
+    "path:crates/samsung",
+    "path:crates/sonoff",
+    "path:crates/tasmota",
+    "path:crates/weather",
+]
