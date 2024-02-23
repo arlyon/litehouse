@@ -70,10 +70,10 @@ interface plugin {
 
 world plugin-host {
   use plugin.{event, update, subscription};
-  import wasi:http/outgoing-handler@0.2.0-rc-2023-12-05;
-  import wasi:sockets/tcp@0.2.0-rc-2023-11-10;
-  import wasi:sockets/tcp-create-socket@0.2.0-rc-2023-11-10;
-  import wasi:sockets/instance-network@0.2.0-rc-2023-11-10;
+  import wasi:http/outgoing-handler@0.2.0;
+  import wasi:sockets/tcp@0.2.0;
+  import wasi:sockets/tcp-create-socket@0.2.0;
+  import wasi:sockets/instance-network@0.2.0;
 
   import send-update: func(nickname: string, update: update);
   export plugin;
