@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -6,7 +7,8 @@ use std::{
 use clap::{Parser, Subcommand};
 use eyre::{eyre, Result, WrapErr};
 use futures::future::{join_all, try_join_all};
-use plugin::serde_json;
+use litehouse_config::{Import, LitehouseConfig, PluginInstance};
+use plugin::serde_json::{self, Value};
 use runtime::{
     bindings::{
         exports::litehouse::plugin::plugin::{
@@ -16,7 +18,6 @@ use runtime::{
     },
     PluginRunner,
 };
-use serde::{Deserialize, Serialize};
 use tokio::{
     sync::{
         broadcast::{channel, Sender},
@@ -60,6 +61,11 @@ enum Command {
         wasm_path: PathBuf,
     },
     Init,
+    Validate {
+        /// The path to look for wasm files in.
+        #[clap(default_value = "./wasm", short, long)]
+        wasm_path: PathBuf,
+    },
 }
 
 fn main() -> Result<()> {
@@ -87,7 +93,7 @@ async fn main_inner() -> Result<()> {
             if std::fs::metadata("settings.json").is_ok() {
                 return Ok(());
             }
-            let default = LitehouseConfig { plugins: vec![] };
+            let default = LitehouseConfig::default();
             let mut value = serde_json::to_value(default).expect("can't fail");
             value
                 .as_object_mut()
@@ -101,16 +107,38 @@ async fn main_inner() -> Result<()> {
             Ok(())
         }
         Command::Run { wasm_path } => start(&wasm_path).await,
-        Command::Generate { wasm_path } => generate(&wasm_path).await,
+        Command::Generate { wasm_path } => {
+            let schema = generate(&wasm_path).await?;
+
+            // write file
+            let mut file = std::fs::File::create("schema.json").unwrap();
+            serde_json::to_writer_pretty(&mut file, &schema).unwrap();
+
+            println!("wrote jsonschema to schema.json");
+            Ok(())
+        }
+        Command::Validate { wasm_path } => {
+            let schema = generate(&wasm_path).await?;
+            let schema = jsonschema::JSONSchema::compile(&schema).expect("can't fail");
+            let settings =
+                std::fs::File::open("settings.json").wrap_err("unable to open settings.json")?;
+            let settings: serde_json::Value =
+                serde_json::from_reader(&settings).wrap_err("invalid settings.json")?;
+            if let Err(errors) = schema.validate(&settings) {
+                for error in errors {
+                    println!("Validation error: {}", error);
+                    println!("Instance path: {}", error.instance_path);
+                }
+            }
+            Ok(())
+        }
     }
 }
 
 async fn start(wasm_path: &Path) -> Result<()> {
     tracing::info!("booting litehouse");
 
-    let file = std::fs::File::open("settings.json").wrap_err("unable to open settings.json")?;
-    let config: LitehouseConfig =
-        serde_json::from_reader(&file).wrap_err("invalid settings.json")?;
+    let config = LitehouseConfig::load().wrap_err("unable to load settings.json")?;
 
     let (engine, linker) = set_up_engine()?;
 
@@ -127,24 +155,24 @@ async fn start(wasm_path: &Path) -> Result<()> {
         .await
         .wrap_err("unable to instantiate plugins")?;
 
-    let timers = bindings.into_iter().map(|(host, p)| {
+    let timers = bindings.into_iter().map(|(host, nickname, plugin)| {
         let store = store.clone();
         let rx = rx.resubscribe();
         async move {
             let runner = host.litehouse_plugin_plugin().runner();
 
-            let config = serde_json::to_string(&p.config).expect("can't fail");
+            let config = serde_json::to_string(&plugin.config).expect("can't fail");
 
             let instance = runner
-                .call_constructor(&mut *store.lock().await, &p.nickname, Some(&config))
+                .call_constructor(&mut *store.lock().await, &nickname, Some(&config))
                 .await
                 .map_err(|e| eyre!("failed to construct plugin: {:?}", e))?;
 
             let subs = runner
                 .call_subscribe(&mut *store.lock().await, instance)
                 .await
-                .map_err(|e| eyre!("plugin {} failed to subscribe: {:?}", p.nickname, e))?
-                .map_err(|e| eyre!("plugin {} failed to subscribe: {}", p.nickname, e))?;
+                .map_err(|e| eyre!("plugin {} failed to subscribe: {:?}", nickname, e))?
+                .map_err(|e| eyre!("plugin {} failed to subscribe: {}", nickname, e))?;
 
             let mut listen_types = vec![];
 
@@ -186,7 +214,7 @@ async fn start(wasm_path: &Path) -> Result<()> {
                     event_stream
                         .filter_map(|u| u.ok())
                         .filter(|(name, event)| {
-                            name != &p.nickname && listen_types.iter().any(|t| t.matches(event))
+                            name != &nickname && listen_types.iter().any(|t| t.matches(event))
                         })
                         .map(|(_, update)| update),
                 );
@@ -204,8 +232,8 @@ async fn start(wasm_path: &Path) -> Result<()> {
                         }],
                     )
                     .await
-                    .map_err(|e| eyre!("plugin {} failed to update: {:?}", p.nickname, e))?
-                    .map_err(|e| eyre!("plugin {} failed to subscribe: {}", p.nickname, e))?;
+                    .map_err(|e| eyre!("plugin {} failed to update: {:?}", nickname, e))?
+                    .map_err(|e| eyre!("plugin {} failed to subscribe: {}", nickname, e))?;
             }
 
             Ok(())
@@ -259,13 +287,14 @@ async fn instantiate_plugins<T: Send>(
     engine: &Engine,
     store: &Mutex<Store<PluginRunner<T>>>,
     linker: &ComponentLinker<PluginRunner<T>>,
-    plugins: Vec<PluginInstance>,
+    plugins: HashMap<String, PluginInstance>,
     base_path: &Path,
-) -> Result<Vec<(PluginHost, PluginInstance)>> {
+) -> Result<Vec<(PluginHost, String, PluginInstance)>> {
     tracing::debug!("instantiating plugins");
-    let plugins = try_join_all(plugins.into_iter().map(|instance| async move {
+    let plugins = try_join_all(plugins.into_iter().map(|(nickname, instance)| async move {
         Ok::<_, eyre::ErrReport>((
             instantiate_plugin(&instance, engine, store, linker, base_path).await?,
+            nickname,
             instance,
         ))
     }))
@@ -274,7 +303,7 @@ async fn instantiate_plugins<T: Send>(
     Ok(plugins)
 }
 
-#[tracing::instrument(skip(engine, store, linker, instance, base_path), fields(instance = %instance.plugin_name, name=%instance.nickname))]
+#[tracing::instrument(skip(engine, store, linker, instance, base_path), fields(instance = %instance.plugin.plugin))]
 async fn instantiate_plugin<T: Send>(
     instance: &PluginInstance,
     engine: &Engine,
@@ -282,11 +311,8 @@ async fn instantiate_plugin<T: Send>(
     linker: &ComponentLinker<PluginRunner<T>>,
     base_path: &Path,
 ) -> Result<PluginHost> {
-    let component = Component::from_file(
-        &engine,
-        base_path.join(format!("{}.wasm", instance.plugin_name)),
-    )
-    .map_err(|e| eyre!("unable to load plugin: {}", e))?;
+    let component = Component::from_file(&engine, base_path.join(instance.plugin.file_name()))
+        .map_err(|e| eyre!("unable to load {} plugin: {}", instance.plugin.plugin, e))?;
 
     let (bindings, _) =
         PluginHost::instantiate_async(&mut *store.lock().await, &component, &linker)
@@ -298,20 +324,7 @@ async fn instantiate_plugin<T: Send>(
     Ok(bindings)
 }
 
-#[derive(plugin::JsonSchema, Serialize, Deserialize, Debug)]
-struct LitehouseConfig {
-    plugins: Vec<PluginInstance>,
-}
-
-#[derive(plugin::JsonSchema, Serialize, Deserialize, Debug)]
-struct PluginInstance {
-    plugin_name: String,
-    version: String,
-    nickname: String,
-    config: Option<serde_json::Value>,
-}
-
-async fn generate(wasm_path: &Path) -> Result<()> {
+async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
     let (engine, linker) = set_up_engine()?;
 
     let (tx, _rx) = channel(1000);
@@ -375,8 +388,15 @@ async fn generate(wasm_path: &Path) -> Result<()> {
     let schemas: Vec<(_, _, Option<serde_json::Value>)> = futures::future::join_all(jobs).await;
 
     let config_schema = schemars::schema_for!(LitehouseConfig);
-    let mut json = serde_json::to_value(&config_schema).expect("can't fail");
+    let json = serde_json::to_value(&config_schema).expect("can't fail");
 
+    Ok(inject_plugin_instance(json, schemas.into_iter()))
+}
+
+fn inject_plugin_instance(
+    mut json: Value,
+    plugins: impl Iterator<Item = (String, String, Option<Value>)>,
+) -> serde_json::Value {
     let definitions = json
         .get_mut("definitions")
         .expect("this is always present")
@@ -389,8 +409,7 @@ async fn generate(wasm_path: &Path) -> Result<()> {
 
     definitions.insert(
         "oneOf".to_string(),
-        schemas
-            .into_iter()
+        plugins
             .map(|(plugin_name, version, schema)| {
                 let mut config_base = base.clone();
                 let properties = config_base
@@ -398,12 +417,17 @@ async fn generate(wasm_path: &Path) -> Result<()> {
                     .expect("always exists")
                     .as_object_mut()
                     .expect("is always an object");
-                *properties.get_mut("plugin_name").unwrap() =
-                    serde_json::Map::from_iter([("const".into(), plugin_name.into())].into_iter())
-                        .into();
-                *properties.get_mut("version").unwrap() =
-                    serde_json::Map::from_iter([("const".into(), version.into())].into_iter())
-                        .into();
+
+                let import = Import {
+                    registry: None,
+                    plugin: plugin_name.clone(),
+                    version: version.parse().ok(),
+                };
+
+                *properties.get_mut("plugin").unwrap() = serde_json::Map::from_iter(
+                    [("const".into(), import.to_string().into())].into_iter(),
+                )
+                .into();
 
                 let set = if let Some(mut schema) = schema {
                     let object = schema.as_object_mut().unwrap();
@@ -437,11 +461,5 @@ async fn generate(wasm_path: &Path) -> Result<()> {
             .collect(),
     );
 
-    // write file
-    let mut file = std::fs::File::create("schema.json").unwrap();
-    serde_json::to_writer_pretty(&mut file, &json).unwrap();
-
-    println!("wrote jsonschema to schema.json");
-
-    Ok(())
+    json
 }

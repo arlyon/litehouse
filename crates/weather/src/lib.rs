@@ -5,6 +5,12 @@ use crate::{
         types::{Fields, OutgoingRequest, RequestOptions, Scheme},
     },
 };
+use alloc::borrow::ToOwned;
+use core::fmt::Write;
+use plugin::wit_bindgen::rt::{string::String, vec::Vec};
+
+#[macro_use]
+extern crate alloc;
 
 plugin::generate!(WeatherPlugin, WeatherConfig);
 
@@ -12,6 +18,7 @@ pub struct WeatherPlugin {
     nickname: String,
     lat: f64,
     lon: f64,
+    request_path: String,
 }
 
 #[derive(plugin::JsonSchema, serde::Deserialize)]
@@ -25,7 +32,18 @@ pub struct WeatherConfig {
 impl GuestRunner for WeatherPlugin {
     fn new(nickname: String, config: Option<String>) -> Self {
         let WeatherConfig { lat, lon } = serde_json::from_str(&config.unwrap_or_default()).unwrap();
-        Self { nickname, lat, lon }
+        let mut request_path = String::new();
+        write!(
+            &mut request_path,
+            "/v1/forecast?latitude={}&longitude={}&current=temperature_2m,wind_speed_10m",
+            lat, lon
+        );
+        Self {
+            nickname,
+            lat,
+            lon,
+            request_path,
+        }
     }
 
     fn subscribe(&self) -> Result<Vec<Subscription>, u32> {
@@ -44,10 +62,8 @@ impl GuestRunner for WeatherPlugin {
                     let headers = Fields::new();
 
                     let req = OutgoingRequest::new(headers);
-                    req.set_path_with_query(Some(
-                        &format!("/v1/forecast?latitude={}&longitude={}&current=temperature_2m,wind_speed_10m", self.lat, self.lon),
-                    ))
-                    .expect("ok");
+                    req.set_path_with_query(Some(&self.request_path))
+                        .expect("ok");
                     req.set_authority(Some("api.open-meteo.com")).unwrap();
                     req.set_scheme(Some(&Scheme::Https)).unwrap();
 

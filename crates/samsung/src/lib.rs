@@ -124,56 +124,64 @@ impl GuestRunner for SamsungPlugin {
     }
 
     fn update(&self, events: Vec<exports::litehouse::plugin::plugin::Event>) -> Result<bool, u32> {
+        let base_url = format!(
+            "wss://{}.{}.{}.{}:8002/api/v2",
+            self.ip.0, self.ip.1, self.ip.2, self.ip.3
+        );
+
+        let name_b64 = STANDARD.encode(&self.connection_name);
+
+        let remote_url = format!(
+            "{}/channels/samsung.remote.control?name={}&token={}",
+            base_url, name_b64, self.token
+        );
+        let remote_url = Url::parse(&remote_url).unwrap();
+
+        let app_url = format!("{}?name={}", base_url, name_b64);
+        let app_url = Url::parse(&app_url).unwrap();
+
+        let network = instance_network();
+        let socket = create_tcp_socket(network::IpAddressFamily::Ipv4).unwrap();
+        socket
+            .start_connect(
+                &network,
+                IpSocketAddress::Ipv4(network::Ipv4SocketAddress {
+                    address: self.ip,
+                    port: 8002,
+                }),
+            )
+            .unwrap();
+
+        let (input, output) = loop {
+            tracing::trace!("trying to finish connecting..");
+            socket.subscribe().block();
+            if let Ok((input, output)) = socket.finish_connect() {
+                break (input, output);
+            }
+        };
+
+        let mut stream = IoStream { output, input };
+
+        let config = ClientConfig::builder()
+            .dangerous()
+            .with_custom_certificate_verifier(Arc::new(Ignore))
+            .with_no_client_auth();
+
+        let stream = rustls::Stream {
+            sock: &mut stream,
+            conn: &mut ClientConnection::new(
+                Arc::new(config),
+                format!("{}.{}.{}.{}", self.ip.0, self.ip.1, self.ip.2, self.ip.3)
+                    .try_into()
+                    .unwrap(),
+            )
+            .unwrap(),
+        };
+
         for event in events {
             match event.inner {
                 exports::litehouse::plugin::plugin::Update::Time(_) => {
-                    let network = instance_network();
-                    let socket = create_tcp_socket(network::IpAddressFamily::Ipv4).unwrap();
-                    socket
-                        .start_connect(
-                            &network,
-                            IpSocketAddress::Ipv4(network::Ipv4SocketAddress {
-                                address: self.ip,
-                                port: 8002,
-                            }),
-                        )
-                        .unwrap();
-
-                    let (input, output) = loop {
-                        tracing::trace!("trying to finish connecting..");
-                        socket.subscribe().block();
-                        if let Ok((input, output)) = socket.finish_connect() {
-                            break (input, output);
-                        }
-                    };
-
-                    let mut stream = IoStream { output, input };
-
-                    let config = ClientConfig::builder()
-                        .dangerous()
-                        .with_custom_certificate_verifier(Arc::new(Ignore))
-                        .with_no_client_auth();
-
-                    let stream = rustls::Stream {
-                        sock: &mut stream,
-                        conn: &mut ClientConnection::new(
-                            Arc::new(config),
-                            format!("{}.{}.{}.{}", self.ip.0, self.ip.1, self.ip.2, self.ip.3)
-                                .try_into()
-                                .unwrap(),
-                        )
-                        .unwrap(),
-                    };
-
-                    let name_b64 = STANDARD.encode(&self.connection_name);
-
-                    let url = Url::parse(&format!(
-                        "wss://{}.{}.{}.{}:8002/api/v2/channels/samsung.remote.control?name={}&token={}",
-                        self.ip.0, self.ip.1, self.ip.2, self.ip.3, name_b64, self.token
-                    ))
-                    .unwrap();
-
-                    let (mut socket, _) = tungstenite::client(url, stream).unwrap();
+                    let (mut socket, _) = tungstenite::client(app_url, stream).unwrap();
 
                     loop {
                         let message = socket.read().unwrap();
@@ -183,17 +191,15 @@ impl GuestRunner for SamsungPlugin {
                             params: TvEvent::Launch {
                                 to: "host".to_string(),
                                 data: LaunchData {
-                                    app_id: "11101200001".to_string(),
-                                    action_type: "DEEP_LINK".to_string(),
+                                    app_id: "MCmYXNxgcu.DisneyPlus".to_string(),
+                                    action_type: ActionType::NativeLaunch,
                                 },
                             },
                         };
 
-                        let message = TvMessage::MsChannelEmit {
-                            params: TvEvent::InstalledApps {
-                                to: "host".to_string(),
-                            },
-                        };
+                        // let message = TvMessage::MsRemoteControl {
+                        //     params: RemoteControlEvent::press_button(RemoteControlButton::VolumeUp),
+                        // };
 
                         let message = serde_json::to_string(&message).unwrap();
                         tracing::info!("sending message {}", message);
@@ -213,6 +219,8 @@ impl GuestRunner for SamsungPlugin {
 enum TvMessage {
     #[serde(rename = "ms.channel.emit")]
     MsChannelEmit { params: TvEvent },
+    #[serde(rename = "ms.remote.control")]
+    MsRemoteControl { params: RemoteControlEvent },
 }
 
 #[derive(Serialize)]
@@ -225,11 +233,49 @@ enum TvEvent {
 }
 
 #[derive(Serialize)]
+struct RemoteControlEvent {
+    #[serde(rename = "Cmd")]
+    cmd: String,
+    #[serde(rename = "DataOfCmd")]
+    data: RemoteControlButton,
+    #[serde(rename = "Option")]
+    option: String,
+    #[serde(rename = "TypeOfRemote")]
+    type_of_remote: String,
+}
+
+#[derive(Serialize)]
+enum RemoteControlButton {
+    #[serde(rename = "KEY_VOLUP")]
+    VolumeUp,
+    #[serde(rename = "KEY_VOLDOWN")]
+    VolumeDown,
+}
+
+impl RemoteControlEvent {
+    fn press_button(data: RemoteControlButton) -> Self {
+        Self {
+            cmd: "Click".to_string(),
+            data,
+            option: "false".to_string(),
+            type_of_remote: "SendRemoteKey".to_string(),
+        }
+    }
+}
+
+#[derive(Serialize)]
 struct LaunchData {
     #[serde(rename = "appId")]
     app_id: String,
-    #[serde(rename = "actionType")]
-    action_type: String,
+    action_type: ActionType,
+}
+
+#[derive(Serialize)]
+enum ActionType {
+    #[serde(rename = "DEEP_LINK")]
+    DeepLink,
+    #[serde(rename = "NATIVE_LAUNCH")]
+    NativeLaunch,
 }
 
 #[derive(Debug)]

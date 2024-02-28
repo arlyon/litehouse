@@ -68,6 +68,33 @@ interface plugin {
     get-metadata: func() -> metadata;
 }
 
+interface media {
+  // An additional interface for plugins that can play media
+  resource media {
+    play: func() -> result<bool, u32>;
+    pause: func() -> result<bool, u32>;
+    stop: func() -> result<bool, u32>;
+    next: func() -> result<bool, u32>;
+    previous: func() -> result<bool, u32>;
+  }
+}
+
+interface switch {
+  // An additional interface for plugins that can be turned on and off
+  resource switch {
+    on: func() -> result<bool, u32>;
+    off: func() -> result<bool, u32>;
+    toggle: func() -> result<bool, u32>;
+  }
+}
+
+interface notify {
+  // An additional interface for plugins that can notify the user
+  resource notify {
+    notify: func(message: string) -> result<bool, u32>;
+  }
+}
+
 world plugin-host {
   use plugin.{event, update, subscription};
   import wasi:http/outgoing-handler@0.2.0;

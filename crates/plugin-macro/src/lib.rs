@@ -44,8 +44,8 @@ pub fn generate(input: TokenStream) -> TokenStream {
         impl exports::litehouse::plugin::plugin::Guest for #ident {
             fn get_metadata() -> exports::litehouse::plugin::plugin::Metadata {
                 exports::litehouse::plugin::plugin::Metadata {
-                    identifier: std::env!("CARGO_PKG_NAME").to_string(),
-                    version: std::env!("CARGO_PKG_VERSION").to_string(),
+                    identifier: core::env!("CARGO_PKG_NAME").to_string(),
+                    version: core::env!("CARGO_PKG_VERSION").to_string(),
                     config_schema: #config,
                 }
             }
@@ -62,8 +62,8 @@ pub fn generate(input: TokenStream) -> TokenStream {
             exports: {
                 "litehouse:plugin/plugin/runner": #plugin_type,
                 #config_type
-
-            }
+            },
+            std_feature,
         });
 
         #impl_block

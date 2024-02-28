@@ -20,6 +20,8 @@ dhat = "0.3.3"
 directories = "5.0.1"
 eyre = "0.6.12"
 futures = "0.3"
+jsonschema = "0.17.1"
+litehouse-config = { version = "0.1.0", path = "../litehouse-config" }
 plugin = { version = "0.1.0", path = "../plugin" }
 schemars = "0.8.16"
 serde = { version = "1.0.195", features = ["derive"] }
