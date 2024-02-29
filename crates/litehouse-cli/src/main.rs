@@ -23,14 +23,21 @@ struct Opts {
 enum Options {
     /// Publish a package to the registry. Run this in the root of your package.
     Publish { package: String },
+    /// Fetch packages from the registry, based on the imports in your settings file.
     Fetch {
         #[clap(default_value = "wasm")]
         wasm_path: PathBuf,
     },
+    /// Build a package and write the wasm file to the specified path.
     Build {
         package: String,
         #[clap(default_value = "wasm")]
         wasm_path: PathBuf,
+    },
+    /// Search for a package in the registry.
+    Search {
+        /// The plugin to search for.
+        query: Option<String>,
     },
 }
 
@@ -48,6 +55,17 @@ async fn main() {
         Options::Publish { package } => publish(package, &registry.with_capability(Upload)).await,
         Options::Fetch { wasm_path } => fetch(&registry.with_capability(Download(wasm_path))).await,
         Options::Build { wasm_path, package } => build(&package, &wasm_path).await,
+        Options::Search { query } => {
+            let prefix = query.map(|q| Import {
+                plugin: q,
+                registry: None,
+                version: None,
+            });
+            let results = registry.list(prefix.as_ref()).await;
+            for (import, _) in results {
+                println!("{}", import.to_string());
+            }
+        }
     }
 }
 
@@ -65,11 +83,11 @@ impl Registry<()> {
         // Create s3 backend builder.
         let mut builder = S3::default();
         builder.root("v1");
-        builder.bucket("abcd-test");
+        builder.bucket("litehouse");
         builder.region("us-east-1");
         builder.endpoint("https://ams1.vultrobjects.com");
-        builder.access_key_id("QN6P0OVEVPJI59ZSSI3S");
-        builder.secret_access_key("DSxNmS7hyMT7scscrELh3lg7KlX32sWhOiSZXcAz");
+        builder.access_key_id("8Z1X0TM6U3YPQXP4UVMF");
+        builder.secret_access_key("KFCrfpgblBAr4NYNrti3Emr1QlfFVNEDzjyuvkcz");
 
         let op = Operator::new(builder).unwrap();
 
