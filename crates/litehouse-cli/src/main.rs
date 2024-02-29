@@ -33,6 +33,8 @@ enum Options {
         package: String,
         #[clap(default_value = "wasm")]
         wasm_path: PathBuf,
+        #[clap(long, default_value_t = false)]
+        debug: bool,
     },
     /// Search for a package in the registry.
     Search {
@@ -54,7 +56,11 @@ async fn main() {
     match opts.command {
         Options::Publish { package } => publish(package, &registry.with_capability(Upload)).await,
         Options::Fetch { wasm_path } => fetch(&registry.with_capability(Download(wasm_path))).await,
-        Options::Build { wasm_path, package } => build(&package, &wasm_path).await,
+        Options::Build {
+            wasm_path,
+            package,
+            debug,
+        } => build(&package, &wasm_path, debug).await,
         Options::Search { query } => {
             let prefix = query.map(|q| Import {
                 plugin: q,
@@ -188,7 +194,7 @@ impl Registry<Download> {
     }
 }
 
-async fn build_in_temp(package: &str) -> Option<(Import, PathBuf)> {
+async fn build_in_temp(package: &str, release: bool) -> Option<(Import, PathBuf)> {
     let workspaces_json = Command::new("cargo")
         .arg("metadata")
         .output()
@@ -219,14 +225,8 @@ async fn build_in_temp(package: &str) -> Option<(Import, PathBuf)> {
 
     // run cargo build
     let out = Command::new("cargo")
-        .args([
-            "build",
-            "--release",
-            "--target",
-            "wasm32-wasi",
-            "-p",
-            &package,
-        ])
+        .args(["build", "--target", "wasm32-wasi", "-p", &package])
+        .args(if release { &["--release"][..] } else { &[] })
         .status()
         .await
         .unwrap();
@@ -270,15 +270,15 @@ async fn build_in_temp(package: &str) -> Option<(Import, PathBuf)> {
     Some((import, out_path))
 }
 
-async fn build(package: &str, wasm_path: &Path) {
-    let (import, path) = build_in_temp(package).await.unwrap();
+async fn build(package: &str, wasm_path: &Path, debug: bool) {
+    let (import, path) = build_in_temp(package, !debug).await.unwrap();
     tokio::fs::create_dir_all(wasm_path).await.unwrap();
     let dest_file = wasm_path.join(import.file_name());
     tokio::fs::copy(&path, &dest_file).await.unwrap();
 }
 
 async fn publish(package: String, op: &Registry<Upload>) {
-    let (import, path) = build_in_temp(&package).await.unwrap();
+    let (import, path) = build_in_temp(&package, true).await.unwrap();
 
     let success = op.publish(&import, &path).await;
     if success {
