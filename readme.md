@@ -25,16 +25,26 @@ to send events to the server at any time.
 ## Capabilities
 
 The server provides native implementations for a number of capabilities,
-the primary one (used in both reference plugins) being `wasi:http/outgoing-handler`. Plugins may use this to make http requests, which
-are served using the server's native http client, meaning plugins do not
-need to bundle heavy dependencies. Other capabilities, such as filesystem,
-clocks, random numbers, and more are also available but not exposed to plugins
-yet.
+the primary one (used in both reference plugins) being `wasi:http/outgoing-handler`.
+Plugins may use this to make http requests, which are served using the server's
+native http client, meaning plugins do not need to bundle heavy dependencies.
+Other capabilities, such as filesystem, clocks, random numbers, and more are
+also available but not exposed to plugins yet.
 
-Once a scheme for handling configuration is decided on, plugins will be able
-declare network ports to listen on, and the server will forward requests to
-their incoming handlers. This will be the foundation of the next plugins,
-namely `mqtt` and `web`.
+Plugins are completely sandboxed by default, so to allow them to access
+outside the sandbox, you must award them capabilities by adding them to
+the `capabilities` field in your settings file.
+
+```jsonc
+{
+  "capabilities": [
+    "http-client:api.open-meteo.com",
+    "http-server:0.0.0.0:8000",
+    // (not implemented yet)
+    "folder:example"
+  ]
+}
+```
 
 ## Building
 
@@ -45,20 +55,59 @@ simple as running cargo install in the server directory.
 
 ```bash
 cargo install --path crates/litehouse
+cargo install --path crates/litehouse-cli
 ```
 
-Plugins are a little more complicated. You must build against the
-`wasm32-wasi` target, and then process the resulting binary with
-`wasm-tools` and the `./wasi_snapshot_preview1.reactor.wasm` adaptor
-bundled in the repo. It comes from the specific git commit of
-wasmtime that the server uses. In the future, it is expected that
-this step will no longer be necessary.
+You can use litehouse-cli to search for, build, fetch, and publish plugins.
+The `fetch` command reads the imports from your settings and fetches
+matches plugins from the registry. The `build` command compiles a local
+plugin to a given path.
 
 ```bash
-cargo build --target wasm32-wasi --release
-wasm-tools component new ../../target/wasm32-wasi/release/plugin.wasm --adapt ./wasi_snapshot_preview1.reactor.wasm -o plugin.wasm
-# optionally, strip
-wasm-tools strip plugin.wasm -o plugin.wasm
+litehouse-cli build weather
+litehouse-cli search weather
+litehouse-cli fetch
 ```
 
 The weather plugin weighs in at about 200KB, and the tasmota at 300KB.
+
+## Running
+
+The server can be run with the `litehouse run` command. It will read
+the plugin instances from your local `settings.json` file, and instantiate
+one for each of them. The server will then call the update function on
+each of them at the interval specified in the plugin's subscribe function.
+
+First, let's set up a settings file, and a schema file.
+
+```bash
+litehouse init && litehouse generate
+```
+
+Next, we should add some plugins to the import field in `settings.json`.
+
+```diff
+{
+  "$schema": "schema.json",
+- "plugins": {}
++ "plugins": {},
++ "imports": ["weather", "tasmota", "samsung"]
+}
+```
+
+From there, we can fetch the plugins from the registry, and re-run the
+generate command to update the schema file.
+
+```bash
+litehouse-cli fetch
+litehouse generate
+```
+
+Finally, we can validate the settings file and run the server. Editors
+with a jsonschema language server will provide validation and
+autocompletion for the settings file as you type.
+
+```bash
+litehouse validate
+litehouse run
+```
