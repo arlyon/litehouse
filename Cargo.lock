@@ -3287,6 +3287,14 @@ dependencies = [
 [[package]]
 name = "twilio"
 version = "0.1.0"
+dependencies = [
+ "plugin",
+ "schemars",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "tracing",
+]
 
 [[package]]
 name = "typenum"
@@ -3947,13 +3955,14 @@ dependencies = [
 
 [[package]]
 name = "weather"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "plugin",
  "schemars",
  "serde",
  "serde_json",
  "serde_path_to_error",
+ "tracing",
 ]
 
 [[package]]

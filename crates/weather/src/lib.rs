@@ -29,6 +29,8 @@ pub struct WeatherConfig {
 
 impl GuestRunner for WeatherPlugin {
     fn new(nickname: String, config: Option<String>) -> Self {
+        plugin::tracing_subscriber();
+
         let WeatherConfig { lat, lon } = serde_json::from_str(&config.unwrap_or_default()).unwrap();
         let mut request_path = String::new();
         write!(
@@ -53,6 +55,7 @@ impl GuestRunner for WeatherPlugin {
     }
 
     fn update(&self, events: Vec<exports::litehouse::plugin::plugin::Event>) -> Result<bool, u32> {
+        tracing::info!("weather update");
         for event in events {
             if let exports::litehouse::plugin::plugin::Update::Time(_) = event.inner {
                 let headers = Fields::new();
@@ -63,12 +66,13 @@ impl GuestRunner for WeatherPlugin {
                 req.set_authority(Some("api.open-meteo.com")).unwrap();
                 req.set_scheme(Some(&Scheme::Https)).unwrap();
 
-                let opts = RequestOptions::new();
+                let Ok(result) = outgoing_handler::handle(req, None) else {
+                    tracing::error!("unable to send request");
+                    continue;
+                };
 
-                let x = outgoing_handler::handle(req, Some(opts)).unwrap();
-
-                x.subscribe().block();
-                let resp = x.get().unwrap();
+                result.subscribe().block();
+                let resp = result.get().expect("this is called only once");
 
                 if let Ok(Ok(resp)) = resp {
                     let body = resp.consume().unwrap();
