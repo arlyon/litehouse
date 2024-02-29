@@ -144,10 +144,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-trait"
-version = "0.1.75"
+name = "async-trace"
+version = "0.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdf6721fb0140e4f897002dd086c06f6c27775df19cfe1fccb21181a48fd2c98"
+checksum = "44621810a492695afb5d8e7327b9953bc2da09a6231ea550a52f7d0a08532700"
+
+[[package]]
+name = "async-trait"
+version = "0.1.77"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c980ee35e870bd1a4d2c8294d4c04d0499e67bca1e4b5cefcc693c2fa00caea9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1661,7 +1667,11 @@ dependencies = [
 name = "litehouse-cli"
 version = "0.1.0"
 dependencies = [
+ "async-trace",
+ "async-trait",
+ "bytes",
  "clap",
+ "directories-next",
  "litehouse-config",
  "opendal",
  "serde_json",
@@ -1672,6 +1682,7 @@ dependencies = [
 name = "litehouse-config"
 version = "0.1.0"
 dependencies = [
+ "directories-next",
  "schemars",
  "semver",
  "serde",

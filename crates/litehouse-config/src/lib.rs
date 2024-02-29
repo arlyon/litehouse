@@ -27,6 +27,10 @@ impl LitehouseConfig {
     }
 }
 
+pub fn directories() -> Option<directories_next::ProjectDirs> {
+    directories_next::ProjectDirs::from("com", "litehouse", "litehouse")
+}
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("io error")]
@@ -53,12 +57,12 @@ pub struct Import {
 
 impl Import {
     pub fn file_name(&self) -> String {
-        format!(
-            "{}{}{}.wasm",
-            self.plugin,
-            VERSION_SEPARATOR,
-            self.version.as_ref().unwrap()
-        )
+        let version = self
+            .version
+            .as_ref()
+            .map(|v| format!("{}{}", VERSION_SEPARATOR, v))
+            .unwrap_or_default();
+        format!("{}{}.wasm", self.plugin, version)
     }
 }
 

@@ -34,6 +34,7 @@ impl TasmotaPlugin {
 impl GuestRunner for TasmotaPlugin {
     fn new(nickname: String, config: Option<String>) -> Self {
         plugin::tracing_subscriber();
+        tracing::info!("YAY");
         let TasmotaConfig { ip } = serde_json::from_str(&config.unwrap_or_default()).unwrap();
         Self {
             nickname,
@@ -45,13 +46,14 @@ impl GuestRunner for TasmotaPlugin {
     fn subscribe(&self) -> Result<Vec<Subscription>, u32> {
         Ok(vec![Subscription::Time(
             exports::litehouse::plugin::plugin::TimeSubscription::Every(Every {
-                amount: 1,
+                amount: 5,
                 unit: TimeUnit::Second,
             }),
         )])
     }
 
     fn update(&self, events: Vec<exports::litehouse::plugin::plugin::Event>) -> Result<bool, u32> {
+        tracing::debug!("UPDATE");
         let body = {
             let headers = Fields::new();
 
@@ -100,6 +102,8 @@ impl GuestRunner for TasmotaPlugin {
         self.send_update(crate::litehouse::plugin::plugin::Update::Power(
             status.status_sns.energy.power,
         ));
+
+        tracing::debug!("sending update: {:?}", status);
 
         self.set_state(status.status_sts.power == "ON");
 
