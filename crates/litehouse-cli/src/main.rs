@@ -155,7 +155,7 @@ impl Registry<Download> {
             return false;
         };
 
-        return self.download_file(entry.path()).await.is_some();
+        self.download_file(entry.path()).await.is_some()
     }
 
     async fn download_file(&self, file: &str) -> Option<u64> {
@@ -163,10 +163,10 @@ impl Registry<Download> {
         tokio::fs::create_dir_all(&self.capability.0).await.unwrap();
 
         let plugin_path = self.capability.0.join(file);
-        let mut reader = self.op.reader(&file).await.unwrap();
+        let mut reader = self.op.reader(file).await.unwrap();
         let mut file = tokio::fs::File::create(&plugin_path).await.unwrap();
         let bytes = tokio::io::copy(&mut reader, &mut file).await.unwrap();
-        return Some(bytes);
+        Some(bytes)
     }
 }
 
@@ -181,7 +181,7 @@ async fn build_in_temp(package: &str) -> Option<(Import, PathBuf)> {
     let members: HashMap<&str, (&str, &str)> = data["workspace_members"]
         .as_array()
         .unwrap()
-        .into_iter()
+        .iter()
         .map(|v| {
             let v = v.as_str().unwrap();
             let (name, rest) = v.split_once(' ').unwrap();
@@ -201,7 +201,7 @@ async fn build_in_temp(package: &str) -> Option<(Import, PathBuf)> {
 
     // run cargo build
     let out = Command::new("cargo")
-        .args(&[
+        .args([
             "build",
             "--release",
             "--target",
@@ -232,7 +232,7 @@ async fn build_in_temp(package: &str) -> Option<(Import, PathBuf)> {
 
     // run wasm-tools against the wasm file
     let out = Command::new("wasm-tools")
-        .args(&[
+        .args([
             "component",
             "new",
             &format!("./target/wasm32-wasi/release/{}.wasm", package),

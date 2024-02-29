@@ -311,11 +311,11 @@ async fn instantiate_plugin<T: Send>(
     linker: &ComponentLinker<PluginRunner<T>>,
     base_path: &Path,
 ) -> Result<PluginHost> {
-    let component = Component::from_file(&engine, base_path.join(instance.plugin.file_name()))
+    let component = Component::from_file(engine, base_path.join(instance.plugin.file_name()))
         .map_err(|e| eyre!("unable to load {} plugin: {}", instance.plugin.plugin, e))?;
 
     let (bindings, _) =
-        PluginHost::instantiate_async(&mut *store.lock().await, &component, &linker)
+        PluginHost::instantiate_async(&mut *store.lock().await, &component, linker)
             .await
             .map_err(|e| eyre!("unable to instantiate plugin: {}", e))?;
 
@@ -405,7 +405,7 @@ fn inject_plugin_instance(
         .as_object_mut()
         .expect("is always an object");
 
-    let base = std::mem::replace(definitions, Default::default());
+    let base = std::mem::take(definitions);
 
     definitions.insert(
         "oneOf".to_string(),
@@ -425,7 +425,7 @@ fn inject_plugin_instance(
                 };
 
                 *properties.get_mut("plugin").unwrap() = serde_json::Map::from_iter(
-                    [("const".into(), import.to_string().into())].into_iter(),
+                    [("const".into(), import.to_string().into())],
                 )
                 .into();
 

@@ -52,7 +52,7 @@ impl GuestRunner for TasmotaPlugin {
         )])
     }
 
-    fn update(&self, events: Vec<exports::litehouse::plugin::plugin::Event>) -> Result<bool, u32> {
+    fn update(&self, _events: Vec<exports::litehouse::plugin::plugin::Event>) -> Result<bool, u32> {
         tracing::debug!("UPDATE");
         let body = {
             let headers = Fields::new();

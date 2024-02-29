@@ -144,12 +144,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-trace"
-version = "0.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44621810a492695afb5d8e7327b9953bc2da09a6231ea550a52f7d0a08532700"
-
-[[package]]
 name = "async-trait"
 version = "0.1.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1667,7 +1661,6 @@ dependencies = [
 name = "litehouse-cli"
 version = "0.1.0"
 dependencies = [
- "async-trace",
  "async-trait",
  "bytes",
  "clap",

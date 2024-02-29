@@ -16,8 +16,6 @@ plugin::generate!(WeatherPlugin, WeatherConfig);
 
 pub struct WeatherPlugin {
     nickname: String,
-    lat: f64,
-    lon: f64,
     request_path: String,
 }
 
@@ -37,11 +35,10 @@ impl GuestRunner for WeatherPlugin {
             &mut request_path,
             "/v1/forecast?latitude={}&longitude={}&current=temperature_2m,wind_speed_10m",
             lat, lon
-        );
+        )
+        .unwrap();
         Self {
             nickname,
-            lat,
-            lon,
             request_path,
         }
     }
@@ -57,44 +54,39 @@ impl GuestRunner for WeatherPlugin {
 
     fn update(&self, events: Vec<exports::litehouse::plugin::plugin::Event>) -> Result<bool, u32> {
         for event in events {
-            match event.inner {
-                exports::litehouse::plugin::plugin::Update::Time(_) => {
-                    let headers = Fields::new();
+            if let exports::litehouse::plugin::plugin::Update::Time(_) = event.inner {
+                let headers = Fields::new();
 
-                    let req = OutgoingRequest::new(headers);
-                    req.set_path_with_query(Some(&self.request_path))
-                        .expect("ok");
-                    req.set_authority(Some("api.open-meteo.com")).unwrap();
-                    req.set_scheme(Some(&Scheme::Https)).unwrap();
+                let req = OutgoingRequest::new(headers);
+                req.set_path_with_query(Some(&self.request_path))
+                    .expect("ok");
+                req.set_authority(Some("api.open-meteo.com")).unwrap();
+                req.set_scheme(Some(&Scheme::Https)).unwrap();
 
-                    let opts = RequestOptions::new();
+                let opts = RequestOptions::new();
 
-                    let x = outgoing_handler::handle(req, Some(opts)).unwrap();
+                let x = outgoing_handler::handle(req, Some(opts)).unwrap();
 
-                    x.subscribe().block();
-                    let resp = x.get().unwrap();
+                x.subscribe().block();
+                let resp = x.get().unwrap();
 
-                    if let Ok(Ok(resp)) = resp {
-                        let body = resp.consume().unwrap();
-                        let stream = body.stream().unwrap();
-                        let data = stream.blocking_read(1024).unwrap();
-                        let parsed = serde_json::from_slice::<WeatherResponse>(&data).unwrap();
+                if let Ok(Ok(resp)) = resp {
+                    let body = resp.consume().unwrap();
+                    let stream = body.stream().unwrap();
+                    let data = stream.blocking_read(1024).unwrap();
+                    let parsed = serde_json::from_slice::<WeatherResponse>(&data).unwrap();
 
-                        send_update(
-                            &self.nickname,
-                            litehouse::plugin::plugin::Update::Temperature(
-                                parsed.current.temperature_2m,
-                            ),
-                        );
-                        send_update(
-                            &self.nickname,
-                            litehouse::plugin::plugin::Update::WindSpeed(
-                                parsed.current.wind_speed_10m,
-                            ),
-                        );
-                    }
+                    send_update(
+                        &self.nickname,
+                        litehouse::plugin::plugin::Update::Temperature(
+                            parsed.current.temperature_2m,
+                        ),
+                    );
+                    send_update(
+                        &self.nickname,
+                        litehouse::plugin::plugin::Update::WindSpeed(parsed.current.wind_speed_10m),
+                    );
                 }
-                _ => {}
             }
         }
 

@@ -76,10 +76,7 @@ impl Eq for Import {}
 
 impl PartialOrd for Import {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(match self.plugin.cmp(&other.plugin) {
-            std::cmp::Ordering::Equal => self.version.cmp(&other.version),
-            other => other,
-        })
+        Some(self.cmp(other))
     }
 }
 

@@ -24,7 +24,7 @@ impl std::io::Read for crate::wasi::io::streams::InputStream {
             tracing::trace!("waiting to read..");
             self.subscribe().block();
             let data = crate::wasi::io::streams::InputStream::read(self, buf.len() as u64).unwrap();
-            if data.len() > 0 {
+            if !data.is_empty() {
                 break data;
             } else {
                 std::thread::sleep(Duration::from_millis(100));
@@ -33,9 +33,7 @@ impl std::io::Read for crate::wasi::io::streams::InputStream {
 
         tracing::trace!("read {:?}", d);
 
-        for x in 0..d.len() {
-            buf[x as usize] = d[x as usize];
-        }
+        buf[..d.len()].copy_from_slice(&d[..]);
 
         Ok(d.len())
     }
@@ -135,7 +133,7 @@ impl GuestRunner for SamsungPlugin {
             "{}/channels/samsung.remote.control?name={}&token={}",
             base_url, name_b64, self.token
         );
-        let remote_url = Url::parse(&remote_url).unwrap();
+        let _remote_url = Url::parse(&remote_url).unwrap();
 
         let app_url = format!("{}?name={}", base_url, name_b64);
         let app_url = Url::parse(&app_url).unwrap();
@@ -179,34 +177,31 @@ impl GuestRunner for SamsungPlugin {
         };
 
         for event in events {
-            match event.inner {
-                exports::litehouse::plugin::plugin::Update::Time(_) => {
-                    let (mut socket, _) = tungstenite::client(app_url, stream).unwrap();
+            if let exports::litehouse::plugin::plugin::Update::Time(_) = event.inner {
+                let (mut socket, _) = tungstenite::client(app_url, stream).unwrap();
 
-                    loop {
-                        let message = socket.read().unwrap();
-                        tracing::info!("message {:?}", message);
+                loop {
+                    let message = socket.read().unwrap();
+                    tracing::info!("message {:?}", message);
 
-                        let message = TvMessage::MsChannelEmit {
-                            params: TvEvent::Launch {
-                                to: "host".to_string(),
-                                data: LaunchData {
-                                    app_id: "MCmYXNxgcu.DisneyPlus".to_string(),
-                                    action_type: ActionType::NativeLaunch,
-                                },
+                    let message = TvMessage::MsChannelEmit {
+                        params: TvEvent::Launch {
+                            to: "host".to_string(),
+                            data: LaunchData {
+                                app_id: "MCmYXNxgcu.DisneyPlus".to_string(),
+                                action_type: ActionType::NativeLaunch,
                             },
-                        };
+                        },
+                    };
 
-                        // let message = TvMessage::MsRemoteControl {
-                        //     params: RemoteControlEvent::press_button(RemoteControlButton::VolumeUp),
-                        // };
+                    // let message = TvMessage::MsRemoteControl {
+                    //     params: RemoteControlEvent::press_button(RemoteControlButton::VolumeUp),
+                    // };
 
-                        let message = serde_json::to_string(&message).unwrap();
-                        tracing::info!("sending message {}", message);
-                        socket.send(Message::Text(message)).unwrap();
-                    }
+                    let message = serde_json::to_string(&message).unwrap();
+                    tracing::info!("sending message {}", message);
+                    socket.send(Message::Text(message)).unwrap();
                 }
-                _ => {}
             }
         }
 

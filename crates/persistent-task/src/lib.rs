@@ -1,15 +1,10 @@
-use std::{sync::Arc, time::Duration};
+use std::{time::Duration};
 
 use crate::{
     exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit},
-    wasi::sockets::{
-        instance_network::instance_network,
-        network::{self, IpSocketAddress},
-        tcp_create_socket::create_tcp_socket,
-    },
 };
-use base64::{engine::general_purpose::STANDARD, Engine};
-use serde::Serialize;
+
+
 
 plugin::generate!(PersistentPlugin);
 
@@ -38,7 +33,7 @@ impl GuestRunner for PersistentPlugin {
         )])
     }
 
-    fn update(&self, events: Vec<exports::litehouse::plugin::plugin::Event>) -> Result<bool, u32> {
+    fn update(&self, _events: Vec<exports::litehouse::plugin::plugin::Event>) -> Result<bool, u32> {
         Ok(true)
     }
 }

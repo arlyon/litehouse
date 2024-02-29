@@ -10,10 +10,7 @@ pub mod bindings {
 
     impl crate::runtime::bindings::exports::litehouse::plugin::plugin::UpdateSubscription {
         pub fn matches(&self, event: &Update) -> bool {
-            match (self, event) {
-                (Self::Temperature, Update::Temperature(_)) => true,
-                _ => false,
-            }
+            matches!((self, event), (Self::Temperature, Update::Temperature(_)))
         }
     }
 }
