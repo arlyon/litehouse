@@ -12,13 +12,13 @@ plugin::generate!(TasmotaPlugin, TasmotaConfig);
 pub struct TasmotaPlugin {
     nickname: String,
     state: Mutex<bool>,
-    ip: String,
+    ip: (u8, u8, u8, u8),
 }
 
 #[derive(plugin::JsonSchema, serde::Deserialize)]
 pub struct TasmotaConfig {
     /// The ip address of the device to connect to.
-    pub ip: String,
+    pub ip: (u8, u8, u8, u8),
 }
 
 impl TasmotaPlugin {
@@ -60,7 +60,9 @@ impl GuestRunner for TasmotaPlugin {
             let req = OutgoingRequest::new(headers);
             req.set_path_with_query(Some("/cm?cmnd=Status0"))
                 .expect("ok");
-            req.set_authority(Some(&format!("{}:80", self.ip))).unwrap();
+            let (a, b, c, d) = self.ip;
+            req.set_authority(Some(&format!("{}.{}.{}.{}:80", a, b, c, d)))
+                .unwrap();
             req.set_scheme(Some(&Scheme::Http)).unwrap();
 
             let opts = RequestOptions::new();
