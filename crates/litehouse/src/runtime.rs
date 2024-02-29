@@ -1,9 +1,12 @@
+use std::collections::HashSet;
+
 use self::bindings::PluginHostImports;
 
+use litehouse_config::Capability;
 use tokio::sync::broadcast::Sender;
 use wasmtime::component::ResourceTable;
 use wasmtime_wasi::preview2::{WasiCtx, WasiCtxBuilder, WasiView};
-use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
+use wasmtime_wasi_http::{types::default_send_request, WasiHttpCtx, WasiHttpView};
 
 pub mod bindings {
     plugin::generate_host!();
@@ -20,23 +23,30 @@ pub struct PluginRunner<T> {
     wasi: WasiCtx,
     http: WasiHttpCtx,
     event_sink: T,
+    allowed_authorities: HashSet<String>,
 }
 
 impl<T> PluginRunner<T> {
-    pub fn new(event_sink: T) -> Self {
+    pub fn new(event_sink: T, capabilities: Vec<Capability>) -> Self {
         let mut wasi = WasiCtxBuilder::new();
         wasi.inherit_stdio()
-            .allow_tcp(true)
-            .allow_ip_name_lookup(true)
-            .allow_udp(true)
-            .inherit_network()
             .env("RUST_LOG", std::env::var("RUST_LOG").unwrap_or_default());
         let http = WasiHttpCtx;
+
+        let allowed_authorities = capabilities
+            .iter()
+            .filter_map(|c| match c {
+                Capability::HttpClient(authority) => Some(authority.to_owned()),
+                _ => None,
+            })
+            .collect();
+
         Self {
             table: ResourceTable::new(),
             wasi: wasi.build(),
             http,
             event_sink,
+            allowed_authorities,
         }
     }
 }
@@ -58,6 +68,33 @@ impl<T: Send> WasiHttpView for PluginRunner<T> {
 
     fn table(&mut self) -> &mut ResourceTable {
         &mut self.table
+    }
+
+    fn send_request(
+        &mut self,
+        request: wasmtime_wasi_http::types::OutgoingRequest,
+    ) -> wasmtime::Result<
+        wasmtime::component::Resource<wasmtime_wasi_http::types::HostFutureIncomingResponse>,
+    >
+    where
+        Self: Sized,
+    {
+        // try to remove the port if it exists
+        let authority = request
+            .authority
+            .rsplit_once(':')
+            .map(|(authority, _)| authority)
+            .unwrap_or(&request.authority);
+
+        if !self.allowed_authorities.contains(authority) {
+            tracing::error!(
+                "plugin tried to access {} which is not in the list of allowed authorities",
+                authority
+            );
+            return Err(wasmtime::Error::msg("not allowed to access authority"));
+        }
+
+        default_send_request(self, request)
     }
 }
 

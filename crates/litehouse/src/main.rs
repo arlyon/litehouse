@@ -145,7 +145,10 @@ async fn start(wasm_path: &Path) -> Result<()> {
     tracing::debug!("linking complete");
 
     let (tx, rx) = channel(1000);
-    let store = Arc::new(Mutex::new(Store::new(&engine, PluginRunner::new(tx))));
+    let store = Arc::new(Mutex::new(Store::new(
+        &engine,
+        PluginRunner::new(tx, config.capabilities),
+    )));
 
     let linker = Arc::new(linker);
     let rx = Arc::new(rx);
@@ -314,10 +317,9 @@ async fn instantiate_plugin<T: Send>(
     let component = Component::from_file(engine, base_path.join(instance.plugin.file_name()))
         .map_err(|e| eyre!("unable to load {} plugin: {}", instance.plugin.plugin, e))?;
 
-    let (bindings, _) =
-        PluginHost::instantiate_async(&mut *store.lock().await, &component, linker)
-            .await
-            .map_err(|e| eyre!("unable to instantiate plugin: {}", e))?;
+    let (bindings, _) = PluginHost::instantiate_async(&mut *store.lock().await, &component, linker)
+        .await
+        .map_err(|e| eyre!("unable to instantiate plugin: {}", e))?;
 
     tracing::debug!("complete");
 
@@ -329,7 +331,10 @@ async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
 
     let (tx, _rx) = channel(1000);
 
-    let store = Arc::new(Mutex::new(Store::new(&engine, PluginRunner::new(tx))));
+    let store = Arc::new(Mutex::new(Store::new(
+        &engine,
+        PluginRunner::new(tx, vec![]),
+    )));
     let linker = Arc::new(linker);
 
     let bindings = join_all(
@@ -424,10 +429,9 @@ fn inject_plugin_instance(
                     version: version.parse().ok(),
                 };
 
-                *properties.get_mut("plugin").unwrap() = serde_json::Map::from_iter(
-                    [("const".into(), import.to_string().into())],
-                )
-                .into();
+                *properties.get_mut("plugin").unwrap() =
+                    serde_json::Map::from_iter([("const".into(), import.to_string().into())])
+                        .into();
 
                 let set = if let Some(mut schema) = schema {
                     let object = schema.as_object_mut().unwrap();

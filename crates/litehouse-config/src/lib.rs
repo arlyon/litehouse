@@ -17,6 +17,16 @@ pub struct LitehouseConfig {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[schemars(with = "Vec<String>")]
     pub imports: Vec<Import>,
+    /// The capabilities of this litehouse. Plugins that attempt to use capabilities not present in
+    /// this list will fail. By default, plugins are not given any capabilities and are completely
+    /// sandboxed.
+    ///
+    /// Can be one of the following:
+    /// - `http-server:<port>`: Start an HTTP server on the given port
+    /// - `http-client:<url>`: Make HTTP requests to the given URL
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<String>")]
+    pub capabilities: Vec<Capability>,
 }
 
 impl LitehouseConfig {
@@ -37,6 +47,61 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("serde error")]
     Serde(#[from] serde_json::Error),
+}
+
+#[derive(Debug)]
+pub enum Capability {
+    HttpServer(usize),
+    HttpClient(String),
+}
+
+impl ToString for Capability {
+    fn to_string(&self) -> String {
+        match self {
+            Capability::HttpServer(port) => format!("http-server:{}", port),
+            Capability::HttpClient(url) => format!("http-client:{}", url),
+        }
+    }
+}
+
+impl FromStr for Capability {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (name, value) = s
+            .split_once(':')
+            .ok_or(())
+            .map(|(name, value)| (name, value.to_string()))?;
+        match name {
+            "http-server" => value
+                .parse()
+                .map(Capability::HttpServer)
+                .map_err(|_| ())
+                .map_err(|_| ()),
+            "http-client" => Ok(Capability::HttpClient(value)),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Serialize for Capability {
+    fn serialize<S>(&self, serializer: S) -> std::prelude::v1::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let string = self.to_string();
+        serializer.serialize_str(&string)
+    }
+}
+
+impl<'de> Deserialize<'de> for Capability {
+    fn deserialize<D>(deserializer: D) -> std::prelude::v1::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(s.parse().unwrap())
+    }
 }
 
 #[derive(JsonSchema, Serialize, Deserialize, Debug)]
