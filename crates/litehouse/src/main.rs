@@ -245,7 +245,13 @@ async fn start(wasm_path: &Path) -> Result<()> {
 
     tracing::info!("running litehouse");
 
-    futures::future::try_join_all(timers).await.map(|_| ())
+    tokio::select! {
+        d = futures::future::try_join_all(timers) => d.map(|_| ()),
+        int = tokio::signal::ctrl_c() => {
+            tracing::info!("interrupt received, exiting");
+            Ok(())
+        }
+    }
 }
 
 #[tracing::instrument]
