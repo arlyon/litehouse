@@ -247,7 +247,7 @@ async fn start(wasm_path: &Path) -> Result<()> {
 
     tokio::select! {
         d = futures::future::try_join_all(timers) => d.map(|_| ()),
-        int = tokio::signal::ctrl_c() => {
+        _ = tokio::signal::ctrl_c() => {
             tracing::info!("interrupt received, exiting");
             Ok(())
         }
@@ -271,7 +271,7 @@ fn set_up_engine() -> Result<
     let mut linker = ComponentLinker::new(&engine);
 
     tracing::debug!("linking command");
-    wasmtime_wasi::preview2::command::add_to_linker(&mut linker)
+    wasmtime_wasi::command::add_to_linker(&mut linker)
         .map_err(|_| eyre!("unable to add command to linker"))?;
 
     tracing::debug!("linking http types");

@@ -79,29 +79,10 @@ pub fn generate_host(_input: TokenStream) -> TokenStream {
     quote! {
         wasmtime::component::bindgen!({
             async: true,
-            path: #wit_dir,
-            with: {
-                "wasi:cli/environment": wasmtime_wasi::preview2::bindings::cli::environment,
-                "wasi:cli/exit": wasmtime_wasi::preview2::bindings::cli::exit,
-                "wasi:cli/stderr": wasmtime_wasi::preview2::bindings::cli::stderr,
-                "wasi:cli/stdin": wasmtime_wasi::preview2::bindings::cli::stdin,
-                "wasi:cli/stdout": wasmtime_wasi::preview2::bindings::cli::stdout,
-                "wasi:clocks/monotonic-clock": wasmtime_wasi::preview2::bindings::clocks::monotonic_clock,
-                "wasi:clocks/timezone": wasmtime_wasi::preview2::bindings::clocks::timezone,
-                "wasi:clocks/wall-clock": wasmtime_wasi::preview2::bindings::clocks::wall_clock,
-                "wasi:filesystem/preopens": wasmtime_wasi::preview2::bindings::filesystem::preopens,
-                "wasi:filesystem/types": wasmtime_wasi::preview2::bindings::filesystem::types,
-                "wasi:http/incoming-handler": wasmtime_wasi_http::bindings::http::incoming_handler,
-                "wasi:http/outgoing-handler": wasmtime_wasi_http::bindings::http::outgoing_handler,
-                "wasi:http/types": wasmtime_wasi_http::bindings::http::types,
-                "wasi:io/streams": wasmtime_wasi::preview2::bindings::io::streams,
-                "wasi:io/poll": wasmtime_wasi::preview2::bindings::io::poll,
-                "wasi:random/random": wasmtime_wasi::preview2::bindings::random::random,
-                "wasi:io/error": wasmtime_wasi::preview2::bindings::io::error,
-                "wasi:sockets/tcp": wasmtime_wasi::preview2::bindings::sockets::tcp,
-            }
+            path: #wit_dir
         });
-    }.into()
+    }
+    .into()
 }
 
 #[proc_macro_derive(Config)]

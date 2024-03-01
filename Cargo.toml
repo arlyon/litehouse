@@ -22,9 +22,9 @@ lto = false
 # codegen-backend = "cranelift"
 
 [patch.crates-io]
-wasmtime = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "4d54a99" }
-wasmtime-wasi = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "4d54a99" }
-wasmtime-wasi-http = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "4d54a99" }
+wasmtime = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "57ecb4c" }
+wasmtime-wasi = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "57ecb4c" }
+wasmtime-wasi-http = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "57ecb4c" }
 
 [workspace.metadata.groups]
 plugins = [

@@ -632,7 +632,7 @@ dependencies = [
 [[package]]
 name = "cranelift-bforest"
 version = "0.106.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "cranelift-entity",
 ]
@@ -640,7 +640,7 @@ dependencies = [
 [[package]]
 name = "cranelift-codegen"
 version = "0.106.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "bumpalo",
  "cranelift-bforest",
@@ -660,7 +660,7 @@ dependencies = [
 [[package]]
 name = "cranelift-codegen-meta"
 version = "0.106.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "cranelift-codegen-shared",
 ]
@@ -668,12 +668,12 @@ dependencies = [
 [[package]]
 name = "cranelift-codegen-shared"
 version = "0.106.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 
 [[package]]
 name = "cranelift-control"
 version = "0.106.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "arbitrary",
 ]
@@ -681,7 +681,7 @@ dependencies = [
 [[package]]
 name = "cranelift-entity"
 version = "0.106.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "serde",
  "serde_derive",
@@ -690,7 +690,7 @@ dependencies = [
 [[package]]
 name = "cranelift-frontend"
 version = "0.106.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "cranelift-codegen",
  "log",
@@ -701,12 +701,12 @@ dependencies = [
 [[package]]
 name = "cranelift-isle"
 version = "0.106.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 
 [[package]]
 name = "cranelift-native"
 version = "0.106.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "cranelift-codegen",
  "libc",
@@ -716,7 +716,7 @@ dependencies = [
 [[package]]
 name = "cranelift-wasm"
 version = "0.106.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "cranelift-codegen",
  "cranelift-entity",
@@ -724,7 +724,7 @@ dependencies = [
  "itertools 0.12.1",
  "log",
  "smallvec",
- "wasmparser 0.200.0",
+ "wasmparser 0.201.0",
  "wasmtime-types",
 ]
 
@@ -3788,32 +3788,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
 
 [[package]]
-name = "wasi-common"
-version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
-dependencies = [
- "anyhow",
- "bitflags 2.4.1",
- "cap-fs-ext",
- "cap-rand",
- "cap-std",
- "cap-time-ext",
- "fs-set-times",
- "io-extras",
- "io-lifetimes",
- "log",
- "once_cell",
- "rustix",
- "system-interface",
- "thiserror",
- "tokio",
- "tracing",
- "wasmtime",
- "wiggle",
- "windows-sys 0.52.0",
-]
-
-[[package]]
 name = "wasm-bindgen"
 version = "0.2.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3899,9 +3873,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-encoder"
-version = "0.200.0"
+version = "0.201.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9e3fb0c8fbddd78aa6095b850dfeedbc7506cf5f81e633f69cf8f2333ab84b9"
+checksum = "b9c7d2731df60006819b013f64ccc2019691deccf6e11a1804bc850cd6748f1a"
 dependencies = [
  "leb128",
 ]
@@ -3958,9 +3932,9 @@ dependencies = [
 
 [[package]]
 name = "wasmparser"
-version = "0.200.0"
+version = "0.201.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a03f65ac876612140c57ff6c3b8fe4990067cce97c2cfdb07368a3cc3354b062"
+checksum = "84e5df6dba6c0d7fafc63a450f1738451ed7a0b52295d83e868218fa286bf708"
 dependencies = [
  "bitflags 2.4.1",
  "indexmap 2.1.0",
@@ -3969,18 +3943,18 @@ dependencies = [
 
 [[package]]
 name = "wasmprinter"
-version = "0.200.0"
+version = "0.201.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bd153b0dce4e727565ccb3bd41b0bd2b62b2b9b6b1057d1cdb7fe8e0f3e06ab"
+checksum = "a67e66da702706ba08729a78e3c0079085f6bfcb1a62e4799e97bbf728c2c265"
 dependencies = [
  "anyhow",
- "wasmparser 0.200.0",
+ "wasmparser 0.201.0",
 ]
 
 [[package]]
 name = "wasmtime"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "addr2line",
  "anyhow",
@@ -4000,12 +3974,13 @@ dependencies = [
  "paste",
  "rayon",
  "rustix",
+ "semver",
  "serde",
  "serde_derive",
  "serde_json",
  "target-lexicon",
- "wasm-encoder 0.200.0",
- "wasmparser 0.200.0",
+ "wasm-encoder 0.201.0",
+ "wasmparser 0.201.0",
  "wasmtime-cache",
  "wasmtime-component-macro",
  "wasmtime-component-util",
@@ -4015,6 +3990,7 @@ dependencies = [
  "wasmtime-jit-debug",
  "wasmtime-jit-icache-coherence",
  "wasmtime-runtime",
+ "wasmtime-slab",
  "wasmtime-winch",
  "wat",
  "windows-sys 0.52.0",
@@ -4023,7 +3999,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-asm-macros"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "cfg-if",
 ]
@@ -4031,7 +4007,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-cache"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "anyhow",
  "base64",
@@ -4050,7 +4026,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-component-macro"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "anyhow",
  "proc-macro2",
@@ -4058,18 +4034,18 @@ dependencies = [
  "syn 2.0.46",
  "wasmtime-component-util",
  "wasmtime-wit-bindgen",
- "wit-parser 0.200.0",
+ "wit-parser 0.201.0",
 ]
 
 [[package]]
 name = "wasmtime-component-util"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 
 [[package]]
 name = "wasmtime-cranelift"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "anyhow",
  "cfg-if",
@@ -4084,7 +4060,7 @@ dependencies = [
  "object",
  "target-lexicon",
  "thiserror",
- "wasmparser 0.200.0",
+ "wasmparser 0.201.0",
  "wasmtime-cranelift-shared",
  "wasmtime-environ",
  "wasmtime-versioned-export-macros",
@@ -4093,7 +4069,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-cranelift-shared"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "anyhow",
  "cranelift-codegen",
@@ -4108,7 +4084,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-environ"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "anyhow",
  "bincode",
@@ -4123,8 +4099,8 @@ dependencies = [
  "serde_derive",
  "target-lexicon",
  "thiserror",
- "wasm-encoder 0.200.0",
- "wasmparser 0.200.0",
+ "wasm-encoder 0.201.0",
+ "wasmparser 0.201.0",
  "wasmprinter",
  "wasmtime-component-util",
  "wasmtime-types",
@@ -4133,7 +4109,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-fiber"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "anyhow",
  "cc",
@@ -4147,7 +4123,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-jit-debug"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "object",
  "once_cell",
@@ -4158,7 +4134,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-jit-icache-coherence"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "cfg-if",
  "libc",
@@ -4168,7 +4144,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-runtime"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "anyhow",
  "cc",
@@ -4184,7 +4160,7 @@ dependencies = [
  "psm",
  "rustix",
  "sptr",
- "wasm-encoder 0.200.0",
+ "wasm-encoder 0.201.0",
  "wasmtime-asm-macros",
  "wasmtime-environ",
  "wasmtime-fiber",
@@ -4195,21 +4171,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "wasmtime-slab"
+version = "19.0.0"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
+
+[[package]]
 name = "wasmtime-types"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "cranelift-entity",
  "serde",
  "serde_derive",
  "thiserror",
- "wasmparser 0.200.0",
+ "wasmparser 0.201.0",
 ]
 
 [[package]]
 name = "wasmtime-versioned-export-macros"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4219,7 +4200,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-wasi"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4234,7 +4215,6 @@ dependencies = [
  "futures",
  "io-extras",
  "io-lifetimes",
- "log",
  "once_cell",
  "rustix",
  "system-interface",
@@ -4242,7 +4222,6 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wasi-common",
  "wasmtime",
  "wiggle",
  "windows-sys 0.52.0",
@@ -4251,7 +4230,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-wasi-http"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4273,14 +4252,14 @@ dependencies = [
 [[package]]
 name = "wasmtime-winch"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "anyhow",
  "cranelift-codegen",
  "gimli",
  "object",
  "target-lexicon",
- "wasmparser 0.200.0",
+ "wasmparser 0.201.0",
  "wasmtime-cranelift-shared",
  "wasmtime-environ",
  "winch-codegen",
@@ -4289,18 +4268,18 @@ dependencies = [
 [[package]]
 name = "wasmtime-wit-bindgen"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "anyhow",
  "heck",
  "indexmap 2.1.0",
- "wit-parser 0.200.0",
+ "wit-parser 0.201.0",
 ]
 
 [[package]]
 name = "wasmtime-wmemcheck"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 
 [[package]]
 name = "wast"
@@ -4313,24 +4292,24 @@ dependencies = [
 
 [[package]]
 name = "wast"
-version = "200.0.0"
+version = "201.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1810d14e6b03ebb8fb05eef4009ad5749c989b65197d83bce7de7172ed91366"
+checksum = "1ef6e1ef34d7da3e2b374fd2b1a9c0227aff6cad596e1b24df9b58d0f6222faa"
 dependencies = [
  "bumpalo",
  "leb128",
  "memchr",
  "unicode-width",
- "wasm-encoder 0.200.0",
+ "wasm-encoder 0.201.0",
 ]
 
 [[package]]
 name = "wat"
-version = "1.200.0"
+version = "1.201.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "776cbd10e217f83869beaa3f40e312bb9e91d5eee29bbf6f560db1261b6a4c3d"
+checksum = "453d5b37a45b98dee4f4cb68015fc73634d7883bbef1c65e6e9c78d454cf3f32"
 dependencies = [
- "wast 200.0.0",
+ "wast 201.0.0",
 ]
 
 [[package]]
@@ -4364,7 +4343,7 @@ checksum = "1778a42e8b3b90bff8d0f5032bf22250792889a5cdc752aa0020c84abe3aaf10"
 [[package]]
 name = "wiggle"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4378,7 +4357,7 @@ dependencies = [
 [[package]]
 name = "wiggle-generate"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "anyhow",
  "heck",
@@ -4392,7 +4371,7 @@ dependencies = [
 [[package]]
 name = "wiggle-macro"
 version = "19.0.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4425,7 +4404,7 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 [[package]]
 name = "winch-codegen"
 version = "0.17.0"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=57ecb4c#57ecb4c584c3339b7e2d62d28592cb13544cb393"
 dependencies = [
  "anyhow",
  "cranelift-codegen",
@@ -4433,7 +4412,7 @@ dependencies = [
  "regalloc2",
  "smallvec",
  "target-lexicon",
- "wasmparser 0.200.0",
+ "wasmparser 0.201.0",
  "wasmtime-environ",
 ]
 
@@ -4694,9 +4673,9 @@ dependencies = [
 
 [[package]]
 name = "wit-parser"
-version = "0.200.0"
+version = "0.201.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f717576b37f01c15696bda7f6f13868367b9c5913485f9f0ec8e59fd28c8e13"
+checksum = "196d3ecfc4b759a8573bf86a9b3f8996b304b3732e4c7de81655f875f6efdca6"
 dependencies = [
  "anyhow",
  "id-arena",
@@ -4707,13 +4686,14 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "unicode-xid",
- "wasmparser 0.200.0",
+ "wasmparser 0.201.0",
 ]
 
 [[package]]
 name = "witx"
 version = "0.9.1"
-source = "git+https://github.com/bytecodealliance/wasmtime.git?rev=4d54a99#4d54a9924c7cf09b9c41ac2b097ede9d4f6a5ef7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e366f27a5cabcddb2706a78296a40b8fcc451e1a6aba2fc1d94b4a01bdaaef4b"
 dependencies = [
  "anyhow",
  "log",

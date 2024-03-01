@@ -5,8 +5,11 @@ use self::bindings::PluginHostImports;
 use litehouse_config::Capability;
 use tokio::sync::broadcast::Sender;
 use wasmtime::component::ResourceTable;
-use wasmtime_wasi::preview2::{WasiCtx, WasiCtxBuilder, WasiView};
-use wasmtime_wasi_http::{types::default_send_request, WasiHttpCtx, WasiHttpView};
+use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiView};
+use wasmtime_wasi_http::{
+    bindings::http::outgoing_handler::ErrorCode, types::default_send_request, WasiHttpCtx,
+    WasiHttpView,
+};
 
 pub mod bindings {
     plugin::generate_host!();
@@ -91,7 +94,7 @@ impl<T: Send> WasiHttpView for PluginRunner<T> {
                 "plugin tried to access {} which is not in the list of allowed authorities",
                 authority
             );
-            return Err(wasmtime::Error::msg("not allowed to access authority"));
+            return Err(ErrorCode::HttpRequestDenied.into());
         }
 
         default_send_request(self, request)
