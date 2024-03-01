@@ -1,14 +1,15 @@
 mod cache_layer;
+mod registry;
 
+use clap::{Parser, Subcommand};
+use eyre::Context;
 use litehouse_config::{Import, LitehouseConfig};
+use registry::{Download, Registry, Upload};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
 };
 use tokio::process::Command;
-
-use clap::{Parser, Subcommand};
-use opendal::{services::S3, Builder, Entry, Operator};
 
 const WASM_PROCESS_FILE: &[u8] =
     include_bytes!("../../litehouse/wasi_snapshot_preview1.reactor.wasm");
@@ -22,7 +23,13 @@ struct Opts {
 #[derive(Subcommand)]
 enum Options {
     /// Publish a package to the registry. Run this in the root of your package.
-    Publish { package: String },
+    Publish {
+        package: String,
+        #[clap(long)]
+        access_key: String,
+        #[clap(long)]
+        secret_key: String,
+    },
     /// Fetch packages from the registry, based on the imports in your settings file.
     Fetch {
         #[clap(default_value = "wasm")]
@@ -44,18 +51,39 @@ enum Options {
 }
 
 #[tokio::main]
-async fn main() {
-    let dirs = litehouse_config::directories().unwrap();
-    let registry = Registry::new("default".to_string(), Some(dirs.cache_dir()));
-    if !registry.check().await {
-        println!("Failed to connect to the registry");
-        return;
-    }
+async fn main() -> eyre::Result<()> {
     let opts = Opts::parse();
 
+    let registry = Registry::build("default".to_string());
+
     match opts.command {
-        Options::Publish { package } => publish(package, &registry.with_capability(Upload)).await,
-        Options::Fetch { wasm_path } => fetch(&registry.with_capability(Download(wasm_path))).await,
+        Options::Publish {
+            package,
+            access_key,
+            secret_key,
+        } => {
+            publish(
+                package,
+                &registry
+                    .with_upload(access_key, secret_key)
+                    .build()
+                    .await
+                    .wrap_err("can't download")?,
+            )
+            .await
+        }
+        Options::Fetch { wasm_path } => {
+            let cache_dir = litehouse_config::directories().map(|d| d.cache_dir().to_owned());
+
+            fetch(
+                &registry
+                    .with_download(wasm_path, cache_dir)
+                    .build()
+                    .await
+                    .wrap_err("can't fetch")?,
+            )
+            .await
+        }
         Options::Build {
             wasm_path,
             package,
@@ -67,131 +95,15 @@ async fn main() {
                 registry: None,
                 version: None,
             });
+            let registry = registry.build().await.wrap_err("can't search")?;
             let results = registry.list(prefix.as_ref()).await;
             for (import, _) in results {
                 println!("{}", import.to_string());
             }
         }
     }
-}
 
-struct Registry<T> {
-    op: Operator,
-    name: String,
-    capability: T,
-}
-
-struct Download(PathBuf);
-struct Upload;
-
-impl Registry<()> {
-    pub fn new(name: String, local_cache: Option<&Path>) -> Self {
-        // Create s3 backend builder.
-        let mut builder = S3::default();
-        builder.root("v1");
-        builder.bucket("litehouse");
-        builder.region("us-east-1");
-        builder.endpoint("https://ams1.vultrobjects.com");
-        builder.access_key_id("8Z1X0TM6U3YPQXP4UVMF");
-        builder.secret_access_key("KFCrfpgblBAr4NYNrti3Emr1QlfFVNEDzjyuvkcz");
-
-        let op = Operator::new(builder).unwrap();
-
-        let op = if let Some(local_cache) = local_cache {
-            let mut fs_cache = opendal::services::Fs::default();
-            fs_cache.root(local_cache.to_str().unwrap());
-            let fs_cache = fs_cache.build().unwrap();
-            op.layer(cache_layer::CacheLayer::new(fs_cache)).finish()
-        } else {
-            op.finish()
-        };
-
-        Self {
-            op,
-            name,
-            capability: (),
-        }
-    }
-
-    pub fn with_capability<T>(self, cap: T) -> Registry<T> {
-        Registry {
-            op: self.op,
-            name: self.name,
-            capability: cap,
-        }
-    }
-}
-
-impl<T> Registry<T> {
-    async fn check(&self) -> bool {
-        self.op.check().await.is_ok()
-    }
-
-    pub async fn list(&self, prefix: Option<&Import>) -> impl Iterator<Item = (Import, Entry)> {
-        self.op
-            .list(prefix.map(|p| p.plugin.as_str()).unwrap_or_default())
-            .await
-            .unwrap()
-            .into_iter()
-            .filter_map(|e| {
-                let name = e.name().strip_suffix(".wasm")?;
-                let import = name.parse::<Import>().ok()?;
-                Some((import, e))
-            })
-    }
-
-    pub async fn publish(&self, plugin: &Import, path: &Path) -> bool {
-        let mut writer = self
-            .op
-            .writer_with(&plugin.file_name())
-            .buffer(8 * 1024 * 1024)
-            .await
-            .unwrap();
-        let mut file = tokio::fs::File::open(&path).await.unwrap();
-        let bytes = tokio::io::copy(&mut file, &mut writer).await.unwrap();
-        println!("wrote {} bytes to {}", bytes, &plugin.file_name());
-        writer.close().await.unwrap();
-        true
-    }
-}
-
-impl Registry<Download> {
-    async fn download_package(&self, import: Import) -> bool {
-        if let Some(registry) = &import.registry {
-            if self.name.ne(registry) {
-                return false;
-            }
-        }
-
-        // if we have the version, just try to nab it
-        if import.version.is_some() {
-            return self.download_file(&import.file_name()).await.is_some();
-        }
-
-        // list all files using the package name as a prefix
-        let files = self.list(Some(&import)).await;
-
-        // otherwise select the latest version
-        let selected = files.max_by(|a, b| a.0.cmp(&b.0));
-
-        let Some((_, entry)) = selected else {
-            println!("no matches found for {:?}", import.plugin);
-            return false;
-        };
-
-        self.download_file(entry.path()).await.is_some()
-    }
-
-    async fn download_file(&self, file: &str) -> Option<u64> {
-        // mk_dir_all on the path
-        tokio::fs::create_dir_all(&self.capability.0).await.unwrap();
-
-        let plugin_path = self.capability.0.join(file);
-        let mut reader = self.op.reader(file).await.unwrap();
-        let mut file = tokio::fs::File::create(&plugin_path).await.unwrap();
-        let bytes = tokio::io::copy(&mut reader, &mut file).await.unwrap();
-        Some(bytes)
-    }
+    Ok(())
 }
 
 async fn build_in_temp(package: &str, release: bool) -> Option<(Import, PathBuf)> {
@@ -277,7 +189,7 @@ async fn build(package: &str, wasm_path: &Path, debug: bool) {
     tokio::fs::copy(&path, &dest_file).await.unwrap();
 }
 
-async fn publish(package: String, op: &Registry<Upload>) {
+async fn publish<D>(package: String, op: &Registry<Upload, D>) {
     let (import, path) = build_in_temp(&package, true).await.unwrap();
 
     let success = op.publish(&import, &path).await;
@@ -288,7 +200,7 @@ async fn publish(package: String, op: &Registry<Upload>) {
     }
 }
 
-async fn fetch(op: &Registry<Download>) {
+async fn fetch<U>(op: &Registry<U, Download>) {
     let config = LitehouseConfig::load().unwrap();
     for file in config.imports {
         op.download_package(file).await;
