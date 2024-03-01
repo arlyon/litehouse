@@ -1,0 +1,6 @@
+target
+Dockerfile
+.idea
+wasm
+schema.json
+settings.json
