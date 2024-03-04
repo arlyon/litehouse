@@ -25,6 +25,7 @@ lto = false
 wasmtime = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "57ecb4c" }
 wasmtime-wasi = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "57ecb4c" }
 wasmtime-wasi-http = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "57ecb4c" }
+opendal = { git = "https://github.com/apache/opendal", rev = "4d5df20" }
 
 [workspace.metadata.groups]
 plugins = [

@@ -24,4 +24,4 @@ LABEL org.opencontainers.image.source = "https://github.com/arlyon/litehouse"
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/litehouse /litehouse
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/litehouse-cli /litehouse-cli
 
-CMD ["/litehouse-cli fetch wasm && litehouse run wasm"]
+CMD ["/litehouse", "run"]

@@ -15,9 +15,9 @@ directories-next = "2.0.0"
 eyre = "0.6.12"
 futures = "0.3.30"
 litehouse-config = { version = "0.1.0", path = "../litehouse-config" }
-opendal = { version = "0.45.0", default-features = false, features = ["services-s3", "rustls", "services-fs"] }
+opendal = { version = "0.45.1", default-features = false, features = ["services-s3", "rustls-webpki", "services-fs"] }
 reqsign = "0.14.9"
-reqwest = "0.11.24"
+reqwest = {version = "0.11.24", default-features = false, features = ["rustls-tls"]}
 serde_json = "1.0.114"
 thiserror = "1.0.57"
 tokio = { version = "1.36.0", features = ["macros", "process", "fs", "rt-multi-thread"] }
