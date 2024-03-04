@@ -182,7 +182,6 @@ impl<Src: Read, Sink: Write> Read for TeeReader<Src, Sink> {
         cx: &mut std::task::Context<'_>,
         pos: std::io::SeekFrom,
     ) -> std::task::Poll<Result<u64>> {
-        println!("seeking source");
         self.src.poll_seek(cx, pos)
     }
 
@@ -190,7 +189,6 @@ impl<Src: Read, Sink: Write> Read for TeeReader<Src, Sink> {
         &mut self,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Result<bytes::Bytes>>> {
-        println!("next");
         self.src.poll_next(cx)
     }
 }

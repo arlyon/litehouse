@@ -1,6 +1,9 @@
 use eyre::{Context, Result};
 use litehouse_config::Import;
-use std::path::{Path, PathBuf};
+use std::{
+    borrow::Cow,
+    path::{Path, PathBuf},
+};
 
 use opendal::{services::S3, Builder, Entry, Operator};
 
@@ -158,7 +161,7 @@ impl<U, D> Registry<U, D> {
 }
 
 impl<U> Registry<U, Download> {
-    pub async fn download_package(&self, import: Import) -> bool {
+    pub async fn download_package(&self, import: &Import) -> bool {
         if let Some(registry) = &import.registry {
             if self.name.ne(registry) {
                 return false;
@@ -167,7 +170,7 @@ impl<U> Registry<U, Download> {
 
         // if we have the version, just try to nab it
         if import.version.is_some() {
-            return self.download_file(&import.file_name()).await.is_some();
+            return self.download_file(import, None).await.is_some();
         }
 
         // list all files using the package name as a prefix
@@ -181,18 +184,28 @@ impl<U> Registry<U, Download> {
             return false;
         };
 
-        self.download_file(entry.path()).await.is_some()
+        self.download_file(import, Some(entry.path()))
+            .await
+            .is_some()
     }
 
-    pub async fn download_file(&self, file: &str) -> Option<u64> {
+    pub async fn download_file(&self, import: &Import, path: Option<&str>) -> Option<u64> {
+        let path = path
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Owned(import.file_name()));
+
         // mk_dir_all on the path
         tokio::fs::create_dir_all(&self.download.0).await.unwrap();
 
-        let plugin_path = self.download.0.join(file);
-        let mut reader = self.op.reader(file).await.unwrap();
+        let plugin_path = self.download.0.join(&*path);
+
+        let mut reader = self.op.reader(&path).await.unwrap();
         let mut file = tokio::fs::File::create(&plugin_path).await.unwrap();
-        let bytes = tokio::io::copy(&mut reader, &mut file).await.unwrap();
-        Some(bytes)
+        let ok = import.copy(&mut reader, &mut file).await;
+        if let None = ok {
+            panic!("sha does not match");
+        }
+        ok
     }
 }
 
@@ -205,8 +218,7 @@ impl<D> Registry<Upload, D> {
             .await
             .unwrap();
         let mut file = tokio::fs::File::open(&path).await.unwrap();
-        let bytes = tokio::io::copy(&mut file, &mut writer).await.unwrap();
-        println!("wrote {} bytes to {}", bytes, &plugin.file_name());
+        let _ = tokio::io::copy(&mut file, &mut writer).await.unwrap();
         writer.close().await.unwrap();
         true
     }

@@ -13,6 +13,7 @@ clap = { version = "4.5.1", features = ["derive"] }
 color-eyre = "0.6.2"
 directories-next = "2.0.0"
 eyre = "0.6.12"
+futures = "0.3.30"
 litehouse-config = { version = "0.1.0", path = "../litehouse-config" }
 opendal = { version = "0.45.0", default-features = false, features = ["services-s3", "rustls", "services-fs"] }
 reqsign = "0.14.9"

@@ -1,10 +1,6 @@
-use std::{time::Duration};
+use std::time::Duration;
 
-use crate::{
-    exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit},
-};
-
-
+use crate::exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit};
 
 plugin::generate!(PersistentPlugin);
 

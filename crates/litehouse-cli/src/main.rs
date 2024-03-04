@@ -3,6 +3,7 @@ mod registry;
 
 use clap::{Parser, Subcommand};
 use eyre::Context;
+use futures::StreamExt;
 use litehouse_config::{Import, LitehouseConfig};
 use registry::{Download, Registry, Upload};
 use std::{
@@ -94,6 +95,7 @@ async fn main() -> eyre::Result<()> {
                 plugin: q,
                 registry: None,
                 version: None,
+                sha: None,
             });
             let registry = registry.build().await.wrap_err("can't search")?;
             let results = registry.list(prefix.as_ref()).await;
@@ -151,6 +153,7 @@ async fn build_in_temp(package: &str, release: bool) -> Option<(Import, PathBuf)
         registry: None,
         plugin: package.to_owned(),
         version: Some(version.parse().unwrap()),
+        sha: None,
     };
 
     // write the wasm file to a temp dir

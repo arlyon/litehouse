@@ -1,10 +1,15 @@
-use std::{collections::HashMap, str::FromStr};
+mod hash_read;
 
+use std::{collections::HashMap, path::Path, str::FromStr};
+
+use hash_read::HashRead;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use tokio::io::{AsyncRead, AsyncWrite};
 
 const REGISTRY_SEPARATOR: &str = "::";
 const VERSION_SEPARATOR: &str = "@";
+const SHA_SEPERATOR: &str = "~";
 
 #[derive(JsonSchema, Serialize, Deserialize, Debug, Default)]
 pub struct LitehouseConfig {
@@ -118,6 +123,7 @@ pub struct Import {
     pub registry: Option<String>,
     pub plugin: String,
     pub version: Option<semver::Version>,
+    pub sha: Option<Blake3>,
 }
 
 impl Import {
@@ -129,11 +135,60 @@ impl Import {
             .unwrap_or_default();
         format!("{}{}.wasm", self.plugin, version)
     }
+
+    pub async fn read_sha(&mut self, base_dir: &Path) {
+        let plugin_path = base_dir.join(self.file_name());
+        let hasher = blake3::Hasher::new();
+        let mut hasher = HashRead::new(tokio::io::empty(), hasher);
+        let mut file = tokio::fs::File::open(plugin_path).await.unwrap();
+        tokio::io::copy(&mut hasher, &mut file).await.unwrap();
+        let output = hasher.finalize();
+        let b: [u8; 32] = output.as_slice().try_into().unwrap();
+        self.sha = Some(Blake3(b));
+    }
+
+    /// Verify that the plugin at this path matches
+    /// this import. This validates the version
+    /// via the file name as well as the sha if
+    /// one is specified.
+    pub async fn verify(&self, path: &Path) -> Option<()> {
+        if self.sha.is_none() {
+            return None;
+        }
+
+        let mut file = tokio::fs::File::open(path).await.unwrap();
+        self.copy(&mut file, &mut tokio::io::empty())
+            .await
+            .map(|_| ())
+    }
+
+    /// Copy the plugin from src to dest, validating the sha in the
+    /// process.
+    pub async fn copy<R: AsyncRead + Unpin, W: AsyncWrite + Unpin>(
+        &self,
+        src: R,
+        dest: &mut W,
+    ) -> Option<u64> {
+        let hasher = blake3::Hasher::new();
+        let mut hasher = HashRead::new(src, hasher);
+        let bytes = tokio::io::copy(&mut hasher, dest).await.unwrap();
+        let output = hasher.finalize();
+
+        if let Some(Blake3(sha)) = self.sha {
+            // maybe consider constant time comparison fn
+            if &*output != sha {
+                eprintln!("sha mismatch\n  got {:02X?}\n  exp {:02X?}", &*output, sha);
+                return None;
+            }
+        }
+
+        return Some(bytes);
+    }
 }
 
 impl PartialEq for Import {
     fn eq(&self, other: &Self) -> bool {
-        self.plugin == other.plugin && self.version == other.version
+        self.plugin == other.plugin && self.version == other.version && self.sha == other.sha
     }
 }
 
@@ -182,6 +237,10 @@ impl FromStr for Import {
             .split_once(REGISTRY_SEPARATOR)
             .map(|(registry, rest)| (Some(registry), rest))
             .unwrap_or((None, &s));
+        let (sha, rest) = rest
+            .rsplit_once(SHA_SEPERATOR)
+            .map(|(rest, sha)| (Some(sha), rest))
+            .unwrap_or((None, &rest));
         let (package, version) = rest
             .split_once(VERSION_SEPARATOR)
             .map(|(package, version)| (package, Some(version.parse().unwrap())))
@@ -191,6 +250,7 @@ impl FromStr for Import {
             registry: registry.map(str::to_string),
             plugin: package.to_string(),
             version,
+            sha: sha.map(|s| Blake3::from_str(s).unwrap()),
         })
     }
 }
@@ -207,8 +267,31 @@ impl ToString for Import {
             .as_ref()
             .map(|v| format!("{}{}", VERSION_SEPARATOR, v))
             .unwrap_or_default();
+        let sha = self
+            .sha
+            .as_ref()
+            .map(|v| format!("{}{}", SHA_SEPERATOR, v.to_string()))
+            .unwrap_or_default();
 
-        format!("{}{}{}", registry, self.plugin, version)
+        format!("{}{}{}{}", registry, self.plugin, version, sha)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Blake3([u8; blake3::OUT_LEN]);
+
+impl FromStr for Blake3 {
+    type Err = blake3::HexError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let hash = s.strip_prefix("blake3:").unwrap();
+        Ok(Self(blake3::Hash::from_hex(hash)?.as_bytes().to_owned()))
+    }
+}
+
+impl ToString for Blake3 {
+    fn to_string(&self) -> String {
+        let hash = blake3::Hash::from_bytes(self.0);
+        format!("blake3:{}", hash.to_hex())
     }
 }
 
@@ -217,4 +300,23 @@ pub struct PluginInstance {
     #[schemars(with = "String")]
     pub plugin: Import,
     pub config: Option<serde_json::Value>,
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use test_case::test_case;
+
+    #[test_case("package" ; "just package")]
+    #[test_case("registry::package" ; "registry")]
+    #[test_case("registry::package@1.0.0" ; "version")]
+    #[test_case("registry::package@1.0.0~blake3:deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef" ; "everything")]
+    #[test_case("registry::package~blake3:deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef" ; "no version")]
+    #[test_case("package~blake3:deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef" ; "just sha")]
+    fn roundtrip(import_exp: &str) {
+        let package = Import::from_str(import_exp).unwrap();
+        let import_actual = package.to_string();
+        assert_eq!(import_exp, import_actual);
+        assert_eq!(package.plugin, "package");
+    }
 }

@@ -383,8 +383,12 @@ async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
                 }) => {
                     // write to file
                     (
-                        identifier,
-                        version,
+                        Import {
+                            plugin: identifier,
+                            version: version.parse().ok(),
+                            registry: None,
+                            sha: None,
+                        },
                         config_schema.and_then(|s| serde_json::from_str(&s).ok()),
                     )
                 }
@@ -396,7 +400,7 @@ async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
         }
     });
 
-    let schemas: Vec<(_, _, Option<serde_json::Value>)> = futures::future::join_all(jobs).await;
+    let schemas: Vec<(_, Option<serde_json::Value>)> = futures::future::join_all(jobs).await;
 
     let config_schema = schemars::schema_for!(LitehouseConfig);
     let json = serde_json::to_value(&config_schema).expect("can't fail");
@@ -406,7 +410,7 @@ async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
 
 fn inject_plugin_instance(
     mut json: Value,
-    plugins: impl Iterator<Item = (String, String, Option<Value>)>,
+    plugins: impl Iterator<Item = (Import, Option<Value>)>,
 ) -> serde_json::Value {
     let definitions = json
         .get_mut("definitions")
@@ -421,19 +425,13 @@ fn inject_plugin_instance(
     definitions.insert(
         "oneOf".to_string(),
         plugins
-            .map(|(plugin_name, version, schema)| {
+            .map(|(import, schema)| {
                 let mut config_base = base.clone();
                 let properties = config_base
                     .get_mut("properties")
                     .expect("always exists")
                     .as_object_mut()
                     .expect("is always an object");
-
-                let import = Import {
-                    registry: None,
-                    plugin: plugin_name.clone(),
-                    version: version.parse().ok(),
-                };
 
                 *properties.get_mut("plugin").unwrap() =
                     serde_json::Map::from_iter([("const".into(), import.to_string().into())])
