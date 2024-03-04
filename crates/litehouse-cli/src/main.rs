@@ -49,6 +49,12 @@ enum Options {
         /// The plugin to search for.
         query: Option<String>,
     },
+    /// Lock all the packages in your settings file, by setting their
+    /// hashes (if they don't exist).
+    Lock {
+        #[clap(default_value = "wasm")]
+        wasm_path: PathBuf,
+    },
 }
 
 #[tokio::main]
@@ -103,6 +109,7 @@ async fn main() -> eyre::Result<()> {
                 println!("{}", import.to_string());
             }
         }
+        Options::Lock { wasm_path } => lock(&wasm_path).await,
     }
 
     Ok(())
@@ -213,4 +220,14 @@ async fn fetch<U>(op: &Registry<U, Download>) {
         .collect::<futures::stream::FuturesUnordered<_>>()
         .collect::<Vec<_>>()
         .await;
+}
+
+async fn lock(wasm_path: &Path) {
+    let mut config = LitehouseConfig::load().unwrap();
+
+    for import in &mut config.imports {
+        import.read_sha(wasm_path).await;
+    }
+
+    config.save().unwrap();
 }

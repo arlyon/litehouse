@@ -40,6 +40,12 @@ impl LitehouseConfig {
         let config: LitehouseConfig = serde_json::from_reader(&file)?;
         Ok(config)
     }
+
+    pub fn save(&self) -> Result<(), Error> {
+        let file = std::fs::File::create("settings.json")?;
+        serde_json::to_writer_pretty(&file, self)?;
+        Ok(())
+    }
 }
 
 pub fn directories() -> Option<directories_next::ProjectDirs> {
@@ -137,11 +143,51 @@ impl Import {
     }
 
     pub async fn read_sha(&mut self, base_dir: &Path) {
+        use futures::StreamExt;
+
+        // if there is no version, we need to resolve it
+        if self.version.is_none() {
+            let files = tokio::fs::read_dir(base_dir).await.unwrap();
+            let stream = tokio_stream::wrappers::ReadDirStream::new(files);
+            let max_version = stream
+                .filter_map(|entry| {
+                    let import = Import::from_str(
+                        &entry
+                            .unwrap()
+                            .file_name()
+                            .to_string_lossy()
+                            .strip_suffix(".wasm")
+                            .unwrap(),
+                    )
+                    .unwrap();
+                    let plugin = &self.plugin;
+                    async move {
+                        if import.plugin.eq(plugin) {
+                            Some(import)
+                        } else {
+                            None
+                        }
+                    }
+                })
+                .collect::<Vec<_>>()
+                .await
+                .into_iter()
+                .max();
+
+            if let Some(import) = max_version {
+                self.version = import.version;
+            } else {
+                return;
+            }
+        }
+
         let plugin_path = base_dir.join(self.file_name());
         let hasher = blake3::Hasher::new();
-        let mut hasher = HashRead::new(tokio::io::empty(), hasher);
-        let mut file = tokio::fs::File::open(plugin_path).await.unwrap();
-        tokio::io::copy(&mut hasher, &mut file).await.unwrap();
+        let file = tokio::fs::File::open(plugin_path).await.unwrap();
+        let mut hasher = HashRead::new(file, hasher);
+        tokio::io::copy(&mut hasher, &mut tokio::io::empty())
+            .await
+            .unwrap();
         let output = hasher.finalize();
         let b: [u8; 32] = output.as_slice().try_into().unwrap();
         self.sha = Some(Blake3(b));

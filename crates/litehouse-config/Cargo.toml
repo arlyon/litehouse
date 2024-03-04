@@ -9,6 +9,7 @@ edition = "2021"
 blake3 = { version = "1.5.0", features = ["traits-preview"] }
 digest = "0.10.7"
 directories-next = "2.0.0"
+futures = "0.3.30"
 pin-project-lite = "0.2.13"
 schemars = "0.8.16"
 semver = { version = "1.0.22", features = ["serde"] }
@@ -16,6 +17,7 @@ serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 thiserror = "1.0.57"
 tokio = { version = "1.36.0", features = ["fs", "io-util"] }
+tokio-stream = { version = "0.1.14", features = ["fs"] }
 
 [dev-dependencies]
 test-case = "3.3.1"

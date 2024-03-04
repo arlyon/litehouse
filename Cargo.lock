@@ -1807,6 +1807,7 @@ dependencies = [
  "blake3",
  "digest",
  "directories-next",
+ "futures",
  "pin-project-lite",
  "schemars",
  "semver",
@@ -1815,6 +1816,7 @@ dependencies = [
  "test-case",
  "thiserror",
  "tokio",
+ "tokio-stream",
 ]
 
 [[package]]
