@@ -202,7 +202,12 @@ async fn publish<D>(package: String, op: &Registry<Upload, D>) {
 
 async fn fetch<U>(op: &Registry<U, Download>) {
     let config = LitehouseConfig::load().unwrap();
-    for file in config.imports {
-        op.download_package(file).await;
-    }
+
+    config
+        .imports
+        .iter()
+        .map(|import| op.download_package(import))
+        .collect::<futures::stream::FuturesUnordered<_>>()
+        .collect::<Vec<_>>()
+        .await;
 }
