@@ -139,7 +139,7 @@ async fn build_in_temp(package: &str, release: bool) -> Option<(Import, PathBuf)
 
     // run cargo build
     let out = Command::new("cargo")
-        .args(["build", "--target", "wasm32-wasi", "-p", &package])
+        .args(["build", "--target", "wasm32-wasi", "-p", package])
         .args(if release { &["--release"][..] } else { &[] })
         .status()
         .await

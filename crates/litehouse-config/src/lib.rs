@@ -1,6 +1,6 @@
 mod hash_read;
 
-use std::{collections::HashMap, path::Path, str::FromStr};
+use std::{collections::HashMap, fmt::Display, path::Path, str::FromStr};
 
 use hash_read::HashRead;
 use schemars::JsonSchema;
@@ -60,11 +60,11 @@ pub enum Capability {
     HttpClient(String),
 }
 
-impl ToString for Capability {
-    fn to_string(&self) -> String {
+impl Display for Capability {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Capability::HttpServer(port) => format!("http-server:{}", port),
-            Capability::HttpClient(url) => format!("http-client:{}", url),
+            Capability::HttpServer(port) => write!(f, "http-server:{}", port),
+            Capability::HttpClient(url) => write!(f, "http-client:{}", url),
         }
     }
 }
@@ -152,9 +152,7 @@ impl Import {
     /// via the file name as well as the sha if
     /// one is specified.
     pub async fn verify(&self, path: &Path) -> Option<()> {
-        if self.sha.is_none() {
-            return None;
-        }
+        self.sha.as_ref()?;
 
         let mut file = tokio::fs::File::open(path).await.unwrap();
         self.copy(&mut file, &mut tokio::io::empty())
@@ -176,13 +174,13 @@ impl Import {
 
         if let Some(Blake3(sha)) = self.sha {
             // maybe consider constant time comparison fn
-            if &*output != sha {
+            if *output != sha {
                 eprintln!("sha mismatch\n  got {:02X?}\n  exp {:02X?}", &*output, sha);
                 return None;
             }
         }
 
-        return Some(bytes);
+        Some(bytes)
     }
 }
 
@@ -236,11 +234,11 @@ impl FromStr for Import {
         let (registry, rest) = s
             .split_once(REGISTRY_SEPARATOR)
             .map(|(registry, rest)| (Some(registry), rest))
-            .unwrap_or((None, &s));
+            .unwrap_or((None, s));
         let (sha, rest) = rest
             .rsplit_once(SHA_SEPERATOR)
             .map(|(rest, sha)| (Some(sha), rest))
-            .unwrap_or((None, &rest));
+            .unwrap_or((None, rest));
         let (package, version) = rest
             .split_once(VERSION_SEPARATOR)
             .map(|(package, version)| (package, Some(version.parse().unwrap())))
@@ -255,8 +253,8 @@ impl FromStr for Import {
     }
 }
 
-impl ToString for Import {
-    fn to_string(&self) -> String {
+impl Display for Import {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let registry = self
             .registry
             .as_deref()
@@ -273,7 +271,7 @@ impl ToString for Import {
             .map(|v| format!("{}{}", SHA_SEPERATOR, v.to_string()))
             .unwrap_or_default();
 
-        format!("{}{}{}{}", registry, self.plugin, version, sha)
+        write!(f, "{}{}{}{}", registry, self.plugin, version, sha)
     }
 }
 
@@ -288,10 +286,10 @@ impl FromStr for Blake3 {
     }
 }
 
-impl ToString for Blake3 {
-    fn to_string(&self) -> String {
+impl Display for Blake3 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let hash = blake3::Hash::from_bytes(self.0);
-        format!("blake3:{}", hash.to_hex())
+        write!(f, "blake3:{}", hash.to_hex())
     }
 }
 

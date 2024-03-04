@@ -174,7 +174,7 @@ impl<U> Registry<U, Download> {
         }
 
         // list all files using the package name as a prefix
-        let files = self.list(Some(&import)).await;
+        let files = self.list(Some(import)).await;
 
         // otherwise select the latest version
         let selected = files.max_by(|a, b| a.0.cmp(&b.0));
@@ -202,7 +202,7 @@ impl<U> Registry<U, Download> {
         let mut reader = self.op.reader(&path).await.unwrap();
         let mut file = tokio::fs::File::create(&plugin_path).await.unwrap();
         let ok = import.copy(&mut reader, &mut file).await;
-        if let None = ok {
+        if ok.is_none() {
             panic!("sha does not match");
         }
         ok

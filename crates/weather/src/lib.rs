@@ -2,12 +2,10 @@ use crate::{
     exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit},
     wasi::http::{
         outgoing_handler,
-        types::{Fields, OutgoingRequest, RequestOptions, Scheme},
+        types::{Fields, OutgoingRequest, Scheme},
     },
 };
-use alloc::borrow::ToOwned;
 use core::fmt::Write;
-use plugin::wit_bindgen::rt::{string::String, vec::Vec};
 
 #[macro_use]
 extern crate alloc;
