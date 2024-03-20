@@ -226,7 +226,7 @@ async fn start(wasm_path: &Path) -> Result<()> {
 
             while let Some(_next) = merged_stream.next().await {
                 let mut store = store.lock().await;
-                runner
+                match runner
                     .call_update(
                         &mut *store,
                         instance,
@@ -237,8 +237,11 @@ async fn start(wasm_path: &Path) -> Result<()> {
                         }],
                     )
                     .await
-                    .map_err(|e| eyre!("plugin {} failed to update: {:?}", nickname, e))?
-                    .map_err(|e| eyre!("plugin {} failed to subscribe: {}", nickname, e))?;
+                {
+                    Ok(Ok(_)) => {}
+                    Ok(Err(e)) => tracing::error!("plugin {} failed to subscribe: {}", nickname, e),
+                    Err(_) => tracing::error!("plugin {} failed to update", nickname),
+                };
             }
 
             Ok(())
