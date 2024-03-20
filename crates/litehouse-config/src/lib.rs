@@ -152,7 +152,7 @@ impl Import {
             let max_version = stream
                 .filter_map(|entry| {
                     let import = Import::from_str(
-                        &entry
+                        entry
                             .unwrap()
                             .file_name()
                             .to_string_lossy()
