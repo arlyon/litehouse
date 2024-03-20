@@ -34,7 +34,6 @@ impl TasmotaPlugin {
 impl GuestRunner for TasmotaPlugin {
     fn new(nickname: String, config: Option<String>) -> Self {
         plugin::tracing_subscriber();
-        tracing::info!("YAY");
         let TasmotaConfig { ip } = serde_json::from_str(&config.unwrap_or_default()).unwrap();
         Self {
             nickname,

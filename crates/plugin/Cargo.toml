@@ -11,5 +11,6 @@ schemars = { version = "0.8.16", default-features = false, features = ["derive"]
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
 serde_path_to_error = "0.1.14"
-tracing-subscriber = "0.3.18"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 wit-bindgen = "0.16.0"
