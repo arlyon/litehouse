@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::{
     path::{Path, PathBuf},
@@ -28,6 +29,7 @@ use tokio::{
 use tokio_stream::StreamExt as _;
 
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
+use wasmtime::CacheStore;
 use wasmtime::{
     component::{Linker as ComponentLinker, *},
     Config, Engine, Store,
@@ -140,7 +142,7 @@ async fn start(wasm_path: &Path) -> Result<()> {
 
     let config = LitehouseConfig::load().wrap_err("unable to load settings.json")?;
 
-    let (engine, linker) = set_up_engine()?;
+    let (engine, linker, cache) = set_up_engine().await?;
 
     tracing::debug!("linking complete");
 
@@ -249,24 +251,93 @@ async fn start(wasm_path: &Path) -> Result<()> {
         d = futures::future::try_join_all(timers) => d.map(|_| ()),
         _ = tokio::signal::ctrl_c() => {
             tracing::info!("interrupt received, exiting");
+            cache.save().await.unwrap();
             Ok(())
         }
     }
 }
 
+#[derive(Debug, Default)]
+struct ModuleCache(std::sync::Mutex<ModuleCacheInner>);
+
+impl ModuleCache {
+    fn cache_path() -> PathBuf {
+        litehouse_config::directories()
+            .as_ref()
+            .map(|d| d.cache_dir())
+            .unwrap_or_else(|| Path::new(""))
+            .join("module.bin.lz4")
+    }
+
+    pub async fn load() -> Result<Option<Self>> {
+        let path = Self::cache_path();
+        tracing::debug!("loading bytecode cache from {}", path.display());
+        let data = tokio::fs::read(path).await;
+        match data {
+            Ok(data) => {
+                let decompressed = lz4_flex::decompress_size_prepended(&data).unwrap();
+                let inner = bitcode::decode::<ModuleCacheInner>(&decompressed).unwrap();
+                Ok(Some(ModuleCache(std::sync::Mutex::new(inner))))
+            }
+            Err(e) => {
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    Ok(None)
+                } else {
+                    Err(e.into())
+                }
+            }
+        }
+    }
+
+    pub async fn save(&self) -> Result<()> {
+        let data = bitcode::encode(&*self.0.lock().unwrap());
+        let compressed = lz4_flex::compress_prepend_size(&data);
+        tokio::fs::write(Self::cache_path(), compressed).await?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Default, bitcode::Encode, bitcode::Decode)]
+struct ModuleCacheInner(HashMap<Vec<u8>, Vec<u8>>);
+
+impl CacheStore for ModuleCache {
+    fn get(&self, key: &[u8]) -> Option<Cow<[u8]>> {
+        let map = self.0.lock().unwrap();
+        map.0.get(key).map(|v| Cow::Owned(v.clone()))
+    }
+
+    fn insert(&self, key: &[u8], value: Vec<u8>) -> bool {
+        self.0
+            .lock()
+            .unwrap()
+            .0
+            .insert(key.to_vec(), value)
+            .is_none()
+    }
+}
+
 #[tracing::instrument]
-fn set_up_engine() -> Result<
+async fn set_up_engine() -> Result<
     (
         Engine,
         Linker<
             PluginRunner<Sender<(String, runtime::bindings::litehouse::plugin::plugin::Update)>>,
         >,
+        Arc<ModuleCache>,
     ),
     eyre::Error,
 > {
     tracing::debug!("setting up engine");
     let mut wasm_config = Config::new();
-    wasm_config.wasm_component_model(true).async_support(true);
+
+    let cache = Arc::new(ModuleCache::load().await?.unwrap_or_default());
+
+    wasm_config
+        .wasm_component_model(true)
+        .async_support(true)
+        .enable_incremental_compilation(cache.clone())
+        .unwrap();
+
     let engine = Engine::new(&wasm_config).map_err(|_| eyre!("invalid wasm config"))?;
     let mut linker = ComponentLinker::new(&engine);
 
@@ -288,7 +359,7 @@ fn set_up_engine() -> Result<
 
     tracing::debug!("set up engine");
 
-    Ok((engine, linker))
+    Ok((engine, linker, cache))
 }
 
 #[tracing::instrument(skip(engine, store, linker, plugins))]
@@ -333,7 +404,7 @@ async fn instantiate_plugin<T: Send>(
 }
 
 async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
-    let (engine, linker) = set_up_engine()?;
+    let (engine, linker, _) = set_up_engine().await?;
 
     let (tx, _rx) = channel(1000);
 
