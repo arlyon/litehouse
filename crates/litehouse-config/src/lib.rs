@@ -277,6 +277,7 @@ impl FromStr for Import {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.strip_suffix(".wasm").unwrap_or(s); // remove file extension
         let (registry, rest) = s
             .split_once(REGISTRY_SEPARATOR)
             .map(|(registry, rest)| (Some(registry), rest))
