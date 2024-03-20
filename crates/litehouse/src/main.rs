@@ -155,7 +155,6 @@ async fn start(wasm_path: &Path) -> Result<()> {
     let linker = Arc::new(linker);
     let rx = Arc::new(rx);
 
-    // todo: only produce as many plugin hosts as there are plugin types rather than instances
     let bindings = instantiate_plugins(&engine, &store, &linker, config.plugins, wasm_path)
         .await
         .wrap_err("unable to instantiate plugins")?;
@@ -373,30 +372,52 @@ async fn instantiate_plugins<T: Send>(
     plugins: HashMap<String, PluginInstance>,
     base_path: &Path,
 ) -> Result<Vec<(PluginHost, String, PluginInstance)>> {
+    use itertools::Itertools;
+
+    tracing::debug!("loading plugins");
+    let components = Arc::new(
+        plugins
+            .values()
+            .map(|p| p.plugin.file_name())
+            .unique()
+            .map(|path| {
+                tracing::debug!("building plugin {}", path);
+                Component::from_file(engine, base_path.join(&path))
+                    .map_err(|e| eyre!("unable to build {}: {}", path, e))
+                    .map(|c| (path, c))
+            })
+            .collect::<Result<HashMap<_, _>>>()?,
+    );
+
     tracing::debug!("instantiating plugins");
-    let plugins = try_join_all(plugins.into_iter().map(|(nickname, instance)| async move {
-        Ok::<_, eyre::ErrReport>((
-            instantiate_plugin(&instance, engine, store, linker, base_path).await?,
-            nickname,
-            instance,
-        ))
+    let plugins = try_join_all(plugins.into_iter().map(|(nickname, instance)| {
+        let components = components.clone();
+        async move {
+            Ok::<_, eyre::ErrReport>((
+                instantiate_plugin(
+                    &instance,
+                    store,
+                    linker,
+                    components.get(&instance.plugin.file_name()).expect("there"),
+                )
+                .await?,
+                nickname,
+                instance,
+            ))
+        }
     }))
     .await?;
     tracing::debug!("instantiated plugins");
     Ok(plugins)
 }
 
-#[tracing::instrument(skip(engine, store, linker, instance, base_path), fields(instance = %instance.plugin.plugin))]
+#[tracing::instrument(skip( store, linker, instance, component), fields(instance = %instance.plugin.plugin))]
 async fn instantiate_plugin<T: Send>(
     instance: &PluginInstance,
-    engine: &Engine,
     store: &Mutex<Store<PluginRunner<T>>>,
     linker: &ComponentLinker<PluginRunner<T>>,
-    base_path: &Path,
+    component: &Component,
 ) -> Result<PluginHost> {
-    let component = Component::from_file(engine, base_path.join(instance.plugin.file_name()))
-        .map_err(|e| eyre!("unable to load {} plugin: {}", instance.plugin.plugin, e))?;
-
     let (bindings, _) = PluginHost::instantiate_async(&mut *store.lock().await, &component, linker)
         .await
         .map_err(|e| eyre!("unable to instantiate plugin: {}", e))?;
