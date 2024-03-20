@@ -1,6 +1,6 @@
 mod hash_read;
 
-use std::{collections::HashMap, fmt::Display, path::Path, str::FromStr};
+use std::{collections::HashMap, fmt::Display, num::NonZeroU8, path::Path, str::FromStr};
 
 use hash_read::HashRead;
 use schemars::JsonSchema;
@@ -32,6 +32,53 @@ pub struct LitehouseConfig {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[schemars(with = "Vec<String>")]
     pub capabilities: Vec<Capability>,
+    /// Advanced engine configuration
+    #[serde(default)]
+    pub engine: Engine,
+}
+
+#[derive(JsonSchema, Serialize, Deserialize, Debug, Default)]
+pub struct Engine {
+    /// The strategy to use for sandboxing plugins. By default, each plugin instance is run in its
+    /// own storage sandbox, for maximum parallelism and isolation. If you are in a constrained
+    /// environment, you may want to put all plugins in the same storage instead.
+    #[serde(default, skip_serializing_if = "SandboxStrategy::is_default")]
+    pub sandbox_strategy: SandboxStrategy,
+    pub max_parallel_builds: MaxBuildCount,
+    pub max_parallel_instantiations: MaxBuildCount,
+}
+
+#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum SandboxStrategy {
+    /// All plugins are run in the same storage sandbox
+    Global,
+    /// Each plugin type is run in its own storage sandbox
+    Plugin,
+    /// Each plugin instance is run in its own storage sandbox
+    #[default]
+    Instance,
+}
+
+#[derive(JsonSchema, Serialize, Deserialize, Debug)]
+pub struct MaxBuildCount(NonZeroU8);
+
+impl Default for MaxBuildCount {
+    fn default() -> Self {
+        MaxBuildCount(NonZeroU8::new(10).unwrap())
+    }
+}
+
+impl From<MaxBuildCount> for u8 {
+    fn from(count: MaxBuildCount) -> Self {
+        count.0.get()
+    }
+}
+
+impl SandboxStrategy {
+    pub fn is_default(&self) -> bool {
+        self == &Self::default()
+    }
 }
 
 impl LitehouseConfig {
@@ -60,7 +107,7 @@ pub enum Error {
     Serde(#[from] serde_json::Error),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Capability {
     HttpServer(usize),
     HttpClient(String),

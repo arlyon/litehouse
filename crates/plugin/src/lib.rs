@@ -13,7 +13,7 @@ pub fn tracing_subscriber() {
         .with_env_filter(EnvFilter::from_default_env())
         .finish();
 
-    if let Err(_) = set_global_default(subscriber.into()) {
+    if let Err(_err) = set_global_default(subscriber.into()) {
         tracing::trace!("unable to register trace module")
     }
 }

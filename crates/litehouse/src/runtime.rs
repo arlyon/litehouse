@@ -29,6 +29,24 @@ pub struct PluginRunner<T> {
     allowed_authorities: HashSet<String>,
 }
 
+pub struct PluginRunnerFactory<T> {
+    event_sink: T,
+    capabilities: Vec<Capability>,
+}
+
+impl<T: Clone> PluginRunnerFactory<T> {
+    pub fn new(event_sink: T, capabilities: Vec<Capability>) -> Self {
+        Self {
+            event_sink,
+            capabilities,
+        }
+    }
+
+    pub fn create(&self) -> PluginRunner<T> {
+        PluginRunner::new(self.event_sink.clone(), self.capabilities.clone())
+    }
+}
+
 impl<T> PluginRunner<T> {
     pub fn new(event_sink: T, capabilities: Vec<Capability>) -> Self {
         let mut wasi = WasiCtxBuilder::new();
