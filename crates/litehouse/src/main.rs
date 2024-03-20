@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::future;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -7,7 +8,7 @@ use std::{
 
 use clap::{Parser, Subcommand};
 use eyre::{eyre, Result, WrapErr};
-use futures::future::{join_all, try_join_all};
+use futures::{StreamExt as _, TryStreamExt as _};
 use litehouse_config::{Import, LitehouseConfig, PluginInstance};
 use plugin::serde_json::{self, Value};
 use runtime::{
@@ -26,7 +27,7 @@ use tokio::{
     },
     time::interval,
 };
-use tokio_stream::StreamExt as _;
+use tokio_stream::wrappers::ReadDirStream;
 
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 use wasmtime::CacheStore;
@@ -155,17 +156,21 @@ async fn start(wasm_path: &Path) -> Result<()> {
     let linker = Arc::new(linker);
     let rx = Arc::new(rx);
 
-    let bindings = instantiate_plugins(&engine, &store, &linker, config.plugins, wasm_path)
+    let hosts = instantiate_plugin_hosts(&engine, &store, &linker, &config.plugins, wasm_path)
         .await
         .wrap_err("unable to instantiate plugins")?;
+    if let Err(e) = cache.drain().await {
+        tracing::warn!("unable to save cache: {}", e)
+    }
 
-    let timers = bindings.into_iter().map(|(host, nickname, plugin)| {
+    let timers = config.plugins.into_iter().map(|(nickname, instance)| {
         let store = store.clone();
         let rx = rx.resubscribe();
+        let host = hosts.get(&instance.plugin.file_name()).expect("can't fail");
         async move {
             let runner = host.litehouse_plugin_plugin().runner();
 
-            let config = serde_json::to_string(&plugin.config).expect("can't fail");
+            let config = serde_json::to_string(&instance.config).expect("can't fail");
 
             let instance = runner
                 .call_constructor(&mut *store.lock().await, &nickname, Some(&config))
@@ -212,16 +217,17 @@ async fn start(wasm_path: &Path) -> Result<()> {
 
             let event_stream = tokio_stream::wrappers::BroadcastStream::new(rx);
 
-            let mut merged_stream = streams
-                .map(|_| runtime::bindings::litehouse::plugin::plugin::Update::Time(0))
-                .merge(
-                    event_stream
-                        .filter_map(|u| u.ok())
-                        .filter(|(name, event)| {
-                            name != &nickname && listen_types.iter().any(|t| t.matches(event))
-                        })
-                        .map(|(_, update)| update),
-                );
+            let mut merged_stream = std::pin::pin! {tokio_stream::StreamExt::merge(
+                streams.map(|_| runtime::bindings::litehouse::plugin::plugin::Update::Time(0)),
+                event_stream
+                    .filter_map(|u| future::ready(u.ok()))
+                    .filter(|(name, event)| future::ready(
+                        name != &nickname && listen_types.iter().any(|t| t.matches(event))
+                    ))
+                    .map(|(_, update)| update),
+            )};
+
+            let total_events = merged_stream.map(|_| async {}).buffered(10).count().await;
 
             while let Some(_next) = merged_stream.next().await {
                 let mut store = store.lock().await;
@@ -253,7 +259,6 @@ async fn start(wasm_path: &Path) -> Result<()> {
         d = futures::future::try_join_all(timers) => d.map(|_| ()),
         _ = tokio::signal::ctrl_c() => {
             tracing::info!("interrupt received, exiting");
-            cache.save().await.unwrap();
             Ok(())
         }
     }
@@ -291,8 +296,14 @@ impl ModuleCache {
         }
     }
 
-    pub async fn save(&self) -> Result<()> {
-        let data = bitcode::encode(&*self.0.lock().unwrap());
+    pub async fn drain(&self) -> Result<()> {
+        let data = {
+            let mut map = self.0.lock().unwrap();
+            let data = bitcode::encode(&*map);
+            *map = Default::default();
+            data
+        };
+
         let compressed = lz4_flex::compress_prepend_size(&data);
         tokio::fs::write(Self::cache_path(), compressed).await?;
         Ok(())
@@ -337,6 +348,7 @@ async fn set_up_engine() -> Result<
     wasm_config
         .wasm_component_model(true)
         .async_support(true)
+        .async_stack_size(1 << 20) // 1MiB
         .enable_incremental_compilation(cache.clone())
         .unwrap();
 
@@ -365,72 +377,60 @@ async fn set_up_engine() -> Result<
 }
 
 #[tracing::instrument(skip(engine, store, linker, plugins))]
-async fn instantiate_plugins<T: Send>(
+async fn instantiate_plugin_hosts<T: Send>(
     engine: &Engine,
     store: &Mutex<Store<PluginRunner<T>>>,
     linker: &ComponentLinker<PluginRunner<T>>,
-    plugins: HashMap<String, PluginInstance>,
+    plugins: &HashMap<String, PluginInstance>,
     base_path: &Path,
-) -> Result<Vec<(PluginHost, String, PluginInstance)>> {
+) -> Result<HashMap<String, PluginHost>> {
     use itertools::Itertools;
 
-    tracing::debug!("loading plugins");
-    let components = Arc::new(
-        plugins
-            .values()
-            .map(|p| p.plugin.file_name())
-            .unique()
-            .map(|path| {
-                tracing::debug!("building plugin {}", path);
-                Component::from_file(engine, base_path.join(&path))
-                    .map_err(|e| eyre!("unable to build {}: {}", path, e))
-                    .map(|c| (path, c))
-            })
-            .collect::<Result<HashMap<_, _>>>()?,
-    );
+    tracing::debug!("instantiating plugin hosts");
 
-    tracing::debug!("instantiating plugins");
-    let plugins = try_join_all(plugins.into_iter().map(|(nickname, instance)| {
-        let components = components.clone();
-        async move {
-            Ok::<_, eyre::ErrReport>((
-                instantiate_plugin(
-                    &instance,
-                    store,
-                    linker,
-                    components.get(&instance.plugin.file_name()).expect("there"),
-                )
-                .await?,
-                nickname,
-                instance,
-            ))
-        }
-    }))
-    .await?;
-    tracing::debug!("instantiated plugins");
-    Ok(plugins)
+    let hosts = tokio_stream::iter(plugins.values().map(|p| p.plugin.file_name()).unique().map(
+        |file_name| instantiate_plugin_host(file_name, base_path, engine.clone(), store, linker),
+    ))
+    .buffer_unordered(10)
+    .try_collect::<HashMap<_, _>>()
+    .await;
+
+    tracing::debug!("instantiated plugin hosts");
+
+    hosts
 }
 
-#[tracing::instrument(skip( store, linker, instance, component), fields(instance = %instance.plugin.plugin))]
-async fn instantiate_plugin<T: Send>(
-    instance: &PluginInstance,
+#[tracing::instrument(skip(base_path, engine, store, linker))]
+async fn instantiate_plugin_host<T: Send>(
+    file_name: String,
+    base_path: &Path,
+    engine: Engine,
     store: &Mutex<Store<PluginRunner<T>>>,
     linker: &ComponentLinker<PluginRunner<T>>,
-    component: &Component,
-) -> Result<PluginHost> {
-    let (bindings, _) = PluginHost::instantiate_async(&mut *store.lock().await, &component, linker)
+) -> Result<(String, PluginHost)> {
+    tracing::debug!("building");
+
+    let contents = tokio::fs::read(base_path.join(&file_name)).await.unwrap();
+
+    let c = tokio::task::spawn_blocking(move || Component::new(&engine, contents))
         .await
-        .map_err(|e| eyre!("unable to instantiate plugin: {}", e))?;
+        .unwrap()
+        .map_err(|e| eyre!("unable to build {}: {}", &file_name, e))?;
 
-    tracing::debug!("complete");
+    tracing::debug!("instantiating");
 
-    Ok(bindings)
+    let (host, _) = PluginHost::instantiate_async(&mut *store.lock().await, &c, linker)
+        .await
+        .map_err(|e| eyre!("unable to instantiate {}: {}", &file_name, e))?;
+
+    Ok((file_name, host))
 }
 
 async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
-    let (engine, linker, _) = set_up_engine().await?;
+    let (engine, linker, cache) = set_up_engine().await?;
+    let engine = Arc::new(engine);
 
-    let (tx, _rx) = channel(1000);
+    let (tx, _rx) = channel(1);
 
     let store = Arc::new(Mutex::new(Store::new(
         &engine,
@@ -438,34 +438,39 @@ async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
     )));
     let linker = Arc::new(linker);
 
-    let bindings = join_all(
-        std::fs::read_dir(wasm_path)
-            .wrap_err_with(|| format!("unable to read modules in `{}`", wasm_path.display()))?
-            .map(|p| Component::from_file(&engine, p.unwrap().path()).unwrap())
-            .map(|c| {
-                let store = store.clone();
-                let linker = linker.clone();
-                async move {
-                    let (bindings, _) =
-                        PluginHost::instantiate_async(&mut *store.lock().await, &c, &linker)
-                            .await
-                            .unwrap();
-
-                    bindings
-                }
-            }),
+    let dirs: HashMap<_, _> = ReadDirStream::new(
+        tokio::fs::read_dir(wasm_path)
+            .await
+            .wrap_err_with(|| format!("unable to read modules in `{}`", wasm_path.display()))?,
     )
+    .map(|dir| {
+        let file_name = dir.as_ref().unwrap().file_name().into_string().unwrap();
+        let plugin: Import = file_name.parse().unwrap();
+        (
+            dir.unwrap().file_name().into_string().unwrap(),
+            PluginInstance {
+                config: None,
+                plugin,
+            },
+        )
+    })
+    .collect()
     .await;
 
-    if bindings.is_empty() {
+    let hosts = instantiate_plugin_hosts(&engine, &store, &linker, &dirs, wasm_path).await?;
+    if let Err(e) = cache.drain().await {
+        tracing::warn!("unable to save cache: {}", e)
+    }
+
+    if hosts.is_empty() {
         tracing::warn!("no plugins found in `{}`", wasm_path.display());
     }
 
-    let jobs = bindings.into_iter().map(|plugin| {
+    let jobs = hosts.into_values().map(|host| {
         let store = store.clone();
         async move {
             let store = &mut *store.lock().await;
-            let metadata = plugin
+            let metadata = host
                 .litehouse_plugin_plugin()
                 .call_get_metadata(store)
                 .await;
@@ -499,6 +504,10 @@ async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
 
     let config_schema = schemars::schema_for!(LitehouseConfig);
     let json = serde_json::to_value(&config_schema).expect("can't fail");
+
+    if let Err(e) = cache.drain().await {
+        tracing::warn!("unable to save cache: {}", e)
+    }
 
     Ok(inject_plugin_instance(json, schemas.into_iter()))
 }
