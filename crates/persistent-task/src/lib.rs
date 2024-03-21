@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit};
 
-plugin::generate!(PersistentPlugin);
+litehouse_plugin::generate!(PersistentPlugin);
 
 pub struct PersistentPlugin {
     nickname: String,
@@ -10,7 +10,7 @@ pub struct PersistentPlugin {
 
 impl GuestRunner for PersistentPlugin {
     fn new(nickname: String, _config: Option<String>) -> Self {
-        plugin::tracing_subscriber();
+        litehouse_plugin::tracing_subscriber();
         // let (commands_tx, commands_rx) = std::sync::mpsc::channel();
         // let (updates_tx, updates_rx) = std::sync::mpsc::channel();
         std::thread::spawn(move || loop {

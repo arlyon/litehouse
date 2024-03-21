@@ -7,7 +7,7 @@ use wasi::http::{
 
 use crate::exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit};
 
-plugin::generate!(TasmotaPlugin, TasmotaConfig);
+litehouse_plugin::generate!(TasmotaPlugin, TasmotaConfig);
 
 pub struct TasmotaPlugin {
     nickname: String,
@@ -15,7 +15,7 @@ pub struct TasmotaPlugin {
     ip: (u8, u8, u8, u8),
 }
 
-#[derive(plugin::JsonSchema, serde::Deserialize)]
+#[derive(litehouse_plugin::JsonSchema, serde::Deserialize)]
 pub struct TasmotaConfig {
     /// The ip address of the device to connect to.
     pub ip: (u8, u8, u8, u8),
@@ -33,7 +33,7 @@ impl TasmotaPlugin {
 
 impl GuestRunner for TasmotaPlugin {
     fn new(nickname: String, config: Option<String>) -> Self {
-        plugin::tracing_subscriber();
+        litehouse_plugin::tracing_subscriber();
         let TasmotaConfig { ip } = serde_json::from_str(&config.unwrap_or_default()).unwrap();
         Self {
             nickname,

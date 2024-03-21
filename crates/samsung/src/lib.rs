@@ -14,7 +14,7 @@ use serde::Serialize;
 use tungstenite::Message;
 use url::Url;
 
-plugin::generate!(SamsungPlugin, SamsungConfig);
+litehouse_plugin::generate!(SamsungPlugin, SamsungConfig);
 
 impl std::io::Read for crate::wasi::io::streams::InputStream {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
@@ -88,7 +88,7 @@ pub struct SamsungPlugin {
 }
 
 /// Configuration for the Samsung plugin.
-#[derive(plugin::JsonSchema, serde::Deserialize)]
+#[derive(litehouse_plugin::JsonSchema, serde::Deserialize)]
 pub struct SamsungConfig {
     /// The IP address of the Samsung TV.
     pub ip: (u8, u8, u8, u8),
@@ -100,7 +100,7 @@ pub struct SamsungConfig {
 
 impl GuestRunner for SamsungPlugin {
     fn new(nickname: String, config: Option<String>) -> Self {
-        plugin::tracing_subscriber();
+        litehouse_plugin::tracing_subscriber();
 
         let SamsungConfig { ip, name, token } =
             serde_json::from_str(&config.unwrap_or_default()).unwrap();

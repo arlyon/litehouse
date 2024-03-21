@@ -28,7 +28,7 @@ pub fn generate(input: TokenStream) -> TokenStream {
             (
                 None,
                 ident.clone(),
-                quote! {plugin::serde_json::to_string(&plugin::schemars::schema_for!(#ident)).ok()},
+                quote! {litehouse_plugin::serde_json::to_string(&litehouse_plugin::schemars::schema_for!(#ident)).ok()},
             )
         })
         .unwrap_or_else(|| {
@@ -55,7 +55,7 @@ pub fn generate(input: TokenStream) -> TokenStream {
     let wit_dir = std::env!("WIT_DIR");
     let wit_dir = format!("{}/wit", wit_dir);
     quote! {
-        plugin::wit_bindgen::generate!({
+        litehouse_plugin::wit_bindgen::generate!({
             path: #wit_dir,
             world: "plugin-host",
             runtime_path: "plugin::wit_bindgen::rt",
@@ -89,7 +89,7 @@ pub fn generate_host(_input: TokenStream) -> TokenStream {
 pub fn config(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as syn::ItemStruct);
     let out = quote! {
-        #[derive(plugin::JsonSchema)]
+        #[derive(litehouse_plugin::JsonSchema)]
         #input
     };
     println!("{:#?}", out);

@@ -1,4 +1,4 @@
-pub use plugin_macro::{generate, generate_host, Config};
+pub use litehouse_plugin_macro::{generate, generate_host, Config};
 // pub use wasmtime_wasi_http;
 pub use schemars::{self, schema_for, JsonSchema};
 pub use serde_json;

@@ -16,8 +16,8 @@ use jsonschema::paths::{JSONPointer, PathChunk};
 use litehouse_config::{
     ConfigError, Import, LitehouseConfig, ParseError, PluginInstance, SandboxStrategy,
 };
+use litehouse_plugin::serde_json::{self, Value};
 use miette::{miette, IntoDiagnostic, NamedSource, Result, SourceSpan, WrapErr};
-use plugin::serde_json::{self, Value};
 use runtime::PluginRunnerFactory;
 use runtime::{
     bindings::{

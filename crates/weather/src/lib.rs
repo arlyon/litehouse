@@ -10,14 +10,14 @@ use core::fmt::Write;
 #[macro_use]
 extern crate alloc;
 
-plugin::generate!(WeatherPlugin, WeatherConfig);
+litehouse_plugin::generate!(WeatherPlugin, WeatherConfig);
 
 pub struct WeatherPlugin {
     nickname: String,
     request_path: String,
 }
 
-#[derive(plugin::JsonSchema, serde::Deserialize)]
+#[derive(litehouse_plugin::JsonSchema, serde::Deserialize)]
 pub struct WeatherConfig {
     /// The latitude to fetch the weather for.
     pub lat: f64,
@@ -27,7 +27,7 @@ pub struct WeatherConfig {
 
 impl GuestRunner for WeatherPlugin {
     fn new(nickname: String, config: Option<String>) -> Self {
-        plugin::tracing_subscriber();
+        litehouse_plugin::tracing_subscriber();
 
         let WeatherConfig { lat, lon } = serde_json::from_str(&config.unwrap_or_default()).unwrap();
         let mut request_path = String::new();
