@@ -12,7 +12,7 @@ use wasmtime_wasi_http::{
 };
 
 pub mod bindings {
-    plugin::generate_host!();
+    litehouse_plugin::generate_host!();
 
     impl crate::runtime::bindings::exports::litehouse::plugin::plugin::UpdateSubscription {
         pub fn matches(&self, event: &Update) -> bool {
