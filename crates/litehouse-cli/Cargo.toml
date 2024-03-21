@@ -13,6 +13,7 @@ clap = { version = "4.5.1", features = ["derive"] }
 directories-next = "2.0.0"
 futures = "0.3.30"
 litehouse-config = { version = "0.1.0", path = "../litehouse-config" }
+miette = "7.2.0"
 opendal = { version = "0.45.1", default-features = false, features = [
     "services-s3",
     "rustls-webpki",

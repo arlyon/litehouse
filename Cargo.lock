@@ -1789,9 +1789,9 @@ dependencies = [
  "jsonc-parser",
  "jsonschema",
  "litehouse-config",
+ "litehouse-plugin",
  "lz4_flex",
  "miette",
- "plugin",
  "schemars",
  "serde",
  "thiserror",
@@ -1816,6 +1816,7 @@ dependencies = [
  "directories-next",
  "futures",
  "litehouse-config",
+ "miette",
  "opendal",
  "reqsign",
  "reqwest",
@@ -1842,6 +1843,29 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-stream",
+]
+
+[[package]]
+name = "litehouse-plugin"
+version = "0.1.0"
+dependencies = [
+ "litehouse-plugin-macro",
+ "schemars",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "tracing",
+ "tracing-subscriber",
+ "wit-bindgen",
+]
+
+[[package]]
+name = "litehouse-plugin-macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.53",
 ]
 
 [[package]]
@@ -2284,7 +2308,7 @@ name = "persistent-task"
 version = "0.1.0"
 dependencies = [
  "base64",
- "plugin",
+ "litehouse-plugin",
  "schemars",
  "serde",
  "serde_json",
@@ -2367,29 +2391,6 @@ name = "pkg-config"
 version = "0.3.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "69d3587f8a9e599cc7ec2c00e331f71c4e69a5f9a4b8a6efd5b07466b9736f9a"
-
-[[package]]
-name = "plugin"
-version = "0.1.0"
-dependencies = [
- "plugin-macro",
- "schemars",
- "serde",
- "serde_json",
- "serde_path_to_error",
- "tracing",
- "tracing-subscriber",
- "wit-bindgen",
-]
-
-[[package]]
-name = "plugin-macro"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.53",
-]
 
 [[package]]
 name = "powerfmt"
@@ -2839,7 +2840,7 @@ name = "samsung"
 version = "0.1.0"
 dependencies = [
  "base64",
- "plugin",
+ "litehouse-plugin",
  "rustls 0.22.2",
  "schemars",
  "serde",
@@ -3255,7 +3256,7 @@ checksum = "69758bda2e78f098e4ccb393021a0963bb3442eac05f135c30f61b7370bbafae"
 name = "tasmota"
 version = "0.1.1"
 dependencies = [
- "plugin",
+ "litehouse-plugin",
  "schemars",
  "serde",
  "serde_json",
@@ -4300,7 +4301,7 @@ dependencies = [
 name = "weather"
 version = "0.1.1"
 dependencies = [
- "plugin",
+ "litehouse-plugin",
  "schemars",
  "serde",
  "serde_json",
