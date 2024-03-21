@@ -5,9 +5,14 @@ use std::{
     sync::Arc,
 };
 
+use clap::Parser;
+use futures::StreamExt;
+use miette::Context;
+use registry::{Download, Registry, Upload};
+use tokio::process::Command;
+
 use cache::ModuleCache;
-use clap::{Parser, Subcommand};
-use futures::{StreamExt, TryStreamExt as _};
+use futures::TryStreamExt as _;
 use itertools::Itertools;
 use jsonc_parser::common::Ranged;
 use jsonc_parser::CollectOptions;
@@ -17,7 +22,7 @@ use litehouse_config::{
     ConfigError, Import, LitehouseConfig, ParseError, PluginInstance, SandboxStrategy,
 };
 use litehouse_plugin::serde_json::{self, Value};
-use miette::{miette, Diagnostic, IntoDiagnostic, NamedSource, Result, SourceSpan, WrapErr};
+use miette::{miette, Diagnostic, IntoDiagnostic, NamedSource, Result, SourceSpan};
 use runtime::PluginRunnerFactory;
 use runtime::{
     bindings::{
@@ -42,26 +47,34 @@ use wasmtime::{
 };
 
 mod cache;
+mod cache_layer;
+mod registry;
 mod runtime;
 mod store;
 
-#[derive(Parser)]
+#[derive(clap::Parser)]
 struct Opt {
     #[command(subcommand)]
-    command: Command,
+    command: Subcommand,
 }
 
 #[cfg(feature = "dhat-heap")]
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
 
-#[derive(Subcommand)]
-enum Command {
+const WASM_PROCESS_FILE: &[u8] =
+    include_bytes!("../../litehouse/wasi_snapshot_preview1.reactor.wasm");
+
+#[derive(clap::Subcommand)]
+enum Subcommand {
     /// Run the litehouse server
     Run {
         /// The path to look for wasm files in.
         #[clap(default_value = "./wasm", short, long)]
         wasm_path: PathBuf,
+        /// Whether to enable the wasm cache
+        #[clap(long)]
+        no_cache: bool,
     },
     /// Generate a jsonschema for the config file, based on the
     /// plugins that are in your wasm path
@@ -69,11 +82,49 @@ enum Command {
         /// The path to look for wasm files in.
         #[clap(default_value = "./wasm", short, long)]
         wasm_path: PathBuf,
+        /// Whether to enable the wasm cache
+        #[clap(long, default_value_t = true)]
+        no_cache: bool,
     },
     Init,
     Validate {
         /// The path to look for wasm files in.
         #[clap(default_value = "./wasm", short, long)]
+        wasm_path: PathBuf,
+        /// Whether to enable the wasm cache
+        #[clap(long, default_value_t = true)]
+        no_cache: bool,
+    },
+    /// Publish a package to the registry. Run this in the root of your package.
+    Publish {
+        package: String,
+        #[clap(long)]
+        access_key: String,
+        #[clap(long)]
+        secret_key: String,
+    },
+    /// Fetch packages from the registry, based on the imports in your settings file.
+    Fetch {
+        #[clap(default_value = "wasm")]
+        wasm_path: PathBuf,
+    },
+    /// Build a package and write the wasm file to the specified path.
+    Build {
+        package: String,
+        #[clap(default_value = "wasm")]
+        wasm_path: PathBuf,
+        #[clap(long, default_value_t = false)]
+        debug: bool,
+    },
+    /// Search for a package in the registry.
+    Search {
+        /// The plugin to search for.
+        query: Option<String>,
+    },
+    /// Lock all the packages in your settings file, by setting their
+    /// hashes (if they don't exist).
+    Lock {
+        #[clap(default_value = "wasm")]
         wasm_path: PathBuf,
     },
 }
@@ -100,6 +151,8 @@ async fn main_inner() -> Result<()> {
     }))
     .unwrap();
 
+    let registry = Registry::build("default".to_string());
+
     tracing_subscriber::registry()
         .with(console_layer)
         .with(tracing_subscriber::fmt::layer().with_filter(EnvFilter::from_default_env()))
@@ -108,7 +161,7 @@ async fn main_inner() -> Result<()> {
     let opt = Opt::parse();
 
     match opt.command {
-        Command::Init => {
+        Subcommand::Init => {
             std::fs::create_dir_all("wasm")
                 .into_diagnostic()
                 .wrap_err("unable to create wasm directory")?;
@@ -130,11 +183,17 @@ async fn main_inner() -> Result<()> {
 
             Ok(())
         }
-        Command::Run { wasm_path } => start(&wasm_path)
+        Subcommand::Run {
+            wasm_path,
+            no_cache,
+        } => start(&wasm_path, !no_cache)
             .await
             .wrap_err("unable to start litehouse"),
-        Command::Generate { wasm_path } => {
-            let schema = generate(&wasm_path)
+        Subcommand::Generate {
+            wasm_path,
+            no_cache,
+        } => {
+            let schema = generate(&wasm_path, !no_cache)
                 .await
                 .wrap_err("unable to generate schema")?;
 
@@ -149,8 +208,11 @@ async fn main_inner() -> Result<()> {
             println!("wrote jsonschema to schema.json");
             Ok(())
         }
-        Command::Validate { wasm_path } => {
-            let schema = generate(&wasm_path)
+        Subcommand::Validate {
+            wasm_path,
+            no_cache,
+        } => {
+            let schema = generate(&wasm_path, !no_cache)
                 .await
                 .wrap_err("unable to generate schema")?;
             let schema = jsonschema::JSONSchema::compile(&schema).expect("can't fail");
@@ -217,6 +279,51 @@ async fn main_inner() -> Result<()> {
                 })
                 .wrap_err("could not validate settings.json")
         }
+        Subcommand::Publish {
+            package,
+            access_key,
+            secret_key,
+        } => Ok(publish(
+            package,
+            &registry
+                .with_upload(access_key, secret_key)
+                .build()
+                .await
+                .wrap_err("can't download")?,
+        )
+        .await),
+        Subcommand::Fetch { wasm_path } => {
+            let cache_dir = litehouse_config::directories().map(|d| d.cache_dir().to_owned());
+
+            Ok(fetch(
+                &registry
+                    .with_download(wasm_path, cache_dir)
+                    .build()
+                    .await
+                    .wrap_err("can't fetch")?,
+            )
+            .await)
+        }
+        Subcommand::Build {
+            wasm_path,
+            package,
+            debug,
+        } => Ok(build(&package, &wasm_path, debug).await),
+        Subcommand::Search { query } => {
+            let prefix = query.map(|q| Import {
+                plugin: q,
+                registry: None,
+                version: None,
+                sha: None,
+            });
+            let registry = registry.build().await.wrap_err("can't search")?;
+            let results = registry.list(prefix.as_ref()).await;
+            for (import, _) in results {
+                println!("{}", import.to_string());
+            }
+            Ok(())
+        }
+        Subcommand::Lock { wasm_path } => Ok(lock(&wasm_path).await),
     }
 }
 
@@ -285,7 +392,7 @@ struct FailedValidation {
     instance_path: jsonschema::paths::JSONPointer,
 }
 
-async fn start(wasm_path: &Path) -> Result<()> {
+async fn start(wasm_path: &Path, cache: bool) -> Result<()> {
     tracing::info!("booting litehouse");
 
     let config = LitehouseConfig::load().wrap_err("unable to read settings")?;
@@ -304,7 +411,7 @@ async fn start(wasm_path: &Path) -> Result<()> {
     )
     .unwrap();
 
-    let (engine, linker, cache) = set_up_engine().await?;
+    let (engine, linker, cache) = set_up_engine(cache).await?;
 
     tracing::debug!("linking complete");
 
@@ -334,8 +441,10 @@ async fn start(wasm_path: &Path) -> Result<()> {
     )
     .await
     .wrap_err("unable to instantiate plugins")?;
-    if let Err(e) = cache.drain().await {
-        tracing::warn!("unable to save cache: {}", e)
+    if let Some(cache) = cache {
+        if let Err(e) = cache.drain().await {
+            tracing::warn!("unable to save cache: {}", e)
+        }
     }
 
     let timers = plugins
@@ -450,27 +559,35 @@ async fn start(wasm_path: &Path) -> Result<()> {
 }
 
 #[tracing::instrument]
-async fn set_up_engine() -> Result<
+async fn set_up_engine(
+    cache: bool,
+) -> Result<
     (
         Engine,
         Linker<
             PluginRunner<Sender<(String, runtime::bindings::litehouse::plugin::plugin::Update)>>,
         >,
-        Arc<ModuleCache>,
+        Option<Arc<ModuleCache>>,
     ),
     miette::Error,
 > {
     tracing::debug!("setting up engine");
     let mut wasm_config = Config::new();
 
-    let cache = Arc::new(ModuleCache::load().await?.unwrap_or_default());
-
     wasm_config
         .wasm_component_model(true)
         .async_support(true)
-        .async_stack_size(1 << 20) // 1MiB
-        .enable_incremental_compilation(cache.clone())
-        .unwrap();
+        .async_stack_size(1 << 20); // 1MiB
+
+    let cache = if cache == true {
+        let cache = Arc::new(ModuleCache::load().await?.unwrap_or_default());
+        wasm_config
+            .enable_incremental_compilation(cache.clone())
+            .unwrap();
+        Some(cache)
+    } else {
+        None
+    };
 
     let engine = Engine::new(&wasm_config).map_err(|_| miette!("invalid wasm config"))?;
     let mut linker = ComponentLinker::new(&engine);
@@ -513,7 +630,7 @@ struct PluginLoadError {
     source: std::io::Error,
 }
 
-#[tracing::instrument(skip(engine, store_builder, linker, plugins))]
+#[tracing::instrument(skip(ast, engine, store_builder, linker, plugins))]
 async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
     ast: Option<(NamedSource<Arc<String>>, &jsonc_parser::ast::Value<'a>)>,
     engine: &Engine,
@@ -626,8 +743,8 @@ async fn instantiate_plugin_host<T: Send + Clone>(
     Ok((host, store))
 }
 
-async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
-    let (engine, linker, cache) = set_up_engine().await?;
+async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value> {
+    let (engine, linker, cache) = set_up_engine(cache).await?;
 
     let (tx, _rx) = channel(1);
 
@@ -665,8 +782,10 @@ async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
 
     let hosts =
         instantiate_plugin_hosts(None, &engine, store, &linker, &dirs, wasm_path, 10, 10).await?;
-    if let Err(e) = cache.drain().await {
-        tracing::warn!("unable to save cache: {}", e)
+    if let Some(cache) = cache {
+        if let Err(e) = cache.drain().await {
+            tracing::warn!("unable to save cache: {}", e)
+        }
     }
 
     if hosts.is_empty() {
@@ -739,10 +858,6 @@ async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
 
     let config_schema = schemars::schema_for!(LitehouseConfig);
     let json = serde_json::to_value(&config_schema).expect("can't fail");
-
-    if let Err(e) = cache.drain().await {
-        tracing::warn!("unable to save cache: {}", e)
-    }
 
     Ok(inject_plugin_instance(json, schemas.into_iter()))
 }
@@ -826,4 +941,121 @@ fn inject_plugin_instance(
     );
 
     json
+}
+
+async fn build_in_temp(package: &str, release: bool) -> Option<(Import, PathBuf)> {
+    let workspaces_json = Command::new("cargo")
+        .arg("metadata")
+        .output()
+        .await
+        .unwrap();
+    let data: serde_json::Value = serde_json::from_slice(&workspaces_json.stdout).unwrap();
+
+    let members: HashMap<&str, (&str, &str)> = data["workspace_members"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| {
+            let v = v.as_str().unwrap();
+            let (name, rest) = v.split_once(' ').unwrap();
+            let (version, rest) = rest.split_once(' ').unwrap();
+            let path = rest
+                .strip_prefix("(path+file://")
+                .unwrap()
+                .strip_suffix(')')
+                .unwrap();
+            (name, (version, path))
+        })
+        .collect();
+
+    let (version, _path) = members
+        .get(package)
+        .expect("Package not found in workspace");
+
+    // run cargo build
+    let out = Command::new("cargo")
+        .args(["build", "--target", "wasm32-wasi", "-p", package])
+        .args(if release { &["--release"][..] } else { &[] })
+        .status()
+        .await
+        .unwrap();
+
+    if !out.success() {
+        return None;
+    }
+
+    let import = Import {
+        registry: None,
+        plugin: package.to_owned(),
+        version: Some(version.parse().unwrap()),
+        sha: None,
+    };
+
+    // write the wasm file to a temp dir
+    let tmp = std::env::temp_dir().join("litehouse");
+    let wasi_path = tmp.join("wasi_snapshot_preview1.wasm");
+    let out_path = tmp.join(import.file_name());
+    std::fs::create_dir_all(&tmp).unwrap();
+    std::fs::write(&wasi_path, WASM_PROCESS_FILE).unwrap();
+
+    // run wasm-tools against the wasm file
+    let out = Command::new("wasm-tools")
+        .args([
+            "component",
+            "new",
+            &format!("./target/wasm32-wasi/release/{}.wasm", package),
+            "--adapt",
+            wasi_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+        ])
+        .status()
+        .await
+        .unwrap();
+
+    if !out.success() {
+        return None;
+    }
+
+    Some((import, out_path))
+}
+
+async fn build(package: &str, wasm_path: &Path, debug: bool) {
+    let (import, path) = build_in_temp(package, !debug).await.unwrap();
+    tokio::fs::create_dir_all(wasm_path).await.unwrap();
+    let dest_file = wasm_path.join(import.file_name());
+    tokio::fs::copy(&path, &dest_file).await.unwrap();
+}
+
+async fn publish<D>(package: String, op: &Registry<Upload, D>) {
+    let (import, path) = build_in_temp(&package, true).await.unwrap();
+
+    let success = op.publish(&import, &path).await;
+    if success {
+        println!("Published {}", import.file_name());
+    } else {
+        println!("Failed to publish {}", import.file_name());
+    }
+}
+
+async fn fetch<U>(op: &Registry<U, Download>) {
+    let config = LitehouseConfig::load().unwrap();
+
+    config
+        .imports
+        .iter()
+        .map(|import| op.download_package(import))
+        .collect::<futures::stream::FuturesUnordered<_>>()
+        .collect::<Vec<_>>()
+        .await;
+}
+
+async fn lock(wasm_path: &Path) {
+    let mut config = LitehouseConfig::load().unwrap();
+
+    for import in &mut config.imports {
+        import.read_sha(wasm_path).await;
+    }
+
+    config.save().unwrap();
 }

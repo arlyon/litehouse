@@ -1,5 +1,5 @@
 use litehouse_config::Import;
-use miette::{Context, Result};
+use miette::{Context, IntoDiagnostic, Result};
 use std::{
     borrow::Cow,
     path::{Path, PathBuf},
@@ -143,7 +143,11 @@ pub struct Upload(String, String);
 
 impl<U, D> Registry<U, D> {
     async fn check(&self) -> Result<()> {
-        self.op.check().await.wrap_err("auth check failed")
+        self.op
+            .check()
+            .await
+            .into_diagnostic()
+            .wrap_err("auth check failed")
     }
 
     pub async fn list(&self, prefix: Option<&Import>) -> impl Iterator<Item = (Import, Entry)> {
