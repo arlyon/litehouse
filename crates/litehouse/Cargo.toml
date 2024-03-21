@@ -22,7 +22,7 @@ jsonschema = "0.17.1"
 litehouse-config = { version = "0.1.0", path = "../litehouse-config" }
 lz4_flex = "0.11.2"
 miette = { version = "7.2.0", features = ["fancy"] }
-plugin = { version = "0.1.0", path = "../plugin" }
+litehouse-plugin = { version = "0.1.0", path = "../plugin" }
 schemars = "0.8.16"
 serde = { version = "1.0.195", features = ["derive"] }
 thiserror = "1.0.58"
