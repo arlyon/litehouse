@@ -1,4 +1,4 @@
-use eyre::Result;
+use miette::{IntoDiagnostic, Result};
 use std::{
     borrow::Cow,
     collections::HashMap,
@@ -32,7 +32,7 @@ impl ModuleCache {
                 if e.kind() == std::io::ErrorKind::NotFound {
                     Ok(None)
                 } else {
-                    Err(e.into())
+                    Err(e).into_diagnostic()?
                 }
             }
         }
@@ -47,7 +47,9 @@ impl ModuleCache {
         };
 
         let compressed = lz4_flex::compress_prepend_size(&data);
-        tokio::fs::write(Self::cache_path(), compressed).await?;
+        tokio::fs::write(Self::cache_path(), compressed)
+            .await
+            .into_diagnostic()?;
         Ok(())
     }
 }

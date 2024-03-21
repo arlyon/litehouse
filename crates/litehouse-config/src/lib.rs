@@ -3,8 +3,10 @@ mod hash_read;
 use std::{collections::HashMap, fmt::Display, num::NonZeroU8, path::Path, str::FromStr};
 
 use hash_read::HashRead;
+use miette::{Diagnostic, NamedSource, SourceOffset};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 use tokio::io::{AsyncRead, AsyncWrite};
 
 const REGISTRY_SEPARATOR: &str = "::";
@@ -33,19 +35,25 @@ pub struct LitehouseConfig {
     #[schemars(with = "Vec<String>")]
     pub capabilities: Vec<Capability>,
     /// Advanced engine configuration
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_default")]
     pub engine: Engine,
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Debug, Default)]
+#[derive(JsonSchema, Serialize, Deserialize, Debug, Default, PartialEq)]
 pub struct Engine {
     /// The strategy to use for sandboxing plugins. By default, each plugin instance is run in its
     /// own storage sandbox, for maximum parallelism and isolation. If you are in a constrained
     /// environment, you may want to put all plugins in the same storage instead.
-    #[serde(default, skip_serializing_if = "SandboxStrategy::is_default")]
+    #[serde(default, skip_serializing_if = "is_default")]
     pub sandbox_strategy: SandboxStrategy,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub max_parallel_builds: MaxBuildCount,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub max_parallel_instantiations: MaxBuildCount,
+}
+
+fn is_default<T: Default + PartialEq>(t: &T) -> bool {
+    *t == Default::default()
 }
 
 #[derive(JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
@@ -60,7 +68,7 @@ pub enum SandboxStrategy {
     Instance,
 }
 
-#[derive(JsonSchema, Serialize, Deserialize, Debug)]
+#[derive(JsonSchema, Serialize, Deserialize, Debug, PartialEq)]
 pub struct MaxBuildCount(NonZeroU8);
 
 impl Default for MaxBuildCount {
@@ -75,22 +83,22 @@ impl From<MaxBuildCount> for u8 {
     }
 }
 
-impl SandboxStrategy {
-    pub fn is_default(&self) -> bool {
-        self == &Self::default()
-    }
-}
-
 impl LitehouseConfig {
-    pub fn load() -> Result<Self, Error> {
-        let file = std::fs::File::open("settings.json")?;
-        let config: LitehouseConfig = serde_json::from_reader(&file)?;
+    pub fn load() -> Result<Self, ConfigError> {
+        let data = std::fs::read_to_string("settings.json")?;
+        let config: LitehouseConfig = serde_json::from_str(&data).map_err(|e| {
+            ConfigError::Parse(ParseError {
+                err_span: SourceOffset::from_location(&data, e.line() - 1, e.column()).into(),
+                src: NamedSource::new("settings.json", data),
+                error: e.to_string(),
+            })
+        })?;
         Ok(config)
     }
 
-    pub fn save(&self) -> Result<(), Error> {
+    pub fn save(&self) -> Result<(), ConfigError> {
         let file = std::fs::File::create("settings.json")?;
-        serde_json::to_writer_pretty(&file, self)?;
+        serde_json::to_writer_pretty(&file, self).map_err(ConfigError::Write)?;
         Ok(())
     }
 }
@@ -99,12 +107,33 @@ pub fn directories() -> Option<directories_next::ProjectDirs> {
     directories_next::ProjectDirs::from("com", "litehouse", "litehouse")
 }
 
-#[derive(thiserror::Error, Debug)]
-pub enum Error {
+#[derive(thiserror::Error, Debug, miette::Diagnostic)]
+pub enum ConfigError {
     #[error("io error")]
     Io(#[from] std::io::Error),
-    #[error("serde error")]
-    Serde(#[from] serde_json::Error),
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Parse(#[from] ParseError),
+    #[error("write error")]
+    Write(serde_json::Error),
+}
+
+#[derive(thiserror::Error, Debug, miette::Diagnostic)]
+#[error("parse error")]
+#[diagnostic(
+    code(config::invalid),
+    url(docsrs),
+    help("check the configuration file for errors")
+)]
+/// Raised when there is an error parsing the configuration file.
+/// This is likely a formatting issue.
+pub struct ParseError {
+    #[source_code]
+    pub src: NamedSource<String>,
+    pub error: String,
+
+    #[label = "{error}"]
+    pub err_span: miette::SourceSpan,
 }
 
 #[derive(Debug, Clone)]
@@ -123,23 +152,38 @@ impl Display for Capability {
 }
 
 impl FromStr for Capability {
-    type Err = ();
+    type Err = CapabilityParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (name, value) = s
             .split_once(':')
-            .ok_or(())
-            .map(|(name, value)| (name, value.to_string()))?;
+            .map(|(name, value)| (name, value.to_string()))
+            .ok_or_else(|| CapabilityParseError::MissingDelimiter)?;
         match name {
-            "http-server" => value
+            "http-server" => Ok(value
                 .parse()
                 .map(Capability::HttpServer)
-                .map_err(|_| ())
-                .map_err(|_| ()),
+                .map_err(|_| CapabilityParseError::InvalidPort(value)))?,
             "http-client" => Ok(Capability::HttpClient(value)),
-            _ => Err(()),
+            variant => Err(CapabilityParseError::UnknownVariant(variant.to_string())),
         }
     }
+}
+
+#[derive(Error, Diagnostic, Debug)]
+#[error("invalid capability")]
+#[diagnostic(
+    code(config::invalid_capability),
+    url(docsrs),
+    help("check the capability name and value")
+)]
+pub enum CapabilityParseError {
+    #[error("unknown variant: {0}")]
+    UnknownVariant(String),
+    #[error("missing delimiter")]
+    MissingDelimiter,
+    #[error("invalid port: {0}")]
+    InvalidPort(String),
 }
 
 impl Serialize for Capability {
@@ -158,7 +202,7 @@ impl<'de> Deserialize<'de> for Capability {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        Ok(s.parse().unwrap())
+        s.parse().map_err(serde::de::Error::custom)
     }
 }
 
@@ -316,33 +360,96 @@ impl<'de> Deserialize<'de> for Import {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        Ok(s.parse().unwrap())
+        s.parse().map_err(serde::de::Error::custom)
     }
 }
 
+#[derive(Error, Debug, Diagnostic)]
+#[error("failed to parse import")]
+pub enum ImportParseError {
+    SemverParseError(#[from] SemverParseError),
+    Blake3ParseError(#[from] Blake3ParseError),
+}
+
+#[derive(Error, Debug, Diagnostic)]
+#[error("failed to parse import")]
+#[diagnostic(
+    code(import::invalid_format),
+    url(docsrs),
+    help("check the documentation for the correct format")
+)]
+pub struct SemverParseError {
+    #[source_code]
+    src: String,
+
+    err: semver::Error,
+
+    #[label("{err}")]
+    err_span: miette::SourceSpan,
+}
+
+#[derive(Error, Debug, Diagnostic)]
+#[error("failed to parse import")]
+#[diagnostic(
+    code(import::invalid_format),
+    url(docsrs),
+    help("check the documentation for the correct format")
+)]
+pub struct Blake3ParseError {
+    #[source_code]
+    src: String,
+
+    err: blake3::HexError,
+
+    #[label("{err}")]
+    err_span: miette::SourceSpan,
+}
+
 impl FromStr for Import {
-    type Err = ();
+    type Err = ImportParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.strip_suffix(".wasm").unwrap_or(s); // remove file extension
-        let (registry, rest) = s
+        let rest = s.strip_suffix(".wasm").unwrap_or(s); // remove file extension
+        let (registry, rest) = rest
             .split_once(REGISTRY_SEPARATOR)
             .map(|(registry, rest)| (Some(registry), rest))
-            .unwrap_or((None, s));
+            .unwrap_or((None, rest));
         let (sha, rest) = rest
             .rsplit_once(SHA_SEPERATOR)
             .map(|(rest, sha)| (Some(sha), rest))
             .unwrap_or((None, rest));
         let (package, version) = rest
             .split_once(VERSION_SEPARATOR)
-            .map(|(package, version)| (package, Some(version.parse().unwrap())))
-            .unwrap_or((rest, None));
+            .map(|(package, version)| {
+                version
+                    .parse()
+                    .map(|v| (package, Some(v)))
+                    .map_err(|e| (e, version))
+            })
+            .unwrap_or(Ok((rest, None)))
+            .map_err(|(e, version)| SemverParseError {
+                err: e,
+                src: s.to_string(),
+                err_span: s
+                    .find(version)
+                    .map(|i| i..i + version.len())
+                    .unwrap()
+                    .into(),
+            })?;
 
         Ok(Import {
             registry: registry.map(str::to_string),
             plugin: package.to_string(),
             version,
-            sha: sha.map(|s| Blake3::from_str(s).unwrap()),
+            sha: sha
+                .map(|sha| {
+                    Blake3::from_str(sha).map_err(|e| Blake3ParseError {
+                        err: e,
+                        err_span: s.find(sha).map(|i| i..i + s.len()).unwrap().into(),
+                        src: s.to_string(),
+                    })
+                })
+                .transpose()?,
         })
     }
 }

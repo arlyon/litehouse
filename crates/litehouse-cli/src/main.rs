@@ -2,9 +2,9 @@ mod cache_layer;
 mod registry;
 
 use clap::{Parser, Subcommand};
-use eyre::Context;
 use futures::StreamExt;
 use litehouse_config::{Import, LitehouseConfig};
+use miette::Context;
 use registry::{Download, Registry, Upload};
 use std::{
     collections::HashMap,
@@ -58,7 +58,7 @@ enum Options {
 }
 
 #[tokio::main]
-async fn main() -> eyre::Result<()> {
+async fn main() -> miette::Result<()> {
     let opts = Opts::parse();
 
     let registry = Registry::build("default".to_string());

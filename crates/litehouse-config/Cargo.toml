@@ -10,6 +10,7 @@ blake3 = { version = "1.5.0", features = ["traits-preview"] }
 digest = "0.10.7"
 directories-next = "2.0.0"
 futures = "0.3.30"
+miette = "7.2.0"
 pin-project-lite = "0.2.13"
 schemars = "0.8.16"
 semver = { version = "1.0.22", features = ["serde"] }

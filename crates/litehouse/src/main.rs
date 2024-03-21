@@ -7,10 +7,16 @@ use std::{
 
 use cache::ModuleCache;
 use clap::{Parser, Subcommand};
-use eyre::{eyre, Result, WrapErr};
 use futures::{StreamExt, TryStreamExt as _};
 use itertools::Itertools;
-use litehouse_config::{Import, LitehouseConfig, PluginInstance, SandboxStrategy};
+use jsonc_parser::common::Ranged;
+use jsonc_parser::CollectOptions;
+use jsonschema::error::ValidationErrorKind;
+use jsonschema::paths::{JSONPointer, PathChunk};
+use litehouse_config::{
+    ConfigError, Import, LitehouseConfig, ParseError, PluginInstance, SandboxStrategy,
+};
+use miette::{miette, IntoDiagnostic, NamedSource, Result, SourceSpan, WrapErr};
 use plugin::serde_json::{self, Value};
 use runtime::PluginRunnerFactory;
 use runtime::{
@@ -81,8 +87,18 @@ fn main() -> Result<()> {
 
 #[tokio::main]
 async fn main_inner() -> Result<()> {
-    color_eyre::install()?;
     let console_layer = console_subscriber::spawn();
+
+    miette::set_hook(Box::new(|_| {
+        Box::new(
+            miette::MietteHandlerOpts::new()
+                .terminal_links(true)
+                .context_lines(2)
+                .tab_width(2)
+                .build(),
+        )
+    }))
+    .unwrap();
 
     tracing_subscriber::registry()
         .with(console_layer)
@@ -93,7 +109,9 @@ async fn main_inner() -> Result<()> {
 
     match opt.command {
         Command::Init => {
-            std::fs::create_dir_all("wasm").wrap_err("unable to create wasm directory")?;
+            std::fs::create_dir_all("wasm")
+                .into_diagnostic()
+                .wrap_err("unable to create wasm directory")?;
             if std::fs::metadata("settings.json").is_ok() {
                 return Ok(());
             }
@@ -104,45 +122,173 @@ async fn main_inner() -> Result<()> {
                 .expect("can't fail")
                 .insert("$schema".to_string(), "schema.json".into());
             let mut file = std::fs::File::create("settings.json")
+                .into_diagnostic()
                 .wrap_err("unable to create settings.json")?;
             serde_json::to_writer_pretty(&mut file, &value)
+                .into_diagnostic()
                 .wrap_err("unable to write settings.json")?;
 
             Ok(())
         }
-        Command::Run { wasm_path } => start(&wasm_path).await,
+        Command::Run { wasm_path } => start(&wasm_path)
+            .await
+            .wrap_err("unable to start litehouse"),
         Command::Generate { wasm_path } => {
-            let schema = generate(&wasm_path).await?;
+            let schema = generate(&wasm_path)
+                .await
+                .wrap_err("unable to generate schema")?;
 
             // write file
-            let mut file = std::fs::File::create("schema.json").unwrap();
-            serde_json::to_writer_pretty(&mut file, &schema).unwrap();
+            let mut file = std::fs::File::create("schema.json")
+                .into_diagnostic()
+                .wrap_err("unable to create schema file")?;
+            serde_json::to_writer_pretty(&mut file, &schema)
+                .into_diagnostic()
+                .wrap_err("unable to write schema file")?;
 
             println!("wrote jsonschema to schema.json");
             Ok(())
         }
         Command::Validate { wasm_path } => {
-            let schema = generate(&wasm_path).await?;
+            let schema = generate(&wasm_path)
+                .await
+                .wrap_err("unable to generate schema")?;
             let schema = jsonschema::JSONSchema::compile(&schema).expect("can't fail");
-            let settings =
-                std::fs::File::open("settings.json").wrap_err("unable to open settings.json")?;
-            let settings: serde_json::Value =
-                serde_json::from_reader(&settings).wrap_err("invalid settings.json")?;
-            if let Err(errors) = schema.validate(&settings) {
-                for error in errors {
-                    println!("Validation error: {}", error);
-                    println!("Instance path: {}", error.instance_path);
-                }
-            }
-            Ok(())
+
+            let data = std::fs::read_to_string("settings.json")
+                .into_diagnostic()
+                .wrap_err("could not read settings")?;
+
+            let data2 = data.clone();
+
+            let ast = jsonc_parser::parse_to_ast(
+                &data,
+                &CollectOptions {
+                    comments: true,
+                    tokens: true,
+                },
+                &Default::default(),
+            )
+            .map_err(|e| {
+                ConfigError::Parse(ParseError {
+                    err_span: (e.range.start, e.range.end).into(),
+                    src: NamedSource::new("settings.json", data.clone()),
+                    error: e.message,
+                })
+            })?;
+
+            let config = ast.value.expect("has a value");
+
+            schema
+                .validate(&config.clone().into())
+                .map_err(move |e| {
+                    FailedValidations::new(
+                        e.into_iter()
+                            .map(|e| {
+                                let mut iter = e.instance_path.iter();
+                                let fst = iter.next();
+                                let snd = iter.next();
+                                let label = match (&e.kind, fst, snd) {
+                                    (
+                                        ValidationErrorKind::OneOfNotValid,
+                                        Some(PathChunk::Property(p)),
+                                        Some(PathChunk::Property(plugin)),
+                                    ) if p.as_ref() == "plugins" => {
+                                        format!("invalid plugin definiton for `{}`", plugin)
+                                    }
+                                    _ => {
+                                        format!("invalid setting")
+                                    }
+                                };
+
+                                FailedValidation {
+                                    span: resolve_span(&config, &e.instance_path),
+                                    message: e.to_string(),
+                                    label,
+                                    kind: e.kind,
+                                    error: e.instance.into_owned(),
+                                    instance_path: e.instance_path,
+                                    schema_path: e.schema_path,
+                                }
+                            })
+                            .collect(),
+                        data2,
+                    )
+                })
+                .wrap_err("could not validate settings.json")
         }
     }
+}
+
+fn resolve_span(config: &jsonc_parser::ast::Value, pointer: &JSONPointer) -> Option<SourceSpan> {
+    let range = resolve_pointer(config, pointer)?;
+    let range = range.range();
+    Some((range.start, range.width()).into())
+}
+
+fn resolve_pointer<'a>(
+    config: &'a jsonc_parser::ast::Value,
+    pointer: &JSONPointer,
+) -> Option<&'a jsonc_parser::ast::Value<'a>> {
+    let mut config = config;
+    for part in pointer.iter() {
+        match part {
+            jsonschema::paths::PathChunk::Property(name) => {
+                config = &config.as_object()?.get(name)?.value
+            }
+            jsonschema::paths::PathChunk::Index(idx) => {
+                config = config.as_array()?.elements.get(*idx)?;
+            }
+            jsonschema::paths::PathChunk::Keyword(_) => todo!(),
+        };
+    }
+    Some(config)
+}
+
+#[derive(thiserror::Error, Debug, miette::Diagnostic)]
+#[error("{count} validation errors found in settings.json")]
+#[diagnostic(
+    help("resolve all the below errors to continue"),
+    url(docsrs),
+    code(config::invalid)
+)]
+struct FailedValidations {
+    #[source_code]
+    src: NamedSource<String>,
+    #[related]
+    errors: Vec<FailedValidation>,
+    count: usize,
+}
+
+impl FailedValidations {
+    fn new(errors: Vec<FailedValidation>, src: String) -> Self {
+        Self {
+            count: errors.len(),
+            errors,
+            src: NamedSource::new("settings.json", src),
+        }
+    }
+}
+
+#[derive(thiserror::Error, Debug, miette::Diagnostic)]
+#[error("failed to validate {instance_path}")]
+#[diagnostic(help("{message}"))]
+struct FailedValidation {
+    error: Value,
+    kind: jsonschema::error::ValidationErrorKind,
+    message: String,
+    label: String,
+    #[label("{label}")]
+    span: Option<SourceSpan>,
+
+    schema_path: jsonschema::paths::JSONPointer,
+    instance_path: jsonschema::paths::JSONPointer,
 }
 
 async fn start(wasm_path: &Path) -> Result<()> {
     tracing::info!("booting litehouse");
 
-    let config = LitehouseConfig::load().wrap_err("unable to load settings.json")?;
+    let config = LitehouseConfig::load().wrap_err("unable to read settings")?;
 
     let (engine, linker, cache) = set_up_engine().await?;
 
@@ -189,12 +335,12 @@ async fn start(wasm_path: &Path) -> Result<()> {
                     let instance = runner
                         .call_constructor(&mut store, nickname, Some(&config))
                         .await
-                        .map_err(|e| eyre!("failed to construct plugin: {:?}", e))?;
+                        .map_err(|e| miette!("failed to construct plugin: {:?}", e))?;
                     let subs = runner
                         .call_subscribe(&mut store, instance)
                         .await
-                        .map_err(|e| eyre!("plugin {} failed to subscribe: {:?}", nickname, e))?
-                        .map_err(|e| eyre!("plugin {} failed to subscribe: {}", nickname, e))?;
+                        .map_err(|e| miette!("plugin {} failed to subscribe: {:?}", nickname, e))?
+                        .map_err(|e| miette!("plugin {} failed to subscribe: {}", nickname, e))?;
                     (instance, subs)
                 };
 
@@ -294,7 +440,7 @@ async fn set_up_engine() -> Result<
         >,
         Arc<ModuleCache>,
     ),
-    eyre::Error,
+    miette::Error,
 > {
     tracing::debug!("setting up engine");
     let mut wasm_config = Config::new();
@@ -308,24 +454,24 @@ async fn set_up_engine() -> Result<
         .enable_incremental_compilation(cache.clone())
         .unwrap();
 
-    let engine = Engine::new(&wasm_config).map_err(|_| eyre!("invalid wasm config"))?;
+    let engine = Engine::new(&wasm_config).map_err(|_| miette!("invalid wasm config"))?;
     let mut linker = ComponentLinker::new(&engine);
 
     tracing::debug!("linking command");
     wasmtime_wasi::command::add_to_linker(&mut linker)
-        .map_err(|_| eyre!("unable to add command to linker"))?;
+        .map_err(|_| miette!("unable to add command to linker"))?;
 
     tracing::debug!("linking http types");
     wasmtime_wasi_http::bindings::http::types::add_to_linker(&mut linker, |s| s)
-        .map_err(|_| eyre!("unable to add http to linker"))?;
+        .map_err(|_| miette!("unable to add http to linker"))?;
 
     tracing::debug!("linking outgoing handler");
     wasmtime_wasi_http::bindings::http::outgoing_handler::add_to_linker(&mut linker, |s| s)
-        .map_err(|_| eyre!("unable to add outgoing handler to linker"))?;
+        .map_err(|_| miette!("unable to add outgoing handler to linker"))?;
 
     tracing::debug!("linking plugin host");
     PluginHost::add_root_to_linker(&mut linker, |c| c)
-        .map_err(|_| eyre!("unable to add plugin host to linker"))?;
+        .map_err(|_| miette!("unable to add plugin host to linker"))?;
 
     tracing::debug!("set up engine");
 
@@ -356,25 +502,28 @@ async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
             let engine = engine.clone();
             async move {
                 tracing::debug!("building");
-                let contents = tokio::fs::read(base_path.join(&file_name)).await.unwrap();
+                let contents = tokio::fs::read(base_path.join(&file_name))
+                    .await
+                    .into_diagnostic()
+                    .wrap_err_with(|| miette!("unable to load {}", &file_name))?;
                 let c = tokio::task::spawn_blocking(move || Component::new(&engine, contents))
                     .await
                     .expect("no panic")
-                    .map_err(|e| eyre!("unable to build {}: {}", &file_name, e))
-                    .unwrap();
+                    .map_err(|e| miette!("unable to build {}: {}", &file_name, e))?;
 
-                tokio_stream::iter(
-                    plugins
-                        .into_iter()
-                        .map(move |(string, instance)| (string, instance, c.clone())),
-                )
+                Ok::<_, miette::ErrReport>(tokio_stream::iter(plugins.into_iter().map(
+                    move |(string, instance)| {
+                        Ok::<_, miette::ErrReport>((string, instance, c.clone()))
+                    },
+                )))
             }
         })
         .buffer_unordered(max_parallel_builds.into()) // max parallel builds
-        .flatten_unordered(None)
-        .map(|(nick, instance, component)| {
+        .try_flatten_unordered(None)
+        .map(|res| {
             let store_builder = store_builder.clone();
             async move {
+                let (nick, instance, component) = res?;
                 let (host, store) = instantiate_plugin_host(
                     instance.plugin.file_name(),
                     &store_builder,
@@ -406,7 +555,7 @@ async fn instantiate_plugin_host<T: Send + Clone>(
     let store_lock = store.enter().await;
     let (host, _) = PluginHost::instantiate_async(store_lock, component, linker)
         .await
-        .map_err(|e| eyre!("unable to instantiate {}: {}", &file_name, e))?;
+        .map_err(|e| miette!("unable to instantiate {}: {}", &file_name, e))?;
 
     Ok((host, store))
 }
@@ -421,24 +570,32 @@ async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
     let linker = Arc::new(linker);
     let engine = Arc::new(engine);
 
-    let dirs: HashMap<_, _> = ReadDirStream::new(
+    let dirs: Result<HashMap<_, _>> = ReadDirStream::new(
         tokio::fs::read_dir(wasm_path)
             .await
+            .into_diagnostic()
             .wrap_err_with(|| format!("unable to read modules in `{}`", wasm_path.display()))?,
     )
     .map(|dir| {
-        let file_name = dir.as_ref().unwrap().file_name().into_string().unwrap();
-        let plugin: Import = file_name.parse().unwrap();
-        (
+        let file_name = dir
+            .as_ref()
+            .unwrap()
+            .file_name()
+            .into_string()
+            .map_err(|_| miette!("unable to parse file name as string"))?;
+        let plugin: Import = file_name.parse().wrap_err("invalid wasm plugin name")?;
+        Ok((
             dir.unwrap().file_name().into_string().unwrap(),
             PluginInstance {
                 config: None,
                 plugin,
             },
-        )
+        ))
     })
-    .collect()
+    .try_collect()
     .await;
+
+    let dirs = dirs?;
 
     let hosts = instantiate_plugin_hosts(&engine, store, &linker, &dirs, wasm_path, 10, 10).await?;
     if let Err(e) = cache.drain().await {
@@ -449,7 +606,7 @@ async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
         tracing::warn!("no plugins found in `{}`", wasm_path.display());
     }
 
-    let jobs = hosts.into_iter().map(|(_, _, host, mut store)| {
+    let jobs = hosts.into_iter().map(|(a, instance, host, mut store)| {
         async move {
             let store = store.enter().await;
             let metadata = host
@@ -463,16 +620,45 @@ async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
                     identifier,
                     version,
                 }) => {
-                    // write to file
-                    (
+                    // check that version above and version here match
+
+                    if instance.plugin.plugin != identifier {
+                        tracing::error!(
+                            "plugin identifier mismatch: {} != {}",
+                            instance.plugin.plugin,
+                            identifier
+                        );
+                        return Err(miette!("plugin identifier mismatch"));
+                    };
+
+                    let version = version.parse().into_diagnostic()?;
+                    if let Some(version_exp) = &instance.plugin.version {
+                        if version_exp != &version {
+                            return Err(VersionMismatch {
+                                file_exp: format!("{}@{}.wasm", identifier, version),
+                                file_path: wasm_path.join(a).to_string_lossy().to_string(),
+                                plugin: identifier,
+                                source_code: format!("{} != {}", version, version_exp),
+                                expected: (0, version.to_string().len()).into(),
+                                actual: (
+                                    version.to_string().len() + 4,
+                                    version_exp.to_string().len(),
+                                )
+                                    .into(),
+                            }
+                            .into());
+                        }
+                    }
+
+                    Ok((
                         Import {
                             plugin: identifier,
-                            version: version.parse().ok(),
+                            version: Some(version),
                             registry: None,
                             sha: None,
                         },
                         config_schema.and_then(|s| serde_json::from_str(&s).ok()),
-                    )
+                    ))
                 }
                 Err(_) => {
                     tracing::error!("failed to generate schema: {:?}", metadata);
@@ -482,7 +668,7 @@ async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
         }
     });
 
-    let schemas: Vec<(_, Option<serde_json::Value>)> = futures::future::join_all(jobs).await;
+    let schemas: Vec<(_, Option<serde_json::Value>)> = futures::future::try_join_all(jobs).await?;
 
     let config_schema = schemars::schema_for!(LitehouseConfig);
     let json = serde_json::to_value(&config_schema).expect("can't fail");
@@ -492,6 +678,23 @@ async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
     }
 
     Ok(inject_plugin_instance(json, schemas.into_iter()))
+}
+
+#[derive(miette::Diagnostic, Debug, thiserror::Error)]
+#[error("version mismatch for {plugin}")]
+#[diagnostic(help(
+    "rename the file at `{file_path}` to `{file_exp}` so it matches the version in the plugin"
+))]
+struct VersionMismatch {
+    plugin: String,
+    file_path: String,
+    #[label("expected")]
+    expected: SourceSpan,
+    #[label("actual")]
+    actual: SourceSpan,
+    file_exp: String,
+    #[source_code]
+    source_code: String,
 }
 
 fn inject_plugin_instance(
