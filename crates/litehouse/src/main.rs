@@ -17,7 +17,7 @@ use litehouse_config::{
     ConfigError, Import, LitehouseConfig, ParseError, PluginInstance, SandboxStrategy,
 };
 use litehouse_plugin::serde_json::{self, Value};
-use miette::{miette, IntoDiagnostic, NamedSource, Result, SourceSpan, WrapErr};
+use miette::{miette, Diagnostic, IntoDiagnostic, NamedSource, Result, SourceSpan, WrapErr};
 use runtime::PluginRunnerFactory;
 use runtime::{
     bindings::{
@@ -289,6 +289,20 @@ async fn start(wasm_path: &Path) -> Result<()> {
     tracing::info!("booting litehouse");
 
     let config = LitehouseConfig::load().wrap_err("unable to read settings")?;
+    let data = Arc::new(
+        std::fs::read_to_string("settings.json")
+            .into_diagnostic()
+            .wrap_err("could not read settings")?,
+    );
+    let ast = jsonc_parser::parse_to_ast(
+        &data,
+        &CollectOptions {
+            comments: false,
+            tokens: false,
+        },
+        &Default::default(),
+    )
+    .unwrap();
 
     let (engine, linker, cache) = set_up_engine().await?;
 
@@ -302,6 +316,10 @@ async fn start(wasm_path: &Path) -> Result<()> {
     let factory = PluginRunnerFactory::new(tx.clone(), config.capabilities.clone());
 
     let plugins = instantiate_plugin_hosts(
+        Some((
+            NamedSource::new("settings.json", data.clone()),
+            ast.value.as_ref().unwrap(),
+        )),
         &engine,
         match config.engine.sandbox_strategy {
             SandboxStrategy::Global => StoreStrategy::global(engine.clone(), factory),
@@ -478,8 +496,26 @@ async fn set_up_engine() -> Result<
     Ok((engine, linker, cache))
 }
 
+#[derive(Debug, thiserror::Error, Diagnostic)]
+#[error("plugin failed to load")]
+#[diagnostic(
+    code(litehouse::plugin::load_error),
+    url(docsrs),
+    help("make sure the file at {file_path} exists and is a valid plugin")
+)]
+struct PluginLoadError {
+    #[source_code]
+    src: NamedSource<Arc<String>>,
+    file_path: String,
+    #[label("referenced here")]
+    label: SourceSpan,
+    #[source]
+    source: std::io::Error,
+}
+
 #[tracing::instrument(skip(engine, store_builder, linker, plugins))]
 async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
+    ast: Option<(NamedSource<Arc<String>>, &jsonc_parser::ast::Value<'a>)>,
     engine: &Engine,
     store_builder: StoreStrategy<T>,
     linker: &ComponentLinker<PluginRunner<T>>,
@@ -496,16 +532,46 @@ async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
         .collect::<Vec<_>>();
 
     let store_builder = Arc::new(store_builder);
+    let ast = Arc::new(ast);
 
     let hosts = tokio_stream::iter(map.into_iter())
         .map(|(file_name, plugins)| {
             let engine = engine.clone();
+            let ast = ast.clone();
             async move {
                 tracing::debug!("building");
-                let contents = tokio::fs::read(base_path.join(&file_name))
-                    .await
-                    .into_diagnostic()
-                    .wrap_err_with(|| miette!("unable to load {}", &file_name))?;
+                let file_path = base_path.join(&file_name);
+                let contents = tokio::fs::read(&file_path).await.map_err(|e| {
+                    if let Some((src, ast)) = ast.as_ref() {
+                        let node = ast
+                            .as_object()
+                            .unwrap()
+                            .get("plugins")
+                            .unwrap()
+                            .value
+                            .as_object()
+                            .unwrap()
+                            .get(plugins.first().unwrap().0)
+                            .unwrap()
+                            .value
+                            .as_object()
+                            .unwrap()
+                            .get("plugin")
+                            .unwrap()
+                            .value
+                            .as_string_lit()
+                            .unwrap()
+                            .range;
+                        PluginLoadError {
+                            file_path: file_path.to_string_lossy().to_string(),
+                            label: SourceSpan::new(node.start.into(), node.width()),
+                            src: src.clone(),
+                            source: e,
+                        }
+                    } else {
+                        todo!()
+                    }
+                })?;
                 let c = tokio::task::spawn_blocking(move || Component::new(&engine, contents))
                     .await
                     .expect("no panic")
@@ -597,7 +663,8 @@ async fn generate(wasm_path: &Path) -> Result<serde_json::Value> {
 
     let dirs = dirs?;
 
-    let hosts = instantiate_plugin_hosts(&engine, store, &linker, &dirs, wasm_path, 10, 10).await?;
+    let hosts =
+        instantiate_plugin_hosts(None, &engine, store, &linker, &dirs, wasm_path, 10, 10).await?;
     if let Err(e) = cache.drain().await {
         tracing::warn!("unable to save cache: {}", e)
     }
