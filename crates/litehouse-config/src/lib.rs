@@ -21,6 +21,8 @@ const SHA_SEPERATOR: &str = "~";
 
 #[derive(JsonSchema, Serialize, Deserialize, Debug, Default)]
 pub struct LitehouseConfig {
+    #[serde(rename = "$schema", default = "default_schema")]
+    pub schema: String,
     /// The list of plugins to use in this litehouse
     pub plugins: HashMap<String, PluginInstance>,
     /// Additional registries to look for plugins in
@@ -43,6 +45,10 @@ pub struct LitehouseConfig {
     /// Advanced engine configuration
     #[serde(default, skip_serializing_if = "is_default")]
     pub engine: Engine,
+}
+
+fn default_schema() -> String {
+    "./schema.json".to_string()
 }
 
 #[derive(JsonSchema, Serialize, Deserialize, Debug, Default, PartialEq)]
