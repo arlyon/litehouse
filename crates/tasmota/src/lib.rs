@@ -1,3 +1,8 @@
+//! Tasmota plugin for the Litehouse home automation system.
+//!
+//! This crate provides integration with Tasmota devices, allowing for control and monitoring
+//! within the Litehouse system.
+
 use std::sync::Mutex;
 
 use wasi::http::{

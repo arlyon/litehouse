@@ -6,7 +6,7 @@ use wasmtime::{AsContext, AsContextMut, Engine, Store};
 use crate::runtime::{PluginRunner, PluginRunnerFactory};
 
 pub enum StoreStrategy<T> {
-    Global(Arc<Mutex<Store<PluginRunner<T>>>>),
+    Global(Arc<Mutex<Store<PluginRunner<T>>>>, PluginRunnerFactory<T>),
     #[allow(dead_code)]
     PerPlugin(
         Engine,
@@ -18,7 +18,10 @@ pub enum StoreStrategy<T> {
 
 impl<T: Clone> StoreStrategy<T> {
     pub fn global(engine: Engine, factory: PluginRunnerFactory<T>) -> Self {
-        Self::Global(Arc::new(Mutex::new(Store::new(&engine, factory.create()))))
+        Self::Global(
+            Arc::new(Mutex::new(Store::new(&engine, factory.create()))),
+            factory,
+        )
     }
 
     pub fn per_instance(engine: Engine, factory: PluginRunnerFactory<T>) -> Self {
@@ -32,7 +35,7 @@ impl<T: Clone> StoreStrategy<T> {
 
     pub fn get(&self, key: &str) -> StoreRef<T> {
         match self {
-            Self::Global(store) => StoreRef::Locked(store.to_owned()),
+            Self::Global(store, _) => StoreRef::Locked(store.to_owned()),
             Self::PerInstance(engine, factory) => {
                 StoreRef::Unlocked(Store::new(engine, factory.create()))
             }
@@ -42,6 +45,34 @@ impl<T: Clone> StoreStrategy<T> {
                     .entry(key.to_owned())
                     .or_insert_with(|| Arc::new(Mutex::new(Store::new(engine, factory.create()))));
 
+                StoreRef::Locked(store.to_owned())
+            }
+        }
+    }
+
+    /// Use the factor to create a new instance of the plugin runner and replace the existing one.
+    pub async fn reset(&self, key: &str) -> StoreRef<T> {
+        match self {
+            Self::Global(store, factory) => {
+                {
+                    let mut store = store.lock().await;
+                    *store = Store::new(store.engine(), factory.create());
+                }
+                StoreRef::Locked(store.to_owned())
+            }
+            Self::PerInstance(engine, factory) => {
+                StoreRef::Unlocked(Store::new(engine, factory.create()))
+            }
+            Self::PerPlugin(engine, factory, stores) => {
+                let mut stores = stores.lock().unwrap();
+                let store = stores
+                    .entry(key.to_owned())
+                    .or_insert_with(|| Arc::new(Mutex::new(Store::new(engine, factory.create()))));
+
+                {
+                    let mut store = store.lock().await;
+                    *store = Store::new(store.engine(), factory.create());
+                }
                 StoreRef::Locked(store.to_owned())
             }
         }

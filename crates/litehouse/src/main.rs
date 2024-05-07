@@ -1,3 +1,8 @@
+//! Litehouse: A home automation system using WebAssembly.
+//!
+//! This application serves as the core of the Litehouse home automation system, orchestrating
+//! the execution of WebAssembly-based plugins for various home automation tasks.
+
 use std::collections::HashMap;
 use std::future;
 use std::{
@@ -9,6 +14,7 @@ use clap::Parser;
 use futures::StreamExt;
 use miette::Context;
 use registry::{Download, Registry, Upload};
+use runtime::bindings::exports::litehouse::plugin::plugin::GuestRunner;
 use tokio::process::Command;
 
 use cache::ModuleCache;
@@ -40,7 +46,9 @@ use tokio::{
 };
 use tokio_stream::wrappers::ReadDirStream;
 
+use tracing::Instrument;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
+use wasmtime::Trap;
 use wasmtime::{
     component::{Linker as ComponentLinker, *},
     Config, Engine,
@@ -83,16 +91,18 @@ enum Subcommand {
         #[clap(default_value = "./wasm", short, long)]
         wasm_path: PathBuf,
         /// Whether to enable the wasm cache
-        #[clap(long, default_value_t = true)]
+        #[clap(long)]
         no_cache: bool,
     },
+    /// Initialize a new litehouse config in the current directory
     Init,
+    /// Validate the config file, based on the jsonschema
     Validate {
         /// The path to look for wasm files in.
         #[clap(default_value = "./wasm", short, long)]
         wasm_path: PathBuf,
         /// Whether to enable the wasm cache
-        #[clap(long, default_value_t = true)]
+        #[clap(long)]
         no_cache: bool,
     },
     /// Publish a package to the registry. Run this in the root of your package.
@@ -392,6 +402,7 @@ struct FailedValidation {
     instance_path: jsonschema::paths::JSONPointer,
 }
 
+#[tracing::instrument(skip_all)]
 async fn start(wasm_path: &Path, cache: bool) -> Result<()> {
     tracing::info!("booting litehouse");
 
@@ -422,17 +433,19 @@ async fn start(wasm_path: &Path, cache: bool) -> Result<()> {
 
     let factory = PluginRunnerFactory::new(tx.clone(), config.capabilities.clone());
 
+    let store_strategy = match config.engine.sandbox_strategy {
+        SandboxStrategy::Global => StoreStrategy::global(engine.clone(), factory),
+        SandboxStrategy::Plugin => StoreStrategy::per_plugin(engine.clone(), factory),
+        SandboxStrategy::Instance => StoreStrategy::per_instance(engine.clone(), factory),
+    };
+
     let plugins = instantiate_plugin_hosts(
         Some((
             NamedSource::new("settings.json", data.clone()),
             ast.value.as_ref().unwrap(),
         )),
         &engine,
-        match config.engine.sandbox_strategy {
-            SandboxStrategy::Global => StoreStrategy::global(engine.clone(), factory),
-            SandboxStrategy::Plugin => StoreStrategy::per_plugin(engine.clone(), factory),
-            SandboxStrategy::Instance => StoreStrategy::per_instance(engine.clone(), factory),
-        },
+        &store_strategy,
         &linker,
         &config.plugins,
         wasm_path,
@@ -441,35 +454,29 @@ async fn start(wasm_path: &Path, cache: bool) -> Result<()> {
     )
     .await
     .wrap_err("unable to instantiate plugins")?;
+
     if let Some(cache) = cache {
         if let Err(e) = cache.drain().await {
             tracing::warn!("unable to save cache: {}", e)
         }
     }
 
+    let store_strategy = Arc::new(store_strategy);
     let timers = plugins
         .into_iter()
-        .map(|(nickname, instance, host, mut store)| {
+        .map(|(nickname, instance, mut host, mut store, component)| {
             let rx = rx.resubscribe();
+            let store_strategy = store_strategy.clone();
+            let linker = linker.clone();
+            let component = component.clone();
 
             async move {
-                let runner = host.litehouse_plugin_plugin().runner();
+                let mut runner = host.litehouse_plugin_plugin().runner();
 
                 let config = serde_json::to_string(&instance.config).expect("can't fail");
 
-                let (instance, subs) = {
-                    let mut store = store.enter().await;
-                    let instance = runner
-                        .call_constructor(&mut store, nickname, Some(&config))
-                        .await
-                        .map_err(|e| miette!("failed to construct plugin: {:?}", e))?;
-                    let subs = runner
-                        .call_subscribe(&mut store, instance)
-                        .await
-                        .map_err(|e| miette!("plugin {} failed to subscribe: {:?}", nickname, e))?
-                        .map_err(|e| miette!("plugin {} failed to subscribe: {}", nickname, e))?;
-                    (instance, subs)
-                };
+                let (mut plugin, subs) =
+                    instantiate_plugin(&mut store, &runner, &nickname, &config).await?;
 
                 let mut listen_types = vec![];
 
@@ -522,11 +529,11 @@ async fn start(wasm_path: &Path, cache: bool) -> Result<()> {
                 );
 
                 while let Some(_update) = merged_stream.next().await {
-                    let store = store.enter().await;
+                    let store_lock = store.enter().await;
                     match runner
                         .call_update(
-                            store,
-                            instance,
+                            store_lock,
+                            plugin,
                             &[Event {
                                 id: 0,
                                 timestamp: 0,
@@ -539,12 +546,29 @@ async fn start(wasm_path: &Path, cache: bool) -> Result<()> {
                         Ok(Err(e)) => {
                             tracing::error!("plugin {} failed to subscribe: {}", nickname, e)
                         }
-                        Err(_) => tracing::error!("plugin {} failed to update", nickname),
+                        Err(e) => {
+                            // if we have trapped we should restart the plugin
+                            if let Some(trap) = e.downcast_ref::<Trap>() {
+                                tracing::error!("plugin has crashed, restarting {}", trap);
+                                store = store_strategy.reset(&nickname).await;
+                                host = instantiate_plugin_host(&mut store, &linker, &component)
+                                    .await?;
+                                runner = host.litehouse_plugin_plugin().runner();
+                                (plugin, _) =
+                                    instantiate_plugin(&mut store, &runner, &nickname, &config)
+                                        .await
+                                        .expect("can't fail");
+                                tracing::debug!("plugin {} restarted", nickname);
+                            } else {
+                                tracing::error!("plugin {} failed to update: {:?}", nickname, e);
+                            }
+                        }
                     };
                 }
 
                 Ok(())
             }
+            .instrument(tracing::info_span!("plugin", nickname = nickname))
         });
 
     tracing::info!("running litehouse");
@@ -556,6 +580,25 @@ async fn start(wasm_path: &Path, cache: bool) -> Result<()> {
             Ok(())
         }
     }
+}
+
+async fn instantiate_plugin<T: Send>(
+    store: &mut StoreRef<T>,
+    runner: &GuestRunner<'_>,
+    nickname: &str,
+    config: &str,
+) -> Result<(ResourceAny, Vec<Subscription>)> {
+    let mut store = store.enter().await;
+    let instance = runner
+        .call_constructor(&mut store, nickname, Some(&config))
+        .await
+        .map_err(|e| miette!("failed to construct plugin: {:?}", e))?;
+    let subs = runner
+        .call_subscribe(&mut store, instance)
+        .await
+        .map_err(|e| miette!("plugin {} failed to subscribe: {:?}", nickname, e))?
+        .map_err(|e| miette!("plugin {} failed to subscribe: {}", nickname, e))?;
+    Ok((instance, subs))
 }
 
 #[tracing::instrument]
@@ -634,13 +677,21 @@ struct PluginLoadError {
 async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
     ast: Option<(NamedSource<Arc<String>>, &jsonc_parser::ast::Value<'a>)>,
     engine: &Engine,
-    store_builder: StoreStrategy<T>,
+    store_builder: &StoreStrategy<T>,
     linker: &ComponentLinker<PluginRunner<T>>,
     plugins: &'a HashMap<String, PluginInstance>,
     base_path: &Path,
     max_parallel_builds: u8,
     max_parallel_instantiations: u8,
-) -> Result<Vec<(&'a String, &'a PluginInstance, PluginHost, StoreRef<T>)>> {
+) -> Result<
+    Vec<(
+        &'a String,
+        &'a PluginInstance,
+        PluginHost,
+        StoreRef<T>,
+        Component,
+    )>,
+> {
     tracing::debug!("instantiating plugin hosts");
 
     let map = plugins
@@ -707,14 +758,17 @@ async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
             let store_builder = store_builder.clone();
             async move {
                 let (nick, instance, component) = res?;
-                let (host, store) = instantiate_plugin_host(
-                    instance.plugin.file_name(),
-                    &store_builder,
-                    linker,
-                    &component,
-                )
-                .await?;
-                Ok((nick, instance, host, store))
+                let mut store = store_builder.get(&instance.plugin.file_name());
+                let host = instantiate_plugin_host(&mut store, linker, &component)
+                    .await
+                    .wrap_err_with(|| {
+                        format!(
+                            "when instantiating {} from {}",
+                            nick,
+                            instance.plugin.file_name()
+                        )
+                    })?;
+                Ok((nick, instance, host, store, component))
             }
         })
         .buffer_unordered(max_parallel_instantiations.into()) // max parallel instantiations
@@ -726,21 +780,19 @@ async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
     hosts
 }
 
-#[tracing::instrument(skip(store_builder, linker, component))]
+#[tracing::instrument(skip(store, linker, component))]
 async fn instantiate_plugin_host<T: Send + Clone>(
-    file_name: String,
-    store_builder: &StoreStrategy<T>,
+    store: &mut StoreRef<T>,
     linker: &ComponentLinker<PluginRunner<T>>,
     component: &Component,
-) -> Result<(PluginHost, StoreRef<T>)> {
+) -> Result<PluginHost> {
     tracing::debug!("instantiating");
-    let mut store = store_builder.get(&file_name);
     let store_lock = store.enter().await;
     let (host, _) = PluginHost::instantiate_async(store_lock, component, linker)
         .await
-        .map_err(|e| miette!("unable to instantiate {}: {}", &file_name, e))?;
+        .map_err(|e| miette!("unable to instantiate: {}", e))?;
 
-    Ok((host, store))
+    Ok(host)
 }
 
 async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value> {
@@ -781,7 +833,7 @@ async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value> {
     let dirs = dirs?;
 
     let hosts =
-        instantiate_plugin_hosts(None, &engine, store, &linker, &dirs, wasm_path, 10, 10).await?;
+        instantiate_plugin_hosts(None, &engine, &store, &linker, &dirs, wasm_path, 10, 10).await?;
     if let Some(cache) = cache {
         if let Err(e) = cache.drain().await {
             tracing::warn!("unable to save cache: {}", e)
@@ -792,7 +844,7 @@ async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value> {
         tracing::warn!("no plugins found in `{}`", wasm_path.display());
     }
 
-    let jobs = hosts.into_iter().map(|(a, instance, host, mut store)| {
+    let jobs = hosts.into_iter().map(|(a, instance, host, mut store, _)| {
         async move {
             let store = store.enter().await;
             let metadata = host

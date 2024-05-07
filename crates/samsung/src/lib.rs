@@ -1,3 +1,7 @@
+//! Samsung plugin for the Litehouse home automation system.
+//!
+//! This crate provides functionality for controlling Samsung TVs via the network, allowing for integration into the Litehouse system for tasks such as launching apps or controlling volume.
+
 use std::{sync::Arc, time::Duration};
 
 use crate::{

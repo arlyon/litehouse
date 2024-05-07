@@ -1,3 +1,9 @@
+//! Configuration types for the Litehouse home automation system.
+//!
+//! This crate provides the necessary types and functions to manage the configuration
+//! of the Litehouse system, including plugin management, registry settings, and system
+//! capabilities.
+
 mod hash_read;
 
 use std::{collections::HashMap, fmt::Display, num::NonZeroU8, path::Path, str::FromStr};

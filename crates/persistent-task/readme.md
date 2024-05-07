@@ -1,7 +1,8 @@
-# persistent task
+<!-- cargo-rdme start -->
 
-Sometimes you may want to have a continuously-executing thread that can do whatever you need.
-This is not currently possible in the wasmtime component executor due to complexities around
-how crashing threads should be handled.
+Persistent task plugin for the Litehouse home automation system.
 
-Trying to build and run this module will produce an error.
+This crate provides functionality for creating persistent tasks that can run in the background,
+allowing for continuous operations or monitoring within the Litehouse system.
+
+<!-- cargo-rdme end -->
