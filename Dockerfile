@@ -9,12 +9,12 @@ RUN cargo chef prepare
 
 FROM chef as cacher
 COPY --from=planner /app/recipe.json recipe.json
-RUN cargo chef cook -p litehouse -p litehouse-cli --release
+RUN cargo chef cook -p litehouse --release
 
 FROM chef as builder
 COPY . .
 COPY --from=cacher /app/target target
-RUN cargo build --release -p litehouse -p litehouse-cli
+RUN cargo build --release -p litehouse
 
 FROM scratch
 
@@ -22,6 +22,5 @@ LABEL io.containers.autoupdate=registry
 LABEL org.opencontainers.image.source = "https://github.com/arlyon/litehouse"
 
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/litehouse /litehouse
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/litehouse-cli /litehouse-cli
 
 CMD ["/litehouse", "run"]

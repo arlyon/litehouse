@@ -41,8 +41,8 @@ the `capabilities` field in your settings file.
     "http-client:api.open-meteo.com",
     "http-server:0.0.0.0:8000",
     // (not implemented yet)
-    "folder:example"
-  ]
+    "folder:example",
+  ],
 }
 ```
 
@@ -54,19 +54,18 @@ The reference plugins and server are rust-based. Building the server is as
 simple as running cargo install in the server directory.
 
 ```bash
-cargo install --path crates/litehouse
-cargo install --path crates/litehouse-cli
+cargo install --git https://github.com/arlyon/litehouse litehouse
 ```
 
-You can use litehouse-cli to search for, build, fetch, and publish plugins.
+You can use litehouse to search for, build, fetch, and publish plugins.
 The `fetch` command reads the imports from your settings and fetches
 matches plugins from the registry. The `build` command compiles a local
 plugin to a given path.
 
 ```bash
-litehouse-cli build weather
-litehouse-cli search weather
-litehouse-cli fetch
+litehouse build weather
+litehouse search weather
+litehouse fetch
 ```
 
 The weather plugin weighs in at about 200KB, and the tasmota at 300KB.
@@ -99,7 +98,7 @@ From there, we can fetch the plugins from the registry, and re-run the
 generate command to update the schema file.
 
 ```bash
-litehouse-cli fetch
+litehouse fetch
 litehouse generate
 ```
 
