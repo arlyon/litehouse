@@ -4,6 +4,7 @@
 //! the execution of WebAssembly-based plugins for various home automation tasks.
 
 use std::collections::HashMap;
+use std::error::Error;
 use std::future;
 use std::{
     path::{Path, PathBuf},
@@ -11,8 +12,8 @@ use std::{
 };
 
 use clap::Parser;
-use futures::StreamExt;
-use miette::Context;
+use futures::{FutureExt, StreamExt};
+use miette::{Context, MietteDiagnostic, MietteError};
 use registry::{Download, Registry, Upload};
 use runtime::bindings::exports::litehouse::plugin::plugin::GuestRunner;
 use tokio::process::Command;
@@ -25,7 +26,8 @@ use jsonc_parser::CollectOptions;
 use jsonschema::error::ValidationErrorKind;
 use jsonschema::paths::{JSONPointer, PathChunk};
 use litehouse_config::{
-    ConfigError, Import, LitehouseConfig, ParseError, PluginInstance, SandboxStrategy,
+    ConfigError, Import, ImportAddResult, LitehouseConfig, ParseError, PluginInstance,
+    SandboxStrategy,
 };
 use litehouse_plugin::serde_json::{self, Value};
 use miette::{miette, Diagnostic, IntoDiagnostic, NamedSource, Result, SourceSpan};
@@ -83,6 +85,13 @@ enum Subcommand {
         /// Whether to enable the wasm cache
         #[clap(long)]
         no_cache: bool,
+    },
+    Add {
+        /// The package to add.
+        package: Import,
+        /// The path to look for wasm files in.
+        #[clap(default_value = "./wasm", short, long)]
+        wasm_path: PathBuf,
     },
     /// Generate a jsonschema for the config file, based on the
     /// plugins that are in your wasm path
@@ -148,8 +157,6 @@ fn main() -> Result<()> {
 
 #[tokio::main]
 async fn main_inner() -> Result<()> {
-    let console_layer = console_subscriber::spawn();
-
     miette::set_hook(Box::new(|_| {
         Box::new(
             miette::MietteHandlerOpts::new()
@@ -161,12 +168,20 @@ async fn main_inner() -> Result<()> {
     }))
     .unwrap();
 
-    let registry = Registry::build("default".to_string());
+    {
+        #[cfg(feature = "console")]
+        let console_layer = console_subscriber::spawn();
 
-    tracing_subscriber::registry()
-        .with(console_layer)
-        .with(tracing_subscriber::fmt::layer().with_filter(EnvFilter::from_default_env()))
-        .init();
+        let registry = tracing_subscriber::registry()
+            .with(tracing_subscriber::fmt::layer().with_filter(EnvFilter::from_default_env()));
+
+        #[cfg(feature = "console")]
+        let registry = registry.with(console_layer);
+
+        registry.init();
+    }
+
+    let registry = Registry::build("default".to_string());
 
     let opt = Opt::parse();
 
@@ -190,6 +205,40 @@ async fn main_inner() -> Result<()> {
             serde_json::to_writer_pretty(&mut file, &value)
                 .into_diagnostic()
                 .wrap_err("unable to write settings.json")?;
+
+            Ok(())
+        }
+        Subcommand::Add { package, wasm_path } => {
+            // search the package, and add it to the settings' imports
+            let mut config = LitehouseConfig::load()?;
+            println!("adding package {}", package);
+            match config.add_import(package) {
+                ImportAddResult::Added(_) => {
+                    println!("package added");
+                }
+                ImportAddResult::Ignored(i) => {
+                    println!("package already added ({i})");
+                }
+                ImportAddResult::Replaced(r) => {
+                    println!("replaced {r}");
+                }
+            }
+
+            let cache_dir = litehouse_config::directories().map(|d| d.cache_dir().to_owned());
+
+            println!("downloading ");
+
+            let pass = fetch(
+                &config,
+                &registry
+                    .with_download(wasm_path, cache_dir)
+                    .build()
+                    .await
+                    .wrap_err("can't fetch")?,
+            )
+            .await;
+
+            config.save()?;
 
             Ok(())
         }
@@ -304,15 +353,19 @@ async fn main_inner() -> Result<()> {
         .await),
         Subcommand::Fetch { wasm_path } => {
             let cache_dir = litehouse_config::directories().map(|d| d.cache_dir().to_owned());
+            let mut config = LitehouseConfig::load()?;
 
-            Ok(fetch(
+            let pass = fetch(
+                &config,
                 &registry
                     .with_download(wasm_path, cache_dir)
                     .build()
                     .await
                     .wrap_err("can't fetch")?,
             )
-            .await)
+            .await;
+
+            Ok(())
         }
         Subcommand::Build {
             wasm_path,
@@ -1090,16 +1143,17 @@ async fn publish<D>(package: String, op: &Registry<Upload, D>) {
     }
 }
 
-async fn fetch<U>(op: &Registry<U, Download>) {
-    let config = LitehouseConfig::load().unwrap();
-
+async fn fetch<'a, U>(
+    config: &'a LitehouseConfig,
+    op: &Registry<U, Download>,
+) -> Vec<(&'a Import, bool)> {
     config
         .imports
         .iter()
-        .map(|import| op.download_package(import))
+        .map(|import| op.download_package(import).map(move |pass| (import, pass)))
         .collect::<futures::stream::FuturesUnordered<_>>()
         .collect::<Vec<_>>()
-        .await;
+        .await
 }
 
 async fn lock(wasm_path: &Path) {
