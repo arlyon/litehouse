@@ -4,9 +4,13 @@
 //! of the Litehouse system, including plugin management, registry settings, and system
 //! capabilities.
 
+#![feature(let_chains)]
+
 mod hash_read;
 
-use std::{collections::HashMap, fmt::Display, num::NonZeroU8, path::Path, str::FromStr};
+use std::{
+    cmp::Ordering, collections::HashMap, fmt::Display, num::NonZeroU8, path::Path, str::FromStr,
+};
 
 use hash_read::HashRead;
 use miette::{Diagnostic, NamedSource, SourceOffset};
@@ -113,6 +117,70 @@ impl LitehouseConfig {
         serde_json::to_writer_pretty(&file, self).map_err(ConfigError::Write)?;
         Ok(())
     }
+
+    /// Add a new plugin to the configuration. If a plugin with same name already exists, a new
+    /// one will only be added if either the version, SHA, or registry is different.
+    ///
+    /// This is not strictly the same as 'equality', since our PartialEq and Eq implementations
+    /// compare all fields piecewise. This instead checks for 'compatibility'.
+    ///
+    /// - if the target is more specific than the existing plugin, the existing definition is
+    ///   replaced with the new one
+    /// - if the target is less specific than the existing plugin, the existing definition is
+    ///   kept
+    /// - if the target is equally specific as the existing plugin, and they are not equal, the
+    ///   existing definition is kept, and the new one is ignored
+    pub fn add_import<'a>(&'a mut self, import: Import) -> ImportAddResult<'a> {
+        // this is awkward but the borrow checker does not understand
+        // returning in the match statement
+        let mut ret_replace = None;
+        let mut ret_existing = None;
+
+        for (i, existing) in self.imports.iter().enumerate() {
+            match existing.specificity(&import) {
+                Some(Ordering::Less) => {
+                    // The existing import is less specific than the new one, replace
+                    ret_replace = Some(i);
+                    break;
+                }
+                Some(Ordering::Greater) => {
+                    // The existing import is more specific than the new one, keep the existing
+                    ret_existing = Some(i);
+                    break;
+                }
+                Some(Ordering::Equal) => {
+                    // The existing import is equally specific as the new one (and they are equal)
+                    ret_existing = Some(i);
+                    break;
+                }
+                None => {
+                    // The existing import is not compatible with the new one
+                }
+            }
+        }
+
+        match (ret_replace, ret_existing) {
+            (Some(i), None) => {
+                let old = std::mem::replace(&mut self.imports[i], import);
+                return ImportAddResult::Replaced(old);
+            }
+            (None, Some(i)) => {
+                return ImportAddResult::Ignored(&self.imports[i]);
+            }
+            (None, None) => {
+                self.imports.push(import);
+                return ImportAddResult::Added(self.imports.last_mut().unwrap());
+            }
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ImportAddResult<'a> {
+    Added(&'a Import),
+    Replaced(Import),
+    Ignored(&'a Import),
 }
 
 pub fn directories() -> Option<directories_next::ProjectDirs> {
@@ -227,7 +295,7 @@ pub struct Registry {
 }
 
 /// A plugin import. Serializes to a string with the format `registry::plugin`
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Import {
     pub registry: Option<String>,
     pub plugin: String,
@@ -331,6 +399,57 @@ impl Import {
 
         Some(bytes)
     }
+
+    /// Returns how specific `rhs` is relative to `self`.
+    ///
+    /// An import is considered more specific if for each
+    /// field that `self` is defined, `rhs` also has that
+    /// field, the values are equal, and that `rhs` also
+    /// specifies fields that `self` does not.
+    ///
+    /// If `self` and `rhs` both specify a field but they
+    /// are not equal, then `None` is returned. If fields
+    /// are set on each size that are not on the other,
+    /// then `None` is returned.
+    pub fn specificity(&self, rhs: &Import) -> Option<Ordering> {
+        // is lhs greater than rhs?
+        let mut left_view = false;
+        // is rhs greater than lhs?
+        let mut right_view = false;
+
+        match (&self.plugin, &rhs.plugin) {
+            (l, r) if l != r => return None,
+            _ => {}
+        };
+
+        match (&self.registry, &rhs.registry) {
+            (Some(_), None) => left_view = true,
+            (None, Some(_)) => right_view = true,
+            (Some(l), Some(r)) if l != r => return None,
+            _ => {}
+        };
+
+        match (&self.version, &rhs.version) {
+            (Some(l), Some(r)) if l != r => return None,
+            (Some(_), None) => left_view = true,
+            (None, Some(_)) => right_view = true,
+            _ => {}
+        };
+
+        match (&self.sha, &rhs.sha) {
+            (Some(l), Some(r)) if l != r => return None,
+            (Some(_), None) => left_view = true,
+            (None, Some(_)) => right_view = true,
+            _ => {}
+        };
+
+        match (left_view, right_view) {
+            (true, true) => None,
+            (true, false) => Some(Ordering::Greater),
+            (false, true) => Some(Ordering::Less),
+            (false, false) => Some(Ordering::Equal),
+        }
+    }
 }
 
 impl PartialEq for Import {
@@ -378,6 +497,11 @@ impl<'de> Deserialize<'de> for Import {
 
 #[derive(Error, Debug, Diagnostic)]
 #[error("failed to parse import")]
+#[diagnostic(
+    code(import::invalid_format),
+    url(docsrs),
+    help("check the documentation for the correct format")
+)]
 pub enum ImportParseError {
     SemverParseError(#[from] SemverParseError),
     Blake3ParseError(#[from] Blake3ParseError),
@@ -488,7 +612,7 @@ impl Display for Import {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Blake3([u8; blake3::OUT_LEN]);
 
 impl FromStr for Blake3 {
@@ -529,5 +653,32 @@ mod test {
         let import_actual = package.to_string();
         assert_eq!(import_exp, import_actual);
         assert_eq!(package.plugin, "package");
+    }
+
+    #[test_case(&[], "registry::package" => ImportAddResult::Added ; "basic case")]
+    #[test_case(&["registry::package"], "registry::package" => ImportAddResult::Ignored; "duplicate")]
+    #[test_case(&["registry::package"], "registry::package@1.0.0" => ImportAddResult::Replaced ; "add more specific version should overwrite")]
+    #[test_case(&["registry::package@1.0.0"], "registry::package" => ImportAddResult::Ignored ; "add less specific version should be ignored")]
+    #[test_case(&["package@1.0.1"], "package@1.0.2" => ImportAddResult::Added ; "incompatible imports should be added")]
+    fn add_import(list: &[&str], import: &str) -> ImportAddResult {
+        let mut config = LitehouseConfig {
+            imports: list.iter().map(|s| s.parse().unwrap()).collect(),
+            ..Default::default()
+        };
+        config.add_import(import.parse().unwrap())
+    }
+
+    #[test_case("package", "package" => Some(Ordering::Equal) ; "same package")]
+    #[test_case("package", "registry::package" => Some(Ordering::Less) ; "added registry")]
+    #[test_case("registry::package", "package" => Some(Ordering::Greater) ; "removed registry")]
+    #[test_case("registry::package", "registry::package" => Some(Ordering::Equal) ; "same registry")]
+    #[test_case("registry::package@1.0.0", "registry::package" => Some(Ordering::Greater) ; "added version")]
+    #[test_case("registry::package", "registry::package@1.0.0" => Some(Ordering::Less) ; "removed version")]
+    #[test_case("registry::package@1.0.0", "registry::package@1.0.0" =>Some(Ordering::Equal) ; "same version")]
+    #[test_case("package", "registry::package@0.1.0" => Some(Ordering::Less) ; "lots of extra information")]
+    fn cmp_import(a: &str, b: &str) -> Option<std::cmp::Ordering> {
+        let a = Import::from_str(a).unwrap();
+        let b = Import::from_str(b).unwrap();
+        a.specificity(&b)
     }
 }
