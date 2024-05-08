@@ -9,43 +9,6 @@ extended with plugins written in any language. In addition, plugins
 may depend on other plugins, allowing for a modular architecture,
 though there is not a reference implementation for that _yet_.
 
-## Protocol
-
-The basic protocol is defined in `crates/plugin-macro/wit/plugin.wit`,
-the core of which being the 'runner' interface. This is the interface
-the server uses to run your plugin. For now, it will simply call the
-update function at an interval specified by the plugin in the
-subscribe function. In the future, you will be able to subscibe to
-events from other plugins, and the server will call your update
-function when those events occur.
-
-The module also provides an `update` global, which your plugin can use
-to send events to the server at any time.
-
-## Capabilities
-
-The server provides native implementations for a number of capabilities,
-the primary one (used in both reference plugins) being `wasi:http/outgoing-handler`.
-Plugins may use this to make http requests, which are served using the server's
-native http client, meaning plugins do not need to bundle heavy dependencies.
-Other capabilities, such as filesystem, clocks, random numbers, and more are
-also available but not exposed to plugins yet.
-
-Plugins are completely sandboxed by default, so to allow them to access
-outside the sandbox, you must award them capabilities by adding them to
-the `capabilities` field in your settings file.
-
-```jsonc
-{
-  "capabilities": [
-    "http-client:api.open-meteo.com",
-    "http-server:0.0.0.0:8000",
-    // (not implemented yet)
-    "folder:example",
-  ],
-}
-```
-
 ## Building
 
 Plugins can be written in any language and compiled to webassembly. Currently,
@@ -109,4 +72,41 @@ autocompletion for the settings file as you type.
 ```bash
 litehouse validate
 litehouse run
+```
+
+## Protocol
+
+The basic protocol is defined in `crates/plugin-macro/wit/plugin.wit`,
+the core of which being the 'runner' interface. This is the interface
+the server uses to run your plugin. For now, it will simply call the
+update function at an interval specified by the plugin in the
+subscribe function. In the future, you will be able to subscibe to
+events from other plugins, and the server will call your update
+function when those events occur.
+
+The module also provides an `update` global, which your plugin can use
+to send events to the server at any time.
+
+## Capabilities
+
+The server provides native implementations for a number of capabilities,
+the primary one (used in both reference plugins) being `wasi:http/outgoing-handler`.
+Plugins may use this to make http requests, which are served using the server's
+native http client, meaning plugins do not need to bundle heavy dependencies.
+Other capabilities, such as filesystem, clocks, random numbers, and more are
+also available but not exposed to plugins yet.
+
+Plugins are completely sandboxed by default, so to allow them to access
+outside the sandbox, you must award them capabilities by adding them to
+the `capabilities` field in your settings file.
+
+```jsonc
+{
+  "capabilities": [
+    "http-client:api.open-meteo.com",
+    "http-server:0.0.0.0:8000",
+    // (not implemented yet)
+    "folder:example",
+  ],
+}
 ```
