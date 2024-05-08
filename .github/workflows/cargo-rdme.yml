@@ -1,0 +1,16 @@
+name: Cargo RDME
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  cargo-rdme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install cargo-rdme and cargo-workspaces
+        run: cargo install cargo-rdme cargo-workspaces
+      - name: Check cargo-rdme
+        run: cargo ws exec cargo rdme --check

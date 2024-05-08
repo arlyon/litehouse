@@ -1,3 +1,8 @@
+//! Persistent task plugin for the Litehouse home automation system.
+//!
+//! This crate provides functionality for creating persistent tasks that can run in the background,
+//! allowing for continuous operations or monitoring within the Litehouse system.
+
 use std::time::Duration;
 
 use crate::exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit};
