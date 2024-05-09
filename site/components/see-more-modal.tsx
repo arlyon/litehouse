@@ -19,64 +19,64 @@ To read more about using these font, please visit the Next.js documentation:
 **/
 import { Button } from "@/components/ui/button";
 import {
-  DrawerTrigger,
-  DrawerTitle,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerContent,
-  Drawer,
+	Drawer,
+	DrawerContent,
+	DrawerDescription,
+	DrawerHeader,
+	DrawerTitle,
+	DrawerTrigger,
 } from "@/components/ui/drawer";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export function SeeMoreModal() {
-  return (
-    <Drawer>
-      <DrawerTrigger asChild>
-        <Button
-          // @ts-expect-error(arlyon)
-          variant="primary"
-          className="hover:text-orange-500 transition-colors border hover:border-orange-700/40 rounded px-4 py-2"
-        >
-          Register Interest
-        </Button>
-      </DrawerTrigger>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>Stay in the loop</DrawerTitle>
-          <DrawerDescription>
-            Wow could you imagine if I actually sent emails? This is just a way
-            to prevent abuse of the form.
-          </DrawerDescription>
-        </DrawerHeader>
-        <form
-          className="space-y-4 px-4 py-6"
-          onSubmit={async (data) => {
-            data.preventDefault();
-            data.stopPropagation();
-            const email = (data.target as any).email.value;
-            await fetch(`/api/feedback`, {
-              method: "POST",
-              body: JSON.stringify({ email, event: "register_app_interest" }),
-            });
-            alert("Thanks for registering your interest!");
-          }}
-        >
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              required
-              placeholder="Enter your email"
-              type="email"
-            />
-          </div>
-          <Button className="w-full" type="submit">
-            Submit
-          </Button>
-        </form>
-      </DrawerContent>
-    </Drawer>
-  );
+	return (
+		<Drawer>
+			<DrawerTrigger asChild>
+				<Button
+					// @ts-expect-error(arlyon)
+					variant="primary"
+					className="hover:text-orange-500 transition-colors border hover:border-orange-700/40 rounded px-4 py-2"
+				>
+					Register Interest
+				</Button>
+			</DrawerTrigger>
+			<DrawerContent>
+				<DrawerHeader>
+					<DrawerTitle>Stay in the loop</DrawerTitle>
+					<DrawerDescription>
+						Wow could you imagine if I actually sent emails? This is just a way
+						to prevent abuse of the form.
+					</DrawerDescription>
+				</DrawerHeader>
+				<form
+					className="space-y-4 px-4 py-6"
+					onSubmit={async (data) => {
+						data.preventDefault();
+						data.stopPropagation();
+						const email = (data.target as any).email.value;
+						await fetch(`/api/feedback`, {
+							method: "POST",
+							body: JSON.stringify({ email, event: "register_app_interest" }),
+						});
+						alert("Thanks for registering your interest!");
+					}}
+				>
+					<div className="space-y-2">
+						<Label htmlFor="email">Email</Label>
+						<Input
+							id="email"
+							name="email"
+							required
+							placeholder="Enter your email"
+							type="email"
+						/>
+					</div>
+					<Button className="w-full" type="submit">
+						Submit
+					</Button>
+				</form>
+			</DrawerContent>
+		</Drawer>
+	);
 }

@@ -19,7 +19,8 @@ RUN cargo build --release -p litehouse
 FROM scratch
 
 LABEL io.containers.autoupdate=registry
-LABEL org.opencontainers.image.source = "https://github.com/arlyon/litehouse"
+LABEL org.opencontainers.image.source https://github.com/arlyon/litehouse
+LABEL org.opencontainers.image.description A lightweight home automation server
 
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/litehouse /litehouse
 

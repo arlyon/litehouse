@@ -1,40 +1,41 @@
 {
-  "name": "site",
-  "version": "0.0.0",
-  "private": true,
-  "scripts": {
-    "build": "next build",
-    "dev": "next dev",
-    "start": "next start",
+	"name": "site",
+	"version": "0.0.0",
+	"private": true,
+	"scripts": {
+		"build": "next build",
+		"dev": "next dev",
+		"start": "next start",
     "lint": "biome check ."
-  },
-  "dependencies": {
-    "@radix-ui/react-dialog": "^1.0.5",
-    "@radix-ui/react-icons": "^1.3.0",
-    "@radix-ui/react-label": "^2.0.2",
-    "@radix-ui/react-slot": "^1.0.2",
-    "class-variance-authority": "^0.7.0",
-    "clsx": "^2.1.1",
-    "fumadocs-core": "^11.0.5",
-    "fumadocs-mdx": "^8.2.14",
-    "fumadocs-ui": "^11.0.5",
-    "lucide-react": "^0.378.0",
-    "next": "^14.2.3",
-    "next-axiom": "^1.2.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "tailwind-merge": "^2.3.0",
-    "tailwindcss-animate": "^1.0.7",
-    "vaul": "^0.9.1",
-    "zod": "^3.23.8"
-  },
-  "devDependencies": {
-    "@types/react": "^18.3.1",
-    "@types/react-dom": "^18.3.0",
-    "typescript": "^5.4.5",
-    "@types/mdx": "^2.0.13",
-    "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.38",
-    "tailwindcss": "^3.4.3"
-  }
+	},
+	"dependencies": {
+		"@radix-ui/react-dialog": "^1.0.5",
+		"@radix-ui/react-icons": "^1.3.0",
+		"@radix-ui/react-label": "^2.0.2",
+		"@radix-ui/react-slot": "^1.0.2",
+		"class-variance-authority": "^0.7.0",
+		"clsx": "^2.1.1",
+		"fumadocs-core": "^11.0.5",
+		"fumadocs-mdx": "^8.2.14",
+		"fumadocs-ui": "^11.0.5",
+		"lucide-react": "^0.378.0",
+		"next": "^14.2.3",
+		"next-axiom": "^1.2.0",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
+		"tailwind-merge": "^2.3.0",
+		"tailwindcss-animate": "^1.0.7",
+		"vaul": "^0.9.1",
+		"zod": "^3.23.8"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.7.3",
+		"@types/mdx": "^2.0.13",
+		"@types/react": "^18.3.1",
+		"@types/react-dom": "^18.3.0",
+		"autoprefixer": "^10.4.19",
+		"postcss": "^8.4.38",
+		"tailwindcss": "^3.4.3",
+		"typescript": "^5.4.5"
+	}
 }
