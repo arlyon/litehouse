@@ -390,7 +390,7 @@ async fn main_inner() -> Result<()> {
             Ok(())
         }
         Subcommand::Lock { wasm_path } => Ok(lock(&wasm_path).await),
-        Subcommand::Feedback { message } => {
+        Subcommand::Feedback { message: feedback } => {
             // create a message and send it using reqwest
 
             // get git email and name if possible using cmd
@@ -416,7 +416,7 @@ async fn main_inner() -> Result<()> {
             };
 
             let message = FeedbackMessage {
-                message,
+                feedback,
                 version: env!("CARGO_PKG_VERSION").to_string(),
                 email,
                 name,
@@ -426,7 +426,7 @@ async fn main_inner() -> Result<()> {
 
             let client = reqwest::Client::new();
             let res = client
-                .post("https://litehouse.arlyon.dev/feedback")
+                .post("https://litehouse.arlyon.dev/api/feedback")
                 .json(&message)
                 .send()
                 .await
@@ -434,10 +434,10 @@ async fn main_inner() -> Result<()> {
                 .wrap_err("unable to send feedback")?;
 
             if !res.status().is_success() {
-                return Err(miette::miette!(
-                    "failed to send feedback ({})",
-                    res.status()
-                ));
+                let status = res.status();
+                let body = res.bytes().await;
+                tracing::error!(?body, "failed to send feedback");
+                return Err(miette::miette!("failed to send feedback ({})", status));
             }
 
             Ok(())
@@ -447,7 +447,7 @@ async fn main_inner() -> Result<()> {
 
 #[derive(Debug, serde::Serialize)]
 struct FeedbackMessage {
-    message: String,
+    feedback: String,
     version: String,
     email: Option<String>,
     name: Option<String>,
