@@ -23,8 +23,12 @@ export default function HomePage() {
       </p>
       <CopyBox className="my-4" command="cargo install litehouse" />
       <div className="flex gap-4">
-        <GithubButton />
-        <RegistryButton />
+        <Link href="https://github.com/arlyon/litehouse">
+          <GithubButton />
+        </Link>
+        <Link href="/registry">
+          <RegistryButton />
+        </Link>
       </div>
     </main>
   );
