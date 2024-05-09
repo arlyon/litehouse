@@ -18,10 +18,12 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
           override: true
+      - name: Install cargo groups
+        run: cargo install cargo-groups
       - name: Run tests
-        run: cargo test --workspace
+        run: cargo groups test bin
 
   build:
     name: Compile Litehouse
@@ -32,7 +34,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
           override: true
       - name: Build litehouse
         run: cargo build --release -p litehouse
