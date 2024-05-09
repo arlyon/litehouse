@@ -1,0 +1,45 @@
+name: Rust CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+      - name: Install cargo groups
+        run: cargo install cargo-groups
+      - name: Run tests
+        run: cargo groups test bin
+
+  build:
+    name: Compile Litehouse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+      - name: Build litehouse
+        run: cargo build --release -p litehouse
+      - name: Upload litehouse binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: litehouse-binary
+          path: target/release/litehouse
