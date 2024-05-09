@@ -37,10 +37,10 @@ Pre.displayName = "Pre";
  * Create a dummy `a` tag with a data URI matching the given text, and click it.
  */
 const download = (text: string, filename?: string) => {
-	var element = document.createElement("a");
+	const element = document.createElement("a");
 	element.setAttribute(
 		"href",
-		"data:text/plain;charset=utf-8," + encodeURIComponent(text),
+		`data:text/plain;charset=utf-8,${encodeURIComponent(text)}`,
 	);
 	if (filename) {
 		element.setAttribute("download", filename);
@@ -74,9 +74,9 @@ export const CodeBlock = forwardRef<HTMLElement, CodeBlockProps>(
 			if (!pre) return;
 
 			const clone = pre.cloneNode(true) as HTMLElement;
-			clone.querySelectorAll(".nd-copy-ignore").forEach((node) => {
+			for (const node of clone.querySelectorAll(".nd-copy-ignore")) {
 				node.remove();
-			});
+			}
 
 			void navigator.clipboard.writeText(clone.textContent ?? "");
 		}, []);

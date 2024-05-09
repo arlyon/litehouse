@@ -30,7 +30,7 @@ export const GET = withAxiom(async (req: AxiomRequest) => {
 export const POST = withAxiom(async (req: AxiomRequest) => {
 	req.log.info("receiving event");
 
-	let data;
+	let data: object;
 	try {
 		data = await req.json();
 	} catch (e) {

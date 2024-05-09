@@ -55,7 +55,7 @@ export function SeeMoreModal() {
 						data.preventDefault();
 						data.stopPropagation();
 						const email = (data.target as any).email.value;
-						await fetch(`/api/feedback`, {
+						await fetch("/api/feedback", {
 							method: "POST",
 							body: JSON.stringify({ email, event: "register_app_interest" }),
 						});

@@ -6,7 +6,7 @@
 		"build": "next build",
 		"dev": "next dev",
 		"start": "next start",
-    "lint": "biome check ."
+		"lint": "biome check ."
 	},
 	"dependencies": {
 		"@radix-ui/react-dialog": "^1.0.5",
