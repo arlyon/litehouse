@@ -4,7 +4,6 @@
 //! the execution of WebAssembly-based plugins for various home automation tasks.
 
 use std::collections::HashMap;
-use std::error::Error;
 use std::future;
 use std::{
     path::{Path, PathBuf},
@@ -13,7 +12,7 @@ use std::{
 
 use clap::Parser;
 use futures::{FutureExt, StreamExt};
-use miette::{Context, MietteDiagnostic, MietteError};
+use miette::Context;
 use registry::{Download, Registry, Upload};
 use runtime::bindings::exports::litehouse::plugin::plugin::GuestRunner;
 use tokio::process::Command;
@@ -86,6 +85,7 @@ enum Subcommand {
         #[clap(long)]
         no_cache: bool,
     },
+    /// Add a new plugin to the imports field in the settings file.
     Add {
         /// The package to add.
         package: Import,
@@ -146,6 +146,9 @@ enum Subcommand {
         #[clap(default_value = "wasm")]
         wasm_path: PathBuf,
     },
+    /// Send any feedback! Note that this will be sent to the litehouse team
+    /// with your git email and name (so that we can get in touch).
+    Feedback { message: String },
 }
 
 fn main() -> Result<()> {
@@ -353,7 +356,7 @@ async fn main_inner() -> Result<()> {
         .await),
         Subcommand::Fetch { wasm_path } => {
             let cache_dir = litehouse_config::directories().map(|d| d.cache_dir().to_owned());
-            let mut config = LitehouseConfig::load()?;
+            let config = LitehouseConfig::load()?;
 
             let pass = fetch(
                 &config,
@@ -387,7 +390,64 @@ async fn main_inner() -> Result<()> {
             Ok(())
         }
         Subcommand::Lock { wasm_path } => Ok(lock(&wasm_path).await),
+        Subcommand::Feedback { message } => {
+            // create a message and send it using reqwest
+
+            // get git email and name if possible using cmd
+            let git_path = which::which("git").ok();
+            let (email, name) = if let Some(git_path) = &git_path {
+                let email = std::process::Command::new(git_path)
+                    .arg("config")
+                    .arg("--get")
+                    .arg("user.email")
+                    .output()
+                    .ok()
+                    .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string());
+                let name = std::process::Command::new(git_path)
+                    .arg("config")
+                    .arg("--get")
+                    .arg("user.name")
+                    .output()
+                    .ok()
+                    .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string());
+                (email, name)
+            } else {
+                (None, None)
+            };
+
+            let message = FeedbackMessage {
+                message,
+                version: env!("CARGO_PKG_VERSION").to_string(),
+                email,
+                name,
+            };
+
+            tracing::debug!(?message, "sending feedback");
+
+            let client = reqwest::Client::new();
+            let res = client
+                .post("https://litehouse.arlyon.dev/feedback")
+                .json(&message)
+                .send()
+                .await
+                .into_diagnostic()
+                .wrap_err("unable to send feedback")?;
+
+            if !res.status().is_success() {
+                return Err(miette::miette!("failed to send feedback"));
+            }
+
+            Ok(())
+        }
     }
+}
+
+#[derive(Debug, serde::Serialize)]
+struct FeedbackMessage {
+    message: String,
+    version: String,
+    email: Option<String>,
+    name: Option<String>,
 }
 
 fn resolve_span(config: &jsonc_parser::ast::Value, pointer: &JSONPointer) -> Option<SourceSpan> {
