@@ -2,3 +2,60 @@
 title: Settings
 description: Learn about the settings.json file
 ---
+
+## JSON Schema
+
+The `settings.json` file is the central configuration file for Litehouse. It defines the plugins to use, their configurations, and other system-wide settings. Below is an overview of the sections you might find in a `settings.json` file.
+
+### Imports
+
+The `imports` section lists the plugins that your Litehouse instance will use. These can be official plugins from the Litehouse registry or custom plugins you've developed. The syntax for an import is `registry::plugin@version`.
+
+```json
+"imports": [
+  "litehouse::weather@0.1.0",
+  "my-registry::custom-plugin@1.2.3"
+]
+```
+
+### Plugins
+
+The `plugins` section defines instances of the plugins you've imported. Each plugin can be configured individually according to its schema.
+
+```json
+"plugins": {
+  "weather_sensor": {
+    "plugin": "litehouse::weather@0.1.0",
+    "config": {
+      "location": "New York"
+    }
+  }
+}
+```
+
+### Capabilities
+
+The `capabilities` section lists the capabilities that your Litehouse instance and its plugins can use. This controls access to system resources and external services, ensuring a secure environment.
+
+```json
+"capabilities": [
+  "http-server:8080",
+  "http-client:api.weather.com"
+]
+```
+
+### Parallelism Strategies
+
+Litehouse supports different parallelism strategies for running plugins, allowing you to balance between isolation and resource usage. The default strategy is `instance`, where each plugin instance runs in its own sandbox.
+
+```json
+"engine": {
+  "sandbox_strategy": "instance"
+}
+```
+
+Other strategies include `global`, where all plugins share the same sandbox, and `plugin`, where each plugin type has its own sandbox.
+
+## Detailed Configuration
+
+For more detailed information on configuring Litehouse, including advanced engine settings and plugin-specific configurations, refer to the respective sections in the documentation or the JSON schema provided with Litehouse.
