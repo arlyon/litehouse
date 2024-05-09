@@ -2,20 +2,38 @@
 //!
 //! This module defines the capabilities that can be granted to plugins, allowing them to interact with the system and external resources in a controlled manner.
 
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
-use serde::{Serialize, Deserialize};
 use thiserror::Error;
 
 /// Represents the different capabilities that can be granted to plugins.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Capability {
     /// Allows the plugin to start an HTTP server on the specified port.
-    #[serde(rename = "http-server")]
     HttpServer(u16),
     /// Allows the plugin to make HTTP requests to the specified URL.
-    #[serde(rename = "http-client")]
     HttpClient(String),
+}
+
+impl Serialize for Capability {
+    fn serialize<S>(&self, serializer: S) -> std::prelude::v1::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let string = self.to_string();
+        serializer.serialize_str(&string)
+    }
+}
+
+impl<'de> Deserialize<'de> for Capability {
+    fn deserialize<D>(deserializer: D) -> std::prelude::v1::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        s.parse().map_err(serde::de::Error::custom)
+    }
 }
 
 impl fmt::Display for Capability {
@@ -33,7 +51,10 @@ impl FromStr for Capability {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parts: Vec<&str> = s.splitn(2, ':').collect();
         match parts.as_slice() {
-            ["http-server", port] => port.parse().map(Capability::HttpServer).map_err(|_| CapabilityParseError::InvalidPort),
+            ["http-server", port] => port
+                .parse()
+                .map(Capability::HttpServer)
+                .map_err(|_| CapabilityParseError::InvalidPort),
             ["http-client", url] => Ok(Capability::HttpClient(url.to_string())),
             _ => Err(CapabilityParseError::InvalidFormat),
         }

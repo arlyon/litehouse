@@ -1,8 +1,8 @@
-use pin_project_lite::pin_project;
 use std::task::Poll;
-use tokio::io::AsyncRead;
 
 use digest::Digest;
+use pin_project_lite::pin_project;
+use tokio::io::AsyncRead;
 
 pin_project! {
     pub struct HashRead<T, H> {

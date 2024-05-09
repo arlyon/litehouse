@@ -24,3 +24,9 @@ plugins = [
     "path:crates/tasmota",
     "path:crates/weather",
 ]
+bin = [
+    "path:crates/litehouse",
+    "path:crates/litehouse-config",
+    "path:crates/plugin",
+    "path:crates/plugin-macro",
+]
