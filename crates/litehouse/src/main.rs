@@ -434,7 +434,10 @@ async fn main_inner() -> Result<()> {
                 .wrap_err("unable to send feedback")?;
 
             if !res.status().is_success() {
-                return Err(miette::miette!("failed to send feedback"));
+                return Err(miette::miette!(
+                    "failed to send feedback ({})",
+                    res.status()
+                ));
             }
 
             Ok(())
