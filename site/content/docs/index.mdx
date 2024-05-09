@@ -67,16 +67,32 @@ with docker out of the box.
 ```bash title="Terminal"
 docker run -d\
     --name litehouse\
-    -v /path/to/config:/config\
-    -v /path/to/data:/data\
+    -v /path/to/settings.json:/settings.json\
+    -v /path/to/schema.json:/schema.json\
+    -v /path/to/wasm:/wasm\
     -p 8080:8080\
-    ghcr.io/litehouse/litehouse:latest
+    ghcr.io/arlyon/litehouse:latest
 ```
+
+<Callout title="Litehouse Docker Image">
+For more information on the Litehouse Docker image, visit the <a href="https://github.com/arlyon/litehouse/pkgs/container/litehouse">Litehouse package registry</a>.
+</Callout>
 
 #### Docker Compose
 
 In fact, to make it a little easier, you can also take advantage of the docker-compose file
 in the repo.
+
+```yaml title="docker-compose.yaml"
+version: "3"
+services:
+  litehouse:
+    image: ghcr.io/arlyon/litehouse:latest
+    volumes:
+      - /path/to/settings.json:/settings.json
+      - /path/to/schema.json:/schema.json
+      - /path/to/wasm:/wasm
+```
 
 ### Podman
 
@@ -85,13 +101,99 @@ Good news! The setup is pretty much the same as docker, but with some extra good
 ```bash title="Terminal"
 podman run -d\
     --name litehouse\
-    -v /path/to/config:/config\
-    -v /path/to/data:/data\
+    -v /path/to/settings.json:/settings.json\
+    -v /path/to/schema.json:/schema.json\
+    -v /path/to/wasm:/wasm\
     -p 8080:8080\
-    ghcr.io/litehouse/litehouse:latest
+    ghcr.io/arlyon/litehouse:latest
+```
+
+#### Podman play kube
+
+An alternative to docker-compose is to use a kubernetes definition file.
+
+```yaml title="kube.yaml"
+apiVersion: v1
+kind: Pod
+metadata:
+  name: litehouse
+spec:
+  containers:
+    - name: server
+      image: ghcr.io/arlyon/litehouse:latest
+      volumes:
+        - name: wasm
+          hostPath:
+            path: /app/wasm
+            type: DirectoryOrCreate
+        - name: settings
+          hostPath:
+            path: /app/settings.json
+            type: FileOrCreate
 ```
 
 #### Flatcar Linux / coreOS
+
+With that kubernetes config, you can deploy Litehouse on CoreOS or similar systems, using Butane to generate an Ignition configuration file.
+This will automatically create a systemd-backed container with auto-updates (by default daily at midnight).
+Here's an example Butane configuration:
+
+```yaml title="litehouse.bu"
+variant: fcos
+version: 1.4.0
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        - <your ssh key>
+      groups:
+        - sudo
+        - docker
+systemd:
+  units:
+    - name: nftables.service
+      enabled: true
+storage:
+  files:
+    - path: /app/settings.json
+      contents:
+        inline: |
+          <insert json file here>
+    - path: /var/home/core/.config/containers/systemd/pdrp.kube
+      contents:
+        inline: |
+          [Unit]
+          Description=Litehouse server
+
+          [Install]
+          WantedBy=default.target
+
+          [Kube]
+          Yaml=kube.yaml
+
+          [Container]
+          AutoUpdate=registry
+    - path: /var/home/core/.config/containers/systemd/kube.yaml
+      contents:
+        local: kube.yaml
+  directories:
+    - path: /app/wasm
+```
+
+To generate the Ignition file, run:
+
+```bash
+podman run --interactive --rm quay.io/coreos/butane:release \
+       --pretty --strict < litehouse.bu > config.ign
+```
+
+#### Learn more
+
+<Cards>
+<Card title="CoreOS and Butane" href="https://docs.fedoraproject.org/en-US/fedora-coreos/producing-ign/#_getting_butane" className="bg-gradient-to-bl dark:from-black dark:to-blue-950 border-blue-600" />
+<Card title="Podman Autoupdate" href="https://docs.podman.io/en/latest/markdown/podman-auto-update.1.html" className="bg-gradient-to-bl dark:from-black dark:to-purple-950 border-purple-600" />
+<Card title="Podman Quadlet" href="https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html" className="bg-gradient-to-bl dark:from-black dark:to-orange-950 border-orange-600"/>
+</Cards>
 
 ### Server
 
