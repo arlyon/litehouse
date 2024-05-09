@@ -1,9 +1,43 @@
 ---
 title: Plugins
-description: Learn about plugins
+description: Learn about plugins and how to create or host your own
 ---
 
-## Want to publish your own?
+## Introduction
 
-We don't currently have infrastructure in place for authoring and uploading
-plugins. For now, get in touch and we can put it up for you!
+Litehouse plugins are WebAssembly modules that extend the functionality of the Litehouse home automation system. They can be written in any language that compiles to WebAssembly, offering a wide range of possibilities for automation, integration, and customization.
+
+## Hosting Your Own Plugins
+
+Each plugin is a WebAssembly file hosted on S3. To host your own plugins, you can use any S3-compatible storage service. The plugin registry in Litehouse is designed to be decentralized, allowing anyone to host their own registry or contribute to the official Litehouse registry.
+
+## Writing a Plugin
+
+To write a plugin, you need to compile your code to WebAssembly and adhere to the Litehouse plugin specification. The specification is based on the WebAssembly Interface Types (wit) proposal, which allows WebAssembly modules to interoperate with the host environment.
+
+You can learn more about writing plugins and the wit-bindgen tool, which facilitates the creation of WebAssembly modules that conform to the wit specification, by visiting the [wit-bindgen repository](https://github.com/bytecodealliance/wit-bindgen).
+
+## Example Plugin
+
+For an example plugin and more detailed instructions on how to develop a plugin for Litehouse, check out the [Litehouse GitHub repository](https://github.com/arlyon/litehouse/tree/main/crates). Here, you'll find several example plugins and the necessary tools to get started.
+
+## Importing Plugins
+
+To use a plugin in Litehouse, you need to import it in your `settings.json` file. The import syntax allows you to specify the registry and version of the plugin:
+
+```json
+"imports": [
+  "my-registry::plugin@0.1.0"
+]
+```
+
+This syntax enables Litehouse to fetch the plugin from the specified registry and ensure that the correct version is used.
+
+## Plugin and Plugin-Macro Crates
+
+Litehouse provides two Rust crates to help with plugin development:
+
+- `plugin`: This crate includes utilities and macros to facilitate the creation of plugins, including schema generation and serialization.
+- `plugin-macro`: This crate provides procedural macros to generate boilerplate code required for creating Litehouse plugins.
+
+By using these crates, you can streamline the development process and focus on the unique functionality of your plugin.

@@ -7,6 +7,8 @@
 #![feature(let_chains)]
 
 mod hash_read;
+mod parallelism;
+mod capabilities;
 
 use std::{
     cmp::Ordering, collections::HashMap, fmt::Display, num::NonZeroU8, path::Path, str::FromStr,
@@ -18,6 +20,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::io::{AsyncRead, AsyncWrite};
+use parallelism::SandboxStrategy;
+use capabilities::Capability;
 
 const REGISTRY_SEPARATOR: &str = "::";
 const VERSION_SEPARATOR: &str = "@";
@@ -70,18 +74,6 @@ pub struct Engine {
 
 fn is_default<T: Default + PartialEq>(t: &T) -> bool {
     *t == Default::default()
-}
-
-#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum SandboxStrategy {
-    /// All plugins are run in the same storage sandbox
-    Global,
-    /// Each plugin type is run in its own storage sandbox
-    Plugin,
-    /// Each plugin instance is run in its own storage sandbox
-    #[default]
-    Instance,
 }
 
 #[derive(JsonSchema, Serialize, Deserialize, Debug, PartialEq)]
