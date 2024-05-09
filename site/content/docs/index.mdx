@@ -84,7 +84,7 @@ In fact, to make it a little easier, you can also take advantage of the docker-c
 in the repo.
 
 ```yaml title="docker-compose.yaml"
-version: '3'
+version: "3"
 services:
   litehouse:
     image: ghcr.io/arlyon/litehouse:latest
@@ -92,8 +92,6 @@ services:
       - /path/to/settings.json:/settings.json
       - /path/to/schema.json:/schema.json
       - /path/to/wasm:/wasm
-    ports:
-      - "8080:8080"
 ```
 
 ### Podman
@@ -115,30 +113,28 @@ podman run -d\
 An alternative to docker-compose is to use a kubernetes definition file.
 
 ```yaml title="kube.yaml"
----
 apiVersion: v1
 kind: Pod
 metadata:
   name: litehouse
 spec:
   containers:
-  - name: server
-    image: ghcr.io/arlyon/litehouse:latest
-    volumes:
-    - name: wasm
-      hostPath: 
-        path: /app/wasm
-        type: DirectoryOrCreate
-    - name: settings
-      hostPath:
-        path: /app/settings.json
-        type: FileOrCreate
+    - name: server
+      image: ghcr.io/arlyon/litehouse:latest
+      volumes:
+        - name: wasm
+          hostPath:
+            path: /app/wasm
+            type: DirectoryOrCreate
+        - name: settings
+          hostPath:
+            path: /app/settings.json
+            type: FileOrCreate
 ```
-
 
 #### Flatcar Linux / coreOS
 
-With that kubernetes config, you can deploy Litehouse on CoreOS or similar systems, using Butane to generate an Ignition configuration file. 
+With that kubernetes config, you can deploy Litehouse on CoreOS or similar systems, using Butane to generate an Ignition configuration file.
 This will automatically create a systemd-backed container with auto-updates (by default daily at midnight).
 Here's an example Butane configuration:
 
