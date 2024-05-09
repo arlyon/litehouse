@@ -53,29 +53,45 @@ Litehouse does all these things securely and efficiently. It is designed to use 
 ## Installation
 
 <Cards>
+<Card title="Direct" href="#direct" className="bg-gradient-to-bl dark:from-black dark:to-orange-950 border-orange-600"/>
 <Card title="Docker" href="#docker" className="bg-gradient-to-bl dark:from-black dark:to-blue-950 border-blue-600" />
 <Card title="Podman" href="#podman" className="bg-gradient-to-bl dark:from-black dark:to-purple-950 border-purple-600" />
-<Card title="Server" href="#server" className="bg-gradient-to-bl dark:from-black dark:to-orange-950 border-orange-600"/>
 <Card title="App" href="#app" />
 </Cards>
 
-### Docker
+### Direct
 
-Getting started with docker is the easiest approach for experienced people, and litehouse is designed work
-with docker out of the box.
+Installing the server directly can be done using `cargo`, the rust package management tool.
+To install cargo, please visit [rustup.rs](https://rustup.rs) and follow the instructions.
 
 ```bash title="Terminal"
-docker run -d\
-    --name litehouse\
-    -v /path/to/settings.json:/settings.json\
-    -v /path/to/schema.json:/schema.json\
-    -v /path/to/wasm:/wasm\
-    -p 8080:8080\
+cargo install litehouse
+```
+
+Alternatively, you can install the lastest bleeding edge version with the following
+command instead:
+
+```bash title="Terminal"
+cargo install --git https://github.com/arlyon/litehouse litehouse
+```
+
+
+### Docker
+
+Getting started with docker is an easy approach if you have docker easily available.
+The docker image is lightweight, weighing in at 10MB.
+
+```bash title="Terminal"
+docker run -d \
+    --name litehouse \
+    -v /path/to/settings.json:/settings.json \
+    -v /path/to/schema.json:/schema.json \
+    -v /path/to/wasm:/wasm \
     ghcr.io/arlyon/litehouse:latest
 ```
 
 <Callout title="Litehouse Docker Image">
-For more information on the Litehouse Docker image, visit the <a href="https://github.com/arlyon/litehouse/pkgs/container/litehouse">Litehouse package registry</a>.
+For more information on the Litehouse Docker image, have a look at image in the [GitHub package registry](https://github.com/arlyon/litehouse/pkgs/container/litehouse).
 </Callout>
 
 #### Docker Compose
@@ -99,12 +115,11 @@ services:
 Good news! The setup is pretty much the same as docker, but with some extra goodies.
 
 ```bash title="Terminal"
-podman run -d\
-    --name litehouse\
-    -v /path/to/settings.json:/settings.json\
-    -v /path/to/schema.json:/schema.json\
-    -v /path/to/wasm:/wasm\
-    -p 8080:8080\
+podman run -d \
+    --name litehouse \
+    -v /path/to/settings.json:/settings.json \
+    -v /path/to/schema.json:/schema.json \
+    -v /path/to/wasm:/wasm \
     ghcr.io/arlyon/litehouse:latest
 ```
 
@@ -121,22 +136,55 @@ spec:
   containers:
     - name: server
       image: ghcr.io/arlyon/litehouse:latest
-      volumes:
-        - name: wasm
-          hostPath:
-            path: /app/wasm
-            type: DirectoryOrCreate
-        - name: settings
-          hostPath:
-            path: /app/settings.json
-            type: FileOrCreate
+      env:
+        - name: RUST_LOG
+          value: debug,cranelift_codegen=info,rustls=info,wasmtime=info,wasmtime_cranelift=info
+      volumeMounts:
+        - mountPath: /settings.json
+          name: settings
+        - mountPath: /wasm
+          name: wasm
+  volumes:
+    - name: wasm
+      hostPath:
+        path: /home/arlyon/wasm
+        type: DirectoryOrCreate
+    - name: settings
+      hostPath:
+        path: /home/arlyon/settings.json
+        type: FileOrCreate
+```
+
+#### Podman quadlet
+
+Quadlet is a tool built-in in podman that integrates containers into systemd
+so that their lifecycles are managed in the same way as other services. This
+way, logs are also routed through the regular OS journal. To set it up,
+place a kube systemd service file in `~/.config/containers/systemd`. This also
+has the benefit of integrating with podman's auto-update system which will
+automatically check for updates at a fixed interval and restart the service.
+
+```systemd title="litehouse.kube"
+[Unit]
+Description=Litehouse server
+After=local-fs.target
+
+[Install]
+WantedBy=multi-user.target default.target
+
+[Service]
+Restart=always
+
+[Kube]
+Yaml=kube.yaml
 ```
 
 #### Flatcar Linux / coreOS
 
-With that kubernetes config, you can deploy Litehouse on CoreOS or similar systems, using Butane to generate an Ignition configuration file.
-This will automatically create a systemd-backed container with auto-updates (by default daily at midnight).
-Here's an example Butane configuration:
+Combining the kubernetes config and systemd, you can deploy Litehouse on
+CoreOS or similar systems, using Butane to generate an Ignition configuration
+file. Here's an example Butane configuration that creates a user, configures
+ssh access, and uploads all the required files onto the system.
 
 ```yaml title="litehouse.bu"
 variant: fcos
@@ -149,30 +197,16 @@ passwd:
       groups:
         - sudo
         - docker
-systemd:
-  units:
-    - name: nftables.service
-      enabled: true
 storage:
   files:
+    # allow rootless containers to stick around
+    - path: /var/lib/systemd/linger/core
     - path: /app/settings.json
       contents:
-        inline: |
-          <insert json file here>
-    - path: /var/home/core/.config/containers/systemd/pdrp.kube
+        local: settings.json
+    - path: /var/home/core/.config/containers/systemd/litehouse.kube
       contents:
-        inline: |
-          [Unit]
-          Description=Litehouse server
-
-          [Install]
-          WantedBy=default.target
-
-          [Kube]
-          Yaml=kube.yaml
-
-          [Container]
-          AutoUpdate=registry
+        local: litehouse.kube
     - path: /var/home/core/.config/containers/systemd/kube.yaml
       contents:
         local: kube.yaml
@@ -180,36 +214,23 @@ storage:
     - path: /app/wasm
 ```
 
-To generate the Ignition file, run:
+To generate the Ignition file, run butane, mounting the folder that the three
+files are in into the container.
 
 ```bash
-podman run --interactive --rm quay.io/coreos/butane:release \
-       --pretty --strict < litehouse.bu > config.ign
+podman run --interactive -v ~/:/folder --rm quay.io/coreos/butane:release \
+    --pretty --strict -d /folder < litehouse.bu > config.ign
 ```
 
 #### Learn more
+
+To learn more about the podman ecosystem, see below.
 
 <Cards>
 <Card title="CoreOS and Butane" href="https://docs.fedoraproject.org/en-US/fedora-coreos/producing-ign/#_getting_butane" className="bg-gradient-to-bl dark:from-black dark:to-blue-950 border-blue-600" />
 <Card title="Podman Autoupdate" href="https://docs.podman.io/en/latest/markdown/podman-auto-update.1.html" className="bg-gradient-to-bl dark:from-black dark:to-purple-950 border-purple-600" />
 <Card title="Podman Quadlet" href="https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html" className="bg-gradient-to-bl dark:from-black dark:to-orange-950 border-orange-600"/>
 </Cards>
-
-### Server
-
-Installing the server directly can be done using `cargo`, the rust package management tool.
-To install cargo, please visit [rustup.rs](https://rustup.rs) and follow the instructions.
-
-```bash title="Terminal"
-cargo install litehouse
-```
-
-Alternatively, you can install the lastest bleeding edge version with the following
-command instead:
-
-```bash title="Terminal"
-cargo install --git https://github.com/arlyon/litehouse litehouse
-```
 
 ### App
 
