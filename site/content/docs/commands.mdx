@@ -1,0 +1,112 @@
+---
+title: Commands
+description: How to use Litehouse and the various commands
+---
+
+Litehouse has a number of commands, which can be found by running `litehouse --help`. A reference for them (with some additional explainers) can be found
+below.
+
+## Run
+
+The `run` command is what starts up an instance of Litehouse. It will search
+your config file for plugin instances, boot them up, and serve them with updates.
+
+```bash title="Terminal"
+litehouse run
+```
+
+## Add
+
+Add a plugin to your imports list and fetch it. If you specify a more specific
+(but compatible) version, it will replace the existing one rather than append.
+
+```bash title="Terminal"
+litehouse add tasmota@0.1.2
+```
+
+## Generate
+
+Generate the `schema.json` file, based on the plugins in your local `wasm` folder. This provides intellisense for your `settings.json` file.
+
+```bash title="Terminal"
+litehouse generate
+```
+
+## Init
+
+Initialize a new Litehouse project. This will create a `settings.json` file and a `wasm` folder.
+
+```bash title="Terminal"
+litehouse init
+```
+
+## Validate
+
+Validate your `settings.json` file. This will check that all plugins are valid and that the config is correct. This is a handy sanity check that is a little
+more thorough than what the intellisense can provide.
+
+```bash title="Terminal"
+litehouse validate
+```
+
+## Build / Publish
+
+Build your plugin or publish it to the registry. This will make it available for others to use. Currently this only supports rust plugins. To use it, run it
+from the root of your package workspace, and specify the name of the crate.
+For more information, please see the [registry](/registry)!
+
+```bash title="Terminal"
+# build it to your local wasm folder
+litehouse build <PACKAGE>
+# or, build and publish it to the registry
+litehouse publish <PACKAGE>
+```
+
+## Fetch
+
+Fetch the plugins defined in the `imports` fields in your [settings.json](/docs/settings) from the registry.
+
+```bash title="Terminal"
+litehouse fetch
+```
+
+## Search
+
+Search the registry for a plugin. This will return a list of plugins that match the search term.
+
+```bash title="Terminal"
+litehouse search tasmota@0.1
+tasmota@0.1.0
+tasmota@0.1.1
+tasmota@0.1.2
+```
+
+## Lock
+
+Lock the versions of the plugins in your `imports` field. This will hash the
+versions downloaded in your `wasm` folder and apply them to your settings file,
+ensuring that later [fetch](#fetch) commands will get that precise version.
+
+```bash title="Terminal"
+litehouse lock
+```
+
+```diff title="settings.json"
+{
+  "imports": [
+-   "samsung@0.2.0"
++   "samsung@0.2.0~blake3:af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262"
+  ]
+}
+```
+
+## Feedback
+
+Tell me anything at all. Got an idea that doesn't warrant a github issue? Or
+simply want to say hi? Run `litehouse feedback` and let me know! It'll be sent
+directly to me. Be aware this also sends your git email and name so that we
+may get in touch :)
+
+```bash title="Terminal"
+litehouse feedback "This is cool, I'd like a plugin that could do my dishes..."
+```

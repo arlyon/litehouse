@@ -2,5 +2,7 @@ target
 Dockerfile
 .idea
 wasm
+site
+.github
 schema.json
 settings.json
