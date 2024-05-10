@@ -20,52 +20,52 @@ To read more about using these font, please visit the Next.js documentation:
 import { Button } from "@/components/ui/button";
 
 function classNames(...classes: any[]) {
-	return classes.filter(Boolean).join(" ");
+  return classes.filter(Boolean).join(" ");
 }
 
 export function CopyBox({
-	command,
-	className,
+  command,
+  className,
 }: {
-	command: string;
-	className?: string;
+  command: string;
+  className?: string;
 }) {
-	return (
-		<div
-			className={classNames(
-				"flex items-center bg-muted/20 border gap-4 rounded-md px-6 py-2 font-mono border-orange-600",
-				className,
-			)}
-		>
-			<span className="flex-1">{command}</span>
-			<Button
-				className="focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-gray-900 rounded-md"
-				size="icon"
-				variant="ghost"
-			>
-				<CopyIcon className="w-5 h-5" />
-			</Button>
-		</div>
-	);
+  return (
+    <div
+      className={classNames(
+        "flex items-center bg-muted/20 border gap-4 rounded-md px-6 py-2 font-mono border-orange-600",
+        className,
+      )}
+    >
+      <span className="flex-1">{command}</span>
+      <Button
+        className="focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-gray-900 rounded-md"
+        size="icon"
+        variant="ghost"
+      >
+        <CopyIcon className="w-5 h-5" />
+      </Button>
+    </div>
+  );
 }
 
 function CopyIcon(props: any) {
-	return (
-		<svg
-			{...props}
-			xmlns="http://www.w3.org/2000/svg"
-			width="24"
-			height="24"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			strokeWidth="2"
-			strokeLinecap="round"
-			strokeLinejoin="round"
-		>
-			<title>Copy</title>
-			<rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-			<path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-		</svg>
-	);
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <title>Copy</title>
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+    </svg>
+  );
 }
