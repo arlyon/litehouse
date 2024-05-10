@@ -23,6 +23,7 @@
     "next-axiom": "^1.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "remark-code-import": "^1.2.0",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.1",
