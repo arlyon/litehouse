@@ -17,6 +17,19 @@ To write a plugin, you need to compile your code to WebAssembly and adhere to th
 
 You can learn more about writing plugins and the wit-bindgen tool, which facilitates the creation of WebAssembly modules that conform to the wit specification, by visiting the [wit-bindgen repository](https://github.com/bytecodealliance/wit-bindgen).
 
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
+<Accordions>
+<Accordion title="Schema">
+
+```WIT title="plugin.wit" file=../../../crates/plugin-macro/wit/plugin.wit
+```
+
+</Accordion>
+</Accordions>
+
+
+
 ## Example Plugin
 
 For an example plugin and more detailed instructions on how to develop a plugin for Litehouse, check out the [Litehouse GitHub repository](https://github.com/arlyon/litehouse/tree/main/crates). Here, you'll find several example plugins and the necessary tools to get started.

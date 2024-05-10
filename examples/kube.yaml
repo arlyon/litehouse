@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: litehouse
+spec:
+  containers:
+    - name: server
+      image: ghcr.io/arlyon/litehouse:latest
+      env:
+        - name: RUST_LOG
+          value: debug,cranelift_codegen=info,rustls=info,wasmtime=info,wasmtime_cranelift=info
+      volumeMounts:
+        - mountPath: /settings.json
+          name: settings
+        - mountPath: /wasm
+          name: wasm
+  volumes:
+    - name: wasm
+      hostPath:
+        path: /home/arlyon/wasm
+        type: DirectoryOrCreate
+    - name: settings
+      hostPath:
+        path: /home/arlyon/settings.json
+        type: FileOrCreate

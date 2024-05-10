@@ -1,0 +1,25 @@
+variant: fcos
+version: 1.4.0
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        - <your ssh key>
+      groups:
+        - sudo
+        - docker
+storage:
+  files:
+    # allow rootless containers to stick around
+    - path: /var/lib/systemd/linger/core
+    - path: /app/settings.json
+      contents:
+        local: settings.json
+    - path: /var/home/core/.config/containers/systemd/litehouse.kube
+      contents:
+        local: litehouse.kube
+    - path: /var/home/core/.config/containers/systemd/kube.yaml
+      contents:
+        local: kube.yaml
+  directories:
+    - path: /app/wasm

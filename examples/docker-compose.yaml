@@ -1,0 +1,8 @@
+version: "3"
+services:
+  litehouse:
+    image: ghcr.io/arlyon/litehouse:latest
+    volumes:
+      - /path/to/settings.json:/settings.json
+      - /path/to/schema.json:/schema.json
+      - /path/to/wasm:/wasm

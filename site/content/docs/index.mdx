@@ -52,12 +52,6 @@ Litehouse does all these things securely and efficiently. It is designed to use 
 This is achieved by through web-assembly plugins and a custom registry allowing for extremely low idle memory usage, fast startup,
 unparalleled security, and buzzwords.
 
-```wit title="plugin.wit"
-world test {
-  export fuck;
-}
-```
-
 ## Installation
 
 <Cards>
@@ -107,15 +101,7 @@ For more information on the Litehouse Docker image, have a look at image in the 
 In fact, to make it a little easier, you can also take advantage of the docker-compose file
 in the repo.
 
-```yaml title="docker-compose.yaml"
-version: "3"
-services:
-  litehouse:
-    image: ghcr.io/arlyon/litehouse:latest
-    volumes:
-      - /path/to/settings.json:/settings.json
-      - /path/to/schema.json:/schema.json
-      - /path/to/wasm:/wasm
+```yaml title="docker-compose.yaml" file=../../../examples/docker-compose.yaml
 ```
 
 ### Podman
@@ -135,32 +121,7 @@ podman run -d \
 
 An alternative to docker-compose is to use a kubernetes definition file.
 
-```yaml title="kube.yaml"
-apiVersion: v1
-kind: Pod
-metadata:
-  name: litehouse
-spec:
-  containers:
-    - name: server
-      image: ghcr.io/arlyon/litehouse:latest
-      env:
-        - name: RUST_LOG
-          value: debug,cranelift_codegen=info,rustls=info,wasmtime=info,wasmtime_cranelift=info
-      volumeMounts:
-        - mountPath: /settings.json
-          name: settings
-        - mountPath: /wasm
-          name: wasm
-  volumes:
-    - name: wasm
-      hostPath:
-        path: /home/arlyon/wasm
-        type: DirectoryOrCreate
-    - name: settings
-      hostPath:
-        path: /home/arlyon/settings.json
-        type: FileOrCreate
+```yaml title="kube.yaml" file=../../../examples/kube.yaml
 ```
 
 #### Podman quadlet
@@ -172,19 +133,7 @@ place a kube systemd service file in `~/.config/containers/systemd`. This also
 has the benefit of integrating with podman's auto-update system which will
 automatically check for updates at a fixed interval and restart the service.
 
-```systemd title="litehouse.kube"
-[Unit]
-Description=Litehouse server
-After=local-fs.target
-
-[Install]
-WantedBy=multi-user.target default.target
-
-[Service]
-Restart=always
-
-[Kube]
-Yaml=kube.yaml
+```systemd title="litehouse.kube" file=../../../examples/litehouse.kube
 ```
 
 #### Flatcar Linux / coreOS
@@ -194,32 +143,7 @@ CoreOS or similar systems, using Butane to generate an Ignition configuration
 file. Here's an example Butane configuration that creates a user, configures
 ssh access, and uploads all the required files onto the system.
 
-```yaml title="litehouse.bu"
-variant: fcos
-version: 1.4.0
-passwd:
-  users:
-    - name: core
-      ssh_authorized_keys:
-        - <your ssh key>
-      groups:
-        - sudo
-        - docker
-storage:
-  files:
-    # allow rootless containers to stick around
-    - path: /var/lib/systemd/linger/core
-    - path: /app/settings.json
-      contents:
-        local: settings.json
-    - path: /var/home/core/.config/containers/systemd/litehouse.kube
-      contents:
-        local: litehouse.kube
-    - path: /var/home/core/.config/containers/systemd/kube.yaml
-      contents:
-        local: kube.yaml
-  directories:
-    - path: /app/wasm
+```yaml title="litehouse.bu" file=../../../examples/litehouse.bu
 ```
 
 To generate the Ignition file, run butane, mounting the folder that the three

@@ -1,0 +1,12 @@
+[Unit]
+Description=Litehouse server
+After=local-fs.target
+
+[Install]
+WantedBy=multi-user.target default.target
+
+[Service]
+Restart=always
+
+[Kube]
+Yaml=kube.yaml
