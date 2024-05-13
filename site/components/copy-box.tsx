@@ -18,8 +18,9 @@ To read more about using these font, please visit the Next.js documentation:
 - Pages Directory: https://nextjs.org/docs/pages/building-your-application/optimizing/fonts
 **/
 import { Button } from "@/components/ui/button";
+import type { SVGProps } from "react";
 
-function classNames(...classes: any[]) {
+function classNames(...classes: (string | undefined)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
@@ -49,7 +50,7 @@ export function CopyBox({
   );
 }
 
-function CopyIcon(props: any) {
+function CopyIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}

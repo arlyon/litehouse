@@ -18,6 +18,7 @@ To read more about using these font, please visit the Next.js documentation:
 - Pages Directory: https://nextjs.org/docs/pages/building-your-application/optimizing/fonts
 **/
 import { Button } from "@/components/ui/button";
+import type { SVGProps } from "react";
 
 export function RegistryButton() {
   return (
@@ -28,7 +29,7 @@ export function RegistryButton() {
   );
 }
 
-function BoxIcon(props: any) {
+function BoxIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}

@@ -34,7 +34,6 @@ export function SeeMoreModal() {
     <Drawer>
       <DrawerTrigger asChild>
         <Button
-          // @ts-expect-error(arlyon)
           variant="primary"
           className="hover:text-orange-500 transition-colors border hover:border-orange-700/40 rounded px-4 py-2"
         >
