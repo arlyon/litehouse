@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * A react hook that wraps indexeddb and allows watching specific queries.
@@ -15,23 +15,25 @@ export const useIndexedDb = <T>(
   const { generation, increment } = useBroadcastGeneration(channel);
 
   // init the database
-  if (!db && "window" in global) {
-    const dbReq = window.indexedDB.open(dbName, 1);
-    dbReq.onerror = (event) => {
-      console.error("error opening database", event);
-    };
+  useEffect(() => {
+    if (!db && "window" in global) {
+      const dbReq = window.indexedDB.open(dbName, 1);
+      dbReq.onerror = (event) => {
+        console.error("error opening database", event);
+      };
 
-    dbReq.onsuccess = (event) => {
-      setDb(dbReq.result);
-    };
+      dbReq.onsuccess = (event) => {
+        setDb(dbReq.result);
+      };
 
-    dbReq.onupgradeneeded = (event) => {
-      console.log("upgrading db");
-      // @ts-expect-error
-      const db = event.target.result;
-      const store = db.createObjectStore(storeName, { keyPath });
-    };
-  }
+      dbReq.onupgradeneeded = (event) => {
+        console.log("upgrading db");
+        // @ts-expect-error
+        const db = event.target.result;
+        const store = db.createObjectStore(storeName, { keyPath });
+      };
+    }
+  }, [storeName, keyPath, dbName, db]);
 
   const add = useCallback(
     (record: T) => {
@@ -80,7 +82,12 @@ export const useIndexedDb = <T>(
         valueGen.current === generation ||
         inflightGen.current === generation
       ) {
-        console.log("returning cached");
+        console.log(
+          "returning cached",
+          valueGen.current,
+          inflightGen.current,
+          generation,
+        );
         return value;
       }
 
@@ -93,6 +100,12 @@ export const useIndexedDb = <T>(
       }
 
       const req = callback(store);
+      console.log(
+        "launching query",
+        valueGen.current,
+        inflightGen.current,
+        generation,
+      );
       inflightGen.current = generation;
       req.onsuccess = (event) => {
         if (valueGen.current && valueGen.current > generation) return; // newer data is here
@@ -114,20 +127,27 @@ export const useIndexedDb = <T>(
   };
 };
 
-export const useManifestStore = <T extends { id: string }>() => {
+type ManifestItem = {
+  id: string;
+  name: string;
+  version: string;
+  downloads?: number;
+};
+
+export const useManifestStore = () => {
   const {
     add: addInner,
     subscribe,
     remove: removeInner,
-  } = useIndexedDb<T>("manifest", "plugins", "id");
+  } = useIndexedDb<ManifestItem>("manifest", "plugins", "id");
 
   const cb = useCallback(
-    (db: IDBObjectStore): IDBRequest<T[]> => db.getAll(),
+    (db: IDBObjectStore): IDBRequest<ManifestItem[]> => db.getAll(),
     [],
   );
   const items = subscribe(cb);
   const add = useCallback(
-    (plugin: T) => {
+    (plugin: ManifestItem) => {
       addInner?.(plugin);
     },
     [addInner],
@@ -168,6 +188,8 @@ const useBroadcastGeneration = (channel: string) => {
     bc.current.postMessage({ gen: next });
     setGeneration(next);
   }, [generation]);
+
+  if (generation === 0) increment();
 
   return { generation, increment };
 };

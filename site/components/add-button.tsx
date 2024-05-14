@@ -7,14 +7,22 @@ import { Button } from "./ui/button";
 export const AddButton = ({
   name,
   version,
-}: { name: string; version: string }) => {
+  downloads,
+  className,
+}: {
+  name: string;
+  version: string;
+  downloads?: number;
+  className?: string;
+}) => {
   const id = `${name}@${version}`;
-  const { add, items, remove } = useManifestStore<{ id: string }>();
+  const { add, items, remove } = useManifestStore();
 
   const exists = items?.some((item) => item.id === id);
 
   return exists ? (
     <Button
+      className={className}
       data-selected="true"
       size="sm"
       variant="primary"
@@ -25,10 +33,11 @@ export const AddButton = ({
     </Button>
   ) : (
     <Button
+      className={className}
       data-selected="false"
       size="sm"
       variant="primary"
-      onClick={() => add({ id })}
+      onClick={() => add({ id, name, version, downloads })}
     >
       <PlusIcon className="mr-2 h-4 w-4" />
       Add

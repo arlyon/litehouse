@@ -21,72 +21,64 @@ To read more about using these font, please visit the Next.js documentation:
 **/
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useManifestStore } from "@/hooks/use-indexed-db";
+import Link from "next/link";
 import type { SVGProps } from "react";
 import { ManifestButton } from "./manifest-button";
 
 export function ManifestEditor() {
   const { items } = useManifestStore();
 
+  console.log(items);
+
   return (
     <Sheet>
       <SheetTrigger asChild>
         <ManifestButton items={items} />
       </SheetTrigger>
-      <SheetContent side="right">
-        <div className="flex flex-col h-full">
-          <div>
-            <h3 className="text-lg font-semibold">Manifest</h3>
-            <pre className="mt-2 overflow-auto bg-gray-100 p-3 rounded-md font-mono text-sm dark:bg-muted/20">
-              {JSON.stringify(
-                {
-                  $schema: "./schema.json",
-                  plugins: {},
-                  imports: items?.map((item) => item.id),
-                },
-                null,
-                2,
-              )}
-            </pre>
-          </div>
-          <div className="flex-1 overflow-auto">
+      <SheetContent side="right" className="flex flex-col h-full gap-4">
+        <div>
+          <h3 className="text-lg font-semibold">Manifest</h3>
+          <pre className="mt-2 overflow-auto p-3 border font-mono text-sm border-accent bg-secondary">
+            {JSON.stringify(
+              {
+                $schema: "./schema.json",
+                plugins: {},
+                imports: items?.map((item) => item.id),
+              },
+              null,
+              2,
+            )}
+          </pre>
+        </div>
+        <div className="flex-1 overflow-auto">
+          <div className="flex flex-row justify-between items-center">
             <h3 className="text-lg font-semibold">Plugins</h3>
-            <div className="mt-2 grid grid-cols-[1fr_auto_auto] items-center gap-4">
-              <div className="flex items-center gap-4">
-                <h4 className="font-medium">Tailwind CSS</h4>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  v3.2.7
-                </p>
-              </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                <DownloadIcon className="w-4 h-4" />
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">1.2M</p>
-            </div>
-            <div className="mt-2 grid grid-cols-[1fr_auto_auto] items-center gap-4">
-              <div className="flex items-center gap-4">
-                <h4 className="font-medium">React</h4>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  v18.2.0
-                </p>
-              </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                <DownloadIcon className="w-4 h-4" />
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">2.1M</p>
-            </div>
-            <div className="mt-2 grid grid-cols-[1fr_auto_auto] items-center gap-4">
-              <div className="flex items-center gap-4">
-                <h4 className="font-medium">Next.js</h4>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  v13.2.3
-                </p>
-              </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                <DownloadIcon className="w-4 h-4" />
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">1.8M</p>
+            <div className="text-sm text-muted-foreground">
+              {items?.length ?? 0} selected
             </div>
           </div>
+          {items?.map((item) => (
+            <div
+              key={item.id}
+              className="mt-2 grid grid-cols-[1fr_auto_auto] items-center gap-4"
+            >
+              <div className="flex items-center gap-4">
+                <h4 className="font-medium">
+                  <Link
+                    href={`/registry/${item.name}/${item.version}`}
+                    className="hover:underline"
+                  >
+                    {item.name}
+                  </Link>
+                </h4>
+                <p className="text-sm text-muted-foreground">v{item.version}</p>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <DownloadIcon className="w-4 h-4" />
+              </div>
+              <p className="text-sm text-muted-foreground">{item.downloads}</p>
+            </div>
+          ))}
         </div>
       </SheetContent>
     </Sheet>

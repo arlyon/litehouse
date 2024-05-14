@@ -24,6 +24,8 @@ To read more about using these font, please visit the Next.js documentation:
 - Pages Directory: https://nextjs.org/docs/pages/building-your-application/optimizing/fonts
 **/
 import { Button } from "@/components/ui/button";
+import { Database, ExternalLink } from "lucide-react";
+import Link from "next/link";
 import type { SVGProps } from "react";
 import { AddButton } from "./add-button";
 import { ManifestButton } from "./manifest-button";
@@ -42,38 +44,9 @@ export function RegistryPage(props: {
   }[];
 }) {
   return (
-    <div key="1" className="container mx-auto px-4 md:px-6 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold flex items-center">
-          <PackageIcon className="mr-2 h-6 w-6" />
-          Litehouse Plugins
-        </h1>
-        <div className="relative w-full max-w-md flex items-center">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <SearchIcon className="h-5 w-5 text-primary" />
-          </div>
-          <input
-            className="block w-full rounded-full bg-gray-100 dark:bg-muted/20 pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent dark:focus:ring-gray-50"
-            placeholder="Search packages..."
-            type="text"
-          />
-          <ManifestEditor />
-          <ThemeToggle />
-        </div>
-      </div>
-      <div className="flex justify-between mb-6">
-        <div>
-          <p className="text-muted-foreground">Total Downloads</p>
-          <p className="font-bold">{props.totalDownloads}</p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">Plugin Count</p>
-          <p className="font-bold">{props.pluginCount}</p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">Users</p>
-          <p className="font-bold">{props.users}</p>
-        </div>
+    <div>
+      <div className="font-mono text-muted-foreground my-4">
+        4 out of 4 results
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {props.packages?.map((p) => (
@@ -92,25 +65,36 @@ function Package(props: {
 }) {
   const formatter = new Intl.NumberFormat("en-US");
   return (
-    <div className="bg-background border border-muted hover:border-orange-300 has-[[data-selected=true]]:!border-green-500 dark:hover:border-orange-600 rounded overflow-hidden">
-      <div className="p-4">
-        <h3 className="text-lg font-semibold mb-2">{props.title}</h3>
-        <p className="text-muted-foreground mb-4">{props.description}</p>
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            {props.version ? (
-              <span className="font-medium">v{props.version}</span>
-            ) : null}
-            {props.downloads !== undefined && props.version ? (
-              <span className="mx-2">•</span>
-            ) : null}
-            {props.downloads !== undefined ? (
-              <span>{formatter.format(props.downloads)} downloads</span>
-            ) : null}
+    <div className="relative overflow-visible">
+      <div className="relative bg-background border border-accent hover:border-orange-300 z-[2] has-[[data-selected=true]]:!border-green-500 dark:hover:border-orange-600 ">
+        <div className="p-4">
+          <h3 className="text-lg font-semibold mb-2 flex items-center justify-between">
+            <Link href="/registry/tasmota" className="hover:underline">
+              {props.title}
+            </Link>
+          </h3>
+          <p className="text-muted-foreground mb-4">{props.description}</p>
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              {props.version ? (
+                <span className="font-medium">v{props.version}</span>
+              ) : null}
+              {props.downloads !== undefined && props.version ? (
+                <span className="mx-2">•</span>
+              ) : null}
+              {props.downloads !== undefined ? (
+                <span>{formatter.format(props.downloads)} downloads</span>
+              ) : null}
+            </div>
+            <AddButton
+              name={props.title}
+              version={props.version}
+              downloads={props.downloads ?? 0}
+            />
           </div>
-          <AddButton name={props.title} version={props.version} />
         </div>
       </div>
+      <div className="relative w-full h-full z-0 -translate-y-full top-2 left-2 bg-background border border-accent" />
     </div>
   );
 }

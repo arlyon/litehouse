@@ -135,7 +135,7 @@ export const CodeBlock = forwardRef<HTMLElement, CodeBlockProps>(
 
 CodeBlock.displayName = "CodeBlock";
 
-function SaveButton({
+export function SaveButton({
   className,
   onSave,
   ...props
@@ -170,7 +170,7 @@ function SaveButton({
   );
 }
 
-function CopyButton({
+export function CopyButton({
   className,
   onCopy,
   ...props

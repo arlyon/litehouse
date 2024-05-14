@@ -3,7 +3,7 @@ import { Button, type ButtonProps } from "./ui/button";
 
 export const ManifestButton = (props: ButtonProps & { items?: object[] }) => {
   return (
-    <Button className="relative" variant="primary" {...props}>
+    <Button className="relative" variant="ghost" {...props}>
       <ReceiptTextIcon className="h-5 w-5" />
       {props.items ? (
         <span
