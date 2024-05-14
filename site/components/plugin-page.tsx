@@ -117,7 +117,7 @@ export function PluginPage(props: {
         </div>
         <div className="space-y-2">
           <h3 className="text-lg font-medium">Required Capabilities</h3>
-          <p className="text-sm text-muted-foreground">
+          <li className="text-sm text-muted-foreground">
             {props.capabilities?.map((c) => (
               <div
                 key={c}
@@ -126,7 +126,7 @@ export function PluginPage(props: {
                 {c}
               </div>
             )) ?? "None"}
-          </p>
+          </li>
         </div>
       </div>
       <div className="space-y-6">

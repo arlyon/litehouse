@@ -163,11 +163,6 @@ export const useManifestStore = () => {
   return { add, items, remove };
 };
 
-const useIdentifier = () => {
-  const ref = useRef(0);
-  return () => ref.current++;
-};
-
 /**
  * A syncrhonized generation hook that broadcasts changes to a channel.
  */
@@ -175,21 +170,15 @@ const useBroadcastGeneration = (channel: string) => {
   const [generation, setGeneration] = useState(0);
   const bc = useRef(new BroadcastChannel(channel));
 
-  bc.current.onmessage = (event: MessageEvent<{ gen: number }>) => {
-    if (event.data.gen < generation) {
-      bc.current.postMessage({ gen: generation });
-    } else {
-      setGeneration(generation + 1);
-    }
+  bc.current.onmessage = () => {
+    setGeneration(generation + 1);
   };
 
   const increment = useCallback(() => {
     const next = generation + 1;
-    bc.current.postMessage({ gen: next });
+    bc.current.postMessage(null);
     setGeneration(next);
   }, [generation]);
-
-  if (generation === 0) increment();
 
   return { generation, increment };
 };
