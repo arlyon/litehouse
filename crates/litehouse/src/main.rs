@@ -3,8 +3,11 @@
 //! This application serves as the core of the Litehouse home automation system, orchestrating
 //! the execution of WebAssembly-based plugins for various home automation tasks.
 
+#![feature(let_chains)]
+
 use std::collections::HashMap;
 use std::future;
+use std::io::Read;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -81,6 +84,15 @@ enum Subcommand {
         /// The path to look for wasm files in.
         #[clap(default_value = "./wasm", short, long)]
         wasm_path: PathBuf,
+        /// Whether to enable the wasm cache
+        #[clap(long)]
+        no_cache: bool,
+    },
+    Inspect {
+        #[clap(default_value = "./wasm", short, long)]
+        wasm_path: PathBuf,
+        /// The path to the wasm file to inspect
+        plugin: Import,
         /// Whether to enable the wasm cache
         #[clap(long)]
         no_cache: bool,
@@ -251,6 +263,87 @@ async fn main_inner() -> Result<()> {
         } => start(&wasm_path, !no_cache)
             .await
             .wrap_err("unable to start litehouse"),
+        Subcommand::Inspect {
+            wasm_path,
+            plugin,
+            no_cache,
+        } => {
+            let (engine, linker, cache) = set_up_engine(!no_cache).await?;
+
+            let dirs = [(
+                plugin.plugin.clone(),
+                PluginInstance {
+                    config: None,
+                    plugin,
+                },
+            )]
+            .into_iter()
+            .collect();
+
+            let (rx, _) = channel(1000);
+            let factory = PluginRunnerFactory::new(rx, Default::default());
+            let store = StoreStrategy::global(engine.clone(), factory);
+
+            let hosts =
+                instantiate_plugin_hosts(None, &engine, &store, &linker, &dirs, &wasm_path, 10, 10)
+                    .await?;
+            if let Some(cache) = cache {
+                if let Err(e) = cache.drain().await {
+                    tracing::warn!("unable to save cache: {}", e)
+                }
+            }
+
+            let jobs = hosts
+                .into_iter()
+                .map(|(a, instance, host, mut store, _)| async move {
+                    let store = store.enter().await;
+                    let metadata = host
+                        .litehouse_plugin_plugin()
+                        .call_get_metadata(store)
+                        .await;
+
+                    match metadata {
+                        Ok(meta) => {
+                            println!("metadata for {}:\n", a);
+                            // print fields based on schema
+                            //     record metadata {
+                            //   version: string,
+                            //   identifier: string,
+                            //   config-schema: option<string>,
+                            
+                            //   author: option<string>,
+                            //   homepage: option<string>,
+                            //   source: option<string>,
+                            //   description: option<string>,
+                            //   readme: option<string>,
+                            //   capabilities: list<string>,
+                            // }
+                            println!(" - version: {}", meta.version);
+                            if let Some(author) = meta.author && !author.is_empty() {
+                                println!(" - author: {}", author);
+                            }
+                            if let Some(homepage) = meta.homepage && !homepage.is_empty() {
+                                println!(" - homepage: {}", homepage);
+                            }
+                            if let Some(source) = meta.source && !source.is_empty() {
+                                println!(" - source: {}", source);
+                            }
+                            if let Some(description) = meta.description && !description.is_empty() {
+                                println!(" - description: {}", description);
+                            }
+                            println!(" - capabilities: {:?}", meta.capabilities);
+                        }
+                        Err(_) => {
+                            tracing::error!("failed to generate schema: {:?}", metadata);
+                            panic!();
+                        }
+                    }
+                });
+
+            _ = futures::future::join_all(jobs).await;
+
+            Ok(())
+        }
         Subcommand::Generate {
             wasm_path,
             no_cache,
@@ -808,7 +901,7 @@ async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
         Component,
     )>,
 > {
-    tracing::debug!("instantiating plugin hosts");
+    tracing::debug!("instantiating plugin hosts {:?}", plugins);
 
     let map = plugins
         .iter()
@@ -825,6 +918,7 @@ async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
             async move {
                 tracing::debug!("building");
                 let file_path = base_path.join(&file_name);
+                tracing::info!("loading plugin from {}", file_path.display());
                 let contents = tokio::fs::read(&file_path).await.map_err(|e| {
                     if let Some((src, ast)) = ast.as_ref() {
                         let node = ast
@@ -853,7 +947,8 @@ async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
                             source: e,
                         }
                     } else {
-                        todo!()
+                        println!("{:?}", ast.as_ref());
+                        panic!();
                     }
                 })?;
                 let c = tokio::task::spawn_blocking(move || Component::new(&engine, contents))
@@ -973,6 +1068,7 @@ async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value> {
                     config_schema,
                     identifier,
                     version,
+                    ..
                 }) => {
                     // check that version above and version here match
 
@@ -1156,6 +1252,8 @@ async fn build_in_temp(package: &str, release: bool) -> Option<(Import, PathBuf)
         .await
         .unwrap();
 
+    tracing::info!("built the binary");
+
     if !out.success() {
         return None;
     }
@@ -1174,6 +1272,8 @@ async fn build_in_temp(package: &str, release: bool) -> Option<(Import, PathBuf)
     std::fs::create_dir_all(&tmp).unwrap();
     std::fs::write(&wasi_path, WASM_PROCESS_FILE).unwrap();
 
+    tracing::info!("wrote process file to {}", wasi_path.display());
+
     // run wasm-tools against the wasm file
     let out = Command::new("wasm-tools")
         .args([
@@ -1189,10 +1289,14 @@ async fn build_in_temp(package: &str, release: bool) -> Option<(Import, PathBuf)
         .await
         .unwrap();
 
+    tracing::info!("attempted to create component");
+
     if !out.success() {
+        tracing::error!("failed");
         return None;
     }
 
+    tracing::info!("created component");
     Some((import, out_path))
 }
 

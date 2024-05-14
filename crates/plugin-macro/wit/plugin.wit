@@ -60,9 +60,16 @@ interface plugin {
     }
 
     record metadata {
-      config-schema: option<string>,
       version: string,
       identifier: string,
+      config-schema: option<string>,
+      
+      author: option<string>,
+      homepage: option<string>,
+      source: option<string>,
+      description: option<string>,
+      readme: option<string>,
+      capabilities: list<string>,
     }
 
     get-metadata: func() -> metadata;
