@@ -1125,14 +1125,22 @@ async fn build_in_temp(package: &str, release: bool) -> Option<(Import, PathBuf)
         .iter()
         .map(|v| {
             let v = v.as_str().unwrap();
-            let (name, rest) = v.split_once(' ').unwrap();
-            let (version, rest) = rest.split_once(' ').unwrap();
-            let path = rest
-                .strip_prefix("(path+file://")
-                .unwrap()
-                .strip_suffix(')')
-                .unwrap();
-            (name, (version, path))
+            if let Some(rest) = v.strip_prefix("path+file") {
+                // macOS, format path+file:///$PATH/$NAME#$VERSION
+                let (path, rest) = rest.rsplit_once('/').unwrap();
+                let (name, version) = rest.split_once('#').unwrap();
+                (name, (version, path))
+            } else {
+                // linux, format $NAME $VERSION (path+file://$PATH)
+                let (name, rest) = v.split_once(' ').unwrap();
+                let (version, rest) = rest.split_once(' ').unwrap();
+                let path = rest
+                    .strip_prefix("(path+file://")
+                    .unwrap()
+                    .strip_suffix(')')
+                    .unwrap();
+                (name, (version, path))
+            }
         })
         .collect();
 
