@@ -9,6 +9,7 @@
 mod capabilities;
 mod hash_read;
 mod import;
+mod manifest;
 mod parallelism;
 
 use std::{cmp::Ordering, collections::HashMap, num::NonZeroU8};
@@ -19,6 +20,7 @@ use serde::{Deserialize, Serialize};
 
 pub use capabilities::Capability;
 pub use import::Import;
+pub use manifest::{Manifest, ManifestImport};
 pub use parallelism::SandboxStrategy;
 
 #[derive(JsonSchema, Serialize, Deserialize, Debug, Default)]
@@ -159,6 +161,19 @@ impl LitehouseConfig {
             }
             _ => unreachable!(),
         }
+    }
+
+    pub fn add_manifest(&mut self, manifest: Manifest) {
+        manifest.config.into_iter().for_each(|(k, v)| {
+            self.plugins.insert(
+                k,
+                PluginInstance {
+                    plugin: manifest.import.clone(),
+                    config: Some(serde_json::to_value(v).unwrap()),
+                },
+            );
+        });
+        self.add_import(manifest.import);
     }
 }
 

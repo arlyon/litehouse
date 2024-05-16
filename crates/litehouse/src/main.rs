@@ -7,7 +7,6 @@
 
 use std::collections::HashMap;
 use std::future;
-use std::io::Read;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -28,8 +27,8 @@ use jsonc_parser::CollectOptions;
 use jsonschema::error::ValidationErrorKind;
 use jsonschema::paths::{JSONPointer, PathChunk};
 use litehouse_config::{
-    ConfigError, Import, ImportAddResult, LitehouseConfig, ParseError, PluginInstance,
-    SandboxStrategy,
+    ConfigError, Import, ImportAddResult, LitehouseConfig, ManifestImport, ParseError,
+    PluginInstance, SandboxStrategy,
 };
 use litehouse_plugin::serde_json::{self, Value};
 use miette::{miette, Diagnostic, IntoDiagnostic, NamedSource, Result, SourceSpan};
@@ -100,7 +99,7 @@ enum Subcommand {
     /// Add a new plugin to the imports field in the settings file.
     Add {
         /// The package to add.
-        package: Import,
+        package: litehouse_config::ManifestImport,
         /// The path to look for wasm files in.
         #[clap(default_value = "./wasm", short, long)]
         wasm_path: PathBuf,
@@ -226,16 +225,24 @@ async fn main_inner() -> Result<()> {
         Subcommand::Add { package, wasm_path } => {
             // search the package, and add it to the settings' imports
             let mut config = LitehouseConfig::load()?;
-            println!("adding package {}", package);
-            match config.add_import(package) {
-                ImportAddResult::Added(_) => {
-                    println!("package added");
+            match package {
+                ManifestImport::Import(package) => {
+                    println!("adding package {}", package);
+                    match config.add_import(package) {
+                        ImportAddResult::Added(_) => {
+                            println!("package added");
+                        }
+                        ImportAddResult::Ignored(i) => {
+                            println!("package already added ({i})");
+                        }
+                        ImportAddResult::Replaced(r) => {
+                            println!("replaced {r}");
+                        }
+                    }
                 }
-                ImportAddResult::Ignored(i) => {
-                    println!("package already added ({i})");
-                }
-                ImportAddResult::Replaced(r) => {
-                    println!("replaced {r}");
+                ManifestImport::Manifest(manifest) => {
+                    println!("adding manifest");
+                    config.add_manifest(manifest);
                 }
             }
 
@@ -310,7 +317,7 @@ async fn main_inner() -> Result<()> {
                             //   version: string,
                             //   identifier: string,
                             //   config-schema: option<string>,
-                            
+
                             //   author: option<string>,
                             //   homepage: option<string>,
                             //   source: option<string>,
@@ -319,16 +326,24 @@ async fn main_inner() -> Result<()> {
                             //   capabilities: list<string>,
                             // }
                             println!(" - version: {}", meta.version);
-                            if let Some(author) = meta.author && !author.is_empty() {
+                            if let Some(author) = meta.author
+                                && !author.is_empty()
+                            {
                                 println!(" - author: {}", author);
                             }
-                            if let Some(homepage) = meta.homepage && !homepage.is_empty() {
+                            if let Some(homepage) = meta.homepage
+                                && !homepage.is_empty()
+                            {
                                 println!(" - homepage: {}", homepage);
                             }
-                            if let Some(source) = meta.source && !source.is_empty() {
+                            if let Some(source) = meta.source
+                                && !source.is_empty()
+                            {
                                 println!(" - source: {}", source);
                             }
-                            if let Some(description) = meta.description && !description.is_empty() {
+                            if let Some(description) = meta.description
+                                && !description.is_empty()
+                            {
                                 println!(" - description: {}", description);
                             }
                             println!(" - capabilities: {:?}", meta.capabilities);

@@ -24,6 +24,14 @@ Add a plugin to your imports list and fetch it. If you specify a more specific
 litehouse add tasmota@0.1.2
 ```
 
+You can also add pre-configured instances using the `add` command from, for
+example, a plugin configured using the registry website. It is run just the
+same.
+
+```bash title="Terminal"
+litehouse add #bGl0ZWhvdXNl
+```
+
 ## Generate
 
 Generate the `schema.json` file, based on the plugins in your local `wasm` folder. This provides intellisense for your `settings.json` file.
