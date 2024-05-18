@@ -98,7 +98,7 @@ export function PluginPage(
         <div className="space-y-2">
           <h2 className="text-2xl font-bold">{props.title}</h2>
           {props.downloads ? (
-            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
               <DownloadIcon className="h-4 w-4" />
               <span>{props.downloads} downloads</span>
             </div>
@@ -122,10 +122,10 @@ export function PluginPage(
                 href={`/registry/${props.title}/${v.version}`}
                 // @ts-expect-error
                 data-current={v.current}
-                className="flex items-center justify-between hover:underline data-[current=true]:bg-green-100 data-[current=true]:dark:bg-green-900 data-[current=true]:border data-[current=true]:border-green-400 data-[current=true]:dark:border-green-700 -my-1 py-1 -mx-2 px-2 dark:border-gray-800"
+                className="flex items-center justify-between hover:underline data-[current=true]:bg-green-100 data-[current=true]:dark:bg-green-900 data-[current=true]:border data-[current=true]:border-green-400 data-[current=true]:dark:border-green-700 -my-1 py-1 -mx-2 px-2 dark:border-neutral-800"
               >
                 <span className="font-mono">v{v.version}</span>
-                <span className="text-gray-500 dark:text-gray-400">
+                <span className="text-neutral-500 dark:text-neutral-400">
                   {format.format(v.date)}
                 </span>
               </Link>
