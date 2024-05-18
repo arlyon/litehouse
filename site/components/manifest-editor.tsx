@@ -28,8 +28,6 @@ import { ManifestButton } from "./manifest-button";
 export function ManifestEditor() {
   const { items } = useManifestStore();
 
-  console.log(items);
-
   return (
     <Sheet>
       <SheetTrigger asChild>

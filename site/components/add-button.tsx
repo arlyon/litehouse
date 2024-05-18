@@ -29,7 +29,7 @@ export const AddButton = ({
       onClick={() => remove(id)}
     >
       <MinusIcon className="mr-2 h-4 w-4" />
-      Del
+      Remove
     </Button>
   ) : (
     <Button
@@ -40,7 +40,7 @@ export const AddButton = ({
       onClick={() => add({ id, name, version, downloads })}
     >
       <PlusIcon className="mr-2 h-4 w-4" />
-      Add
+      Import
     </Button>
   );
 };

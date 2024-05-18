@@ -27,7 +27,6 @@ export const useIndexedDb = <T>(
       };
 
       dbReq.onupgradeneeded = (event) => {
-        console.log("upgrading db");
         // @ts-expect-error
         const db = event.target.result;
         const store = db.createObjectStore(storeName, { keyPath });
@@ -57,11 +56,10 @@ export const useIndexedDb = <T>(
         .delete(id);
       if (!val) return;
       val.onsuccess = () => {
-        console.log("removed item", id, generation);
         increment();
       };
       val.onerror = (e) => {
-        console.log(e);
+        console.error(e);
       };
     },
     [db, generation, increment, storeName],
@@ -74,7 +72,6 @@ export const useIndexedDb = <T>(
       const valueGen = useRef<number>(null); // current generation of value
 
       if (!db) {
-        console.log("db not ready");
         return undefined;
       }
 
@@ -82,12 +79,6 @@ export const useIndexedDb = <T>(
         valueGen.current === generation ||
         inflightGen.current === generation
       ) {
-        console.log(
-          "returning cached",
-          valueGen.current,
-          inflightGen.current,
-          generation,
-        );
         return value;
       }
 
@@ -100,12 +91,7 @@ export const useIndexedDb = <T>(
       }
 
       const req = callback(store);
-      console.log(
-        "launching query",
-        valueGen.current,
-        inflightGen.current,
-        generation,
-      );
+
       inflightGen.current = generation;
       req.onsuccess = (event) => {
         if (valueGen.current && valueGen.current > generation) return; // newer data is here
@@ -114,7 +100,6 @@ export const useIndexedDb = <T>(
         setValue(event.target.result);
       };
 
-      console.log("returning value");
       return value;
     },
     [db, generation, storeName],
@@ -154,7 +139,6 @@ export const useManifestStore = () => {
   );
   const remove = useCallback(
     (id: string) => {
-      console.log("REMOVE", id, removeInner);
       removeInner?.(id);
     },
     [removeInner],

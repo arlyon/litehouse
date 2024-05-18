@@ -29,21 +29,27 @@ function classNames(...classes: (string | undefined)[]) {
 export function CopyBox({
   command,
   className,
+  beforeCopy,
 }: {
   command: string;
   className?: string;
+  beforeCopy?: () => boolean;
 }) {
   return (
     <div
       className={classNames(
-        "pl-4 group flex items-center border-accent bg-secondary border gap-4 font-mono",
+        "group flex items-center border-accent bg-secondary border font-mono",
         className,
       )}
     >
-      <span className="flex-1 text-sm">{command}</span>
+      <div className="flex-1 p-3 text-sm overflow-x-scroll text-nowrap">
+        {command}
+      </div>
       <CopyButton
         onCopy={() => {
-          console.log(command);
+          let accept = beforeCopy?.();
+          if (accept === false) return;
+          navigator.clipboard.writeText(command);
         }}
       />
     </div>

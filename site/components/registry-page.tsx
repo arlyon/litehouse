@@ -39,19 +39,17 @@ export function RegistryPage(props: {
   packages: {
     title: string;
     description: string;
-    version: string;
+    version: { version: string; date: Date };
     downloads?: number;
   }[];
 }) {
   return (
     <div>
       <div className="font-mono text-muted-foreground my-4">
-        4 out of 4 results
+        {props.pluginCount} out of {props.pluginCount} results
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {props.packages?.map((p) => (
-          <Package key={p.title} {...p} />
-        ))}
+        {props.packages?.map((p) => <Package key={p.title} {...p} />)}
       </div>
     </div>
   );
@@ -60,7 +58,7 @@ export function RegistryPage(props: {
 function Package(props: {
   title: string;
   description: string;
-  version: string;
+  version: { version: string; date: Date };
   downloads?: number;
 }) {
   const formatter = new Intl.NumberFormat("en-US");
@@ -69,7 +67,7 @@ function Package(props: {
       <div className="relative bg-background border border-accent hover:border-orange-300 z-[2] has-[[data-selected=true]]:!border-green-500 dark:hover:border-orange-600 ">
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-2 flex items-center justify-between">
-            <Link href="/registry/tasmota" className="hover:underline">
+            <Link href={`/registry/${props.title}`} className="hover:underline">
               {props.title}
             </Link>
           </h3>
@@ -77,7 +75,7 @@ function Package(props: {
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               {props.version ? (
-                <span className="font-medium">v{props.version}</span>
+                <span className="font-medium">v{props.version.version}</span>
               ) : null}
               {props.downloads !== undefined && props.version ? (
                 <span className="mx-2">•</span>

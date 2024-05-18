@@ -1,19 +1,15 @@
 import { RegistryPage } from "@/components/registry-page";
+import { getPluginData, getPlugins } from "@/lib/registry";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const packages = await getPlugins();
+
   return (
     <main>
       <RegistryPage
-        packages={[
-          {
-            title: "tasmota",
-            description: "A plugin for managing your tasmota-powered devices.",
-            downloads: 0,
-            version: "0.1.2",
-          },
-        ]}
+        packages={packages}
         users={0}
-        pluginCount={4}
+        pluginCount={packages.length}
         totalDownloads={0}
       />
     </main>
