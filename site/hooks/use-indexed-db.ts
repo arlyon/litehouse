@@ -70,8 +70,8 @@ export const useIndexedDb = <T>(
   const subscribe = useCallback(
     <T>(callback: (db: IDBObjectStore) => IDBRequest<T>): T | undefined => {
       const [value, setValue] = useState<T>();
-      const inflightGen = useRef<number>(); // current generation of inflight request
-      const valueGen = useRef<number>(); // current generation of value
+      const inflightGen = useRef<number>(null); // current generation of inflight request
+      const valueGen = useRef<number>(null); // current generation of value
 
       if (!db) {
         console.log("db not ready");

@@ -24,6 +24,7 @@ To read more about using these font, please visit the Next.js documentation:
 - Pages Directory: https://nextjs.org/docs/pages/building-your-application/optimizing/fonts
 **/
 
+import { GithubStars as GithubBanner } from "@/components/github-stars";
 /** Add border radius CSS variable to your global CSS:
 
 :root {
@@ -38,13 +39,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { StarIcon } from "lucide-react";
 import Link from "next/link";
 import type { SVGProps } from "react";
+import { Suspense } from "react";
 import { AddButton } from "./add-button";
 import { CopyBox } from "./copy-box";
-import { Suspense } from "react";
-import { StarIcon } from "lucide-react";
-import { GithubStars as GithubBanner } from "@/components/github-stars";
 
 export type Plugin = {
   title: string;
@@ -61,6 +61,28 @@ export type Plugin = {
   readme?: string;
 };
 
+function formatBytes(bytes: number, decimals = 2) {
+  if (!+bytes) return "0 Bytes";
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = [
+    "Bytes",
+    "KiB",
+    "MiB",
+    "GiB",
+    "TiB",
+    "PiB",
+    "EiB",
+    "ZiB",
+    "YiB",
+  ];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${Number.parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`;
+}
+
 export function PluginPage(
   props: Plugin & {
     versions: { version: string; date: Date; current?: boolean }[];
@@ -71,7 +93,7 @@ export function PluginPage(
 
   const id = `${props.title}@${props.version}`;
   return (
-    <div className="grid grid-cols-2 grid-flow-col grid-rows-[auto_auto] gap-8 py-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 grid-flow-col grid-rows-[auto_auto_auto_auto] md:grid-rows-[auto_auto] gap-8 py-8">
       <header className="flex flex-row justify-between items-end">
         <div className="space-y-2">
           <h2 className="text-2xl font-bold">{props.title}</h2>
@@ -98,6 +120,7 @@ export function PluginPage(
               <Link
                 key={`${props.title}@${v.version}`}
                 href={`/registry/${props.title}/${v.version}`}
+                // @ts-expect-error
                 data-current={v.current}
                 className="flex items-center justify-between hover:underline data-[current=true]:bg-green-100 data-[current=true]:dark:bg-green-900 data-[current=true]:border data-[current=true]:border-green-400 data-[current=true]:dark:border-green-700 -my-1 py-1 -mx-2 px-2 dark:border-gray-800"
               >
@@ -112,12 +135,14 @@ export function PluginPage(
         <div className="space-y-2">
           <h3 className="text-lg font-medium">Details</h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <FileIcon className="h-4 w-4" />
-              <span>
-                <span className="font-mono">{props.size}</span>
-              </span>
-            </div>
+            {props.size ? (
+              <div className="flex items-center gap-2">
+                <FileIcon className="h-4 w-4" />
+                <span>
+                  <span className="font-mono">{formatBytes(props.size)}</span>
+                </span>
+              </div>
+            ) : null}
             <div className="flex items-center gap-2">
               <PackageIcon className="h-4 w-4" />
               <span className="font-mono">{props.version}</span>

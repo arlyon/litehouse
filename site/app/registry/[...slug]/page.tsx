@@ -49,6 +49,7 @@ const getPluginData = async (
     capabilities: ["http-client"],
     homepage: "https://github.com/arlyon/litehouse",
     description: "A real cool plugin!",
+    size: 60345,
   };
 };
 
@@ -66,7 +67,6 @@ export async function generateStaticParams() {
       slug: [page.title, version].filter((x) => x !== undefined),
     })),
   );
-  console.log(results);
   return results;
 }
 

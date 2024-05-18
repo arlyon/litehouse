@@ -4,6 +4,7 @@
  * Documentation: https://v0.dev/docs#integrating-generated-code-into-your-nextjs-app
  */
 
+import { Button } from "@/components/ui/button";
 /** Add fonts into your Next.js project:
 
 import { Inter } from 'next/font/google'
@@ -18,38 +19,46 @@ To read more about using these font, please visit the Next.js documentation:
 - Pages Directory: https://nextjs.org/docs/pages/building-your-application/optimizing/fonts
 **/
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Suspense } from "react";
 
-export function GithubStars({ url }: { url: string }) {
-  const repoName = url.split("/").slice(-2).join("/");
+export function GithubStars({ url }: { url?: string }) {
+  const repoName = url?.split("/").slice(-2).join("/");
   return (
     <div className="border border-accent bg-secondary px-4 py-3 sm:px-6 flex items-center justify-between">
-      <Suspense fallback={<RepoData url={url} name={repoName} />}>
-        <CommitAndStars url={url} />
-      </Suspense>
+      {url && repoName ? (
+        <Suspense fallback={<RepoData url={url} name={repoName} />}>
+          <CommitAndStars url={url} />
+        </Suspense>
+      ) : (
+        <div className="text-muted-foreground text-sm h-[36px] flex items-center">
+          No source provided
+        </div>
+      )}
     </div>
   );
 }
 
-var units = {
+const units = {
   year: 24 * 60 * 60 * 1000 * 365,
   month: (24 * 60 * 60 * 1000 * 365) / 12,
   day: 24 * 60 * 60 * 1000,
   hour: 60 * 60 * 1000,
   minute: 60 * 1000,
   second: 1000,
-};
+} as const;
 
-var rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
-var getRelativeTime = (d1: Date, d2 = new Date()) => {
-  var elapsed = d1 - d2;
+const getRelativeTime = (d1: Date, d2 = new Date()) => {
+  // @ts-expect-errors(arlyon)
+  const elapsed = d1 - d2;
 
   // "Math.abs" accounts for both "past" & "future" scenarios
-  for (var u in units)
-    if (Math.abs(elapsed) > units[u] || u == "second")
-      return rtf.format(Math.round(elapsed / units[u]), u);
+  for (const u in units) {
+    const unit = u as keyof typeof units;
+    if (Math.abs(elapsed) > units[unit] || u === "second")
+      return rtf.format(Math.round(elapsed / units[unit]), unit);
+  }
 };
 
 function RepoData({
@@ -92,7 +101,7 @@ function RepoData({
             {stars}
           </div>
         ) : null}
-        <Link href={url + "/stargazers"} target="_blank">
+        <Link href={`${url}/stargazers`} target="_blank">
           <Button size="sm" variant="outline">
             Star
           </Button>
@@ -105,11 +114,11 @@ function RepoData({
 async function CommitAndStars({ url }: { url: string }) {
   const repoName = url.split("/").slice(-2).join("/");
   // fetch github stars from the api for the repo
-  let response = await fetch(`https://api.github.com/repos/${repoName}`, {
+  const response = await fetch(`https://api.github.com/repos/${repoName}`, {
     next: { revalidate: 86400 },
   }).then((res) => res.json());
-  let stars = response.stargazers_count;
-  let commits = await fetch(response.commits_url.replace("{/sha}", ""), {
+  const stars = response.stargazers_count;
+  const commits = await fetch(response.commits_url.replace("{/sha}", ""), {
     next: { revalidate: 86400 },
   }).then((res) => res.json());
 
@@ -124,7 +133,7 @@ async function CommitAndStars({ url }: { url: string }) {
   return <RepoData url={url} name={repoName} commit={commit} stars={stars} />;
 }
 
-function StarIcon(props) {
+function StarIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}
@@ -138,6 +147,7 @@ function StarIcon(props) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
+      <title>Star</title>
       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
     </svg>
   );
