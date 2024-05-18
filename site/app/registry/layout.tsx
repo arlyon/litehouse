@@ -21,7 +21,7 @@ const Layout = ({ children }: PropsWithChildren<any>) => {
               <SearchIcon className="h-5 w-5 text-primary" />
             </div>
             <input
-              className="block w-full rounded-full bg-muted/80 pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent dark:focus:ring-gray-50"
+              className="block w-full rounded-full border-accent bg-secondary border pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent dark:focus:ring-gray-50"
               placeholder="Search packages..."
               type="text"
             />

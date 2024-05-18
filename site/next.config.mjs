@@ -23,6 +23,10 @@ const withMDX = createMDX({
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  experimental: {
+    reactCompiler: true,
+    ppr: true,
+  },
 };
 
 export default withAxiom(withMDX(config));

@@ -42,40 +42,55 @@ import Link from "next/link";
 import type { SVGProps } from "react";
 import { AddButton } from "./add-button";
 import { CopyBox } from "./copy-box";
+import { Suspense } from "react";
+import { StarIcon } from "lucide-react";
+import { GithubStars as GithubBanner } from "@/components/github-stars";
 
-export function PluginPage(props: {
+export type Plugin = {
   title: string;
   version: string;
   downloads?: number;
-  versions?: { version: string; date: Date; current?: boolean }[];
-  capabilities: string[];
+  size?: number;
+  versions: { version: string; date: Date }[];
+  configSchema?: string;
+  author?: string;
   description?: string;
-}) {
+  capabilities?: string[];
+  homepage?: string;
+  source?: string;
+  readme?: string;
+};
+
+export function PluginPage(
+  props: Plugin & {
+    versions: { version: string; date: Date; current?: boolean }[];
+  },
+) {
   const format = new Intl.DateTimeFormat("en-US");
   const addCommand = "litehouse::bGl0ZWhvdXNl";
 
   const id = `${props.title}@${props.version}`;
   return (
-    <div key="1" className="grid grid-cols-2 gap-8 py-8">
-      <div className="space-y-6">
-        <div className="flex flex-row justify-between">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold">{props.title}</h2>
+    <div className="grid grid-cols-2 grid-flow-col grid-rows-[auto_auto] gap-8 py-8">
+      <header className="flex flex-row justify-between items-end">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold">{props.title}</h2>
+          {props.downloads ? (
             <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
               <DownloadIcon className="h-4 w-4" />
-              <span>
-                <span className="font-mono">{props.downloads}</span>
-                downloads{"\n"}
-              </span>
+              <span>{props.downloads} downloads</span>
             </div>
-          </div>
-          <AddButton
-            className="mt-1"
-            name={props.title}
-            version={props.version}
-            downloads={props.downloads}
-          />
+          ) : null}
         </div>
+        <AddButton
+          className="mt-1"
+          name={props.title}
+          version={props.version}
+          downloads={props.downloads}
+        />
+      </header>
+      <div className="space-y-6">
+        <GithubBanner url={props.source} />
         <div className="space-y-2">
           <h3 className="text-lg font-medium">Version History</h3>
           <div className="space-y-2 text-sm">
@@ -100,12 +115,12 @@ export function PluginPage(props: {
             <div className="flex items-center gap-2">
               <FileIcon className="h-4 w-4" />
               <span>
-                <span className="font-mono">2.3 MB</span>
+                <span className="font-mono">{props.size}</span>
               </span>
             </div>
             <div className="flex items-center gap-2">
               <PackageIcon className="h-4 w-4" />
-              <span className="font-mono">v2.1.0</span>
+              <span className="font-mono">{props.version}</span>
             </div>
           </div>
         </div>
@@ -117,23 +132,23 @@ export function PluginPage(props: {
         </div>
         <div className="space-y-2">
           <h3 className="text-lg font-medium">Required Capabilities</h3>
-          <li className="text-sm text-muted-foreground">
+          <ul className="text-sm text-muted-foreground">
             {props.capabilities?.map((c) => (
-              <div
+              <li
                 key={c}
                 className="rounded-full text-xs font-mono bg-primary-foreground border w-max px-3 py-1"
               >
                 {c}
-              </div>
+              </li>
             )) ?? "None"}
-          </li>
+          </ul>
         </div>
       </div>
+      <h3 className="text-lg font-medium flex items-end">
+        <span>Configuration</span>
+      </h3>
       <div className="space-y-6">
         <div className="space-y-2">
-          <h3 className="text-lg font-medium">
-            <span>Configuration</span>
-          </h3>
           <div className="border p-4 border-accent bg-secondary">
             <pre className="font-mono text-sm">
               {JSON.stringify(
