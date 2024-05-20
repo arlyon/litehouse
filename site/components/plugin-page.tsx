@@ -3,6 +3,7 @@ import { SchemaEditor } from "./shema-editor";
 import { SVGProps } from "react";
 import Link from "next/link";
 import { AddButton } from "./add-button";
+import { Button } from "./ui/button";
 
 export type Plugin = {
   title: string;
@@ -125,8 +126,9 @@ export function PluginPage(
           </ul>
         </div>
       </div>
-      <h3 className="text-lg font-medium flex items-end">
+      <h3 className="text-lg font-medium flex items-end justify-between">
         <span>Configuration</span>
+        <Button variant="ghost">Share</Button>
       </h3>
       <SchemaEditor id={id} schema={props.configSchema} />
     </div>

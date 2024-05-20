@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 base64 = "0.21.7"
 litehouse-plugin = { version = "0.1.0", path = "../plugin" }
-rustls = "0.22.2"
+rustls = "0.23.7"
 schemars = "0.8.16"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"

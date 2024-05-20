@@ -7,18 +7,21 @@ import {
 } from "react";
 
 export function useCopyButton(
-  onCopy: () => void,
-): [checked: boolean, onClick: MouseEventHandler] {
-  const [checked, setChecked] = useState(false);
+  onCopy: () => boolean,
+): [checked: boolean, error: boolean, onClick: MouseEventHandler] {
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState(false);
   const timeoutRef = useRef<number | null>(null);
 
   const onClick: MouseEventHandler = useCallback(() => {
     if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
     timeoutRef.current = window.setTimeout(() => {
-      setChecked(false);
+      setSuccess(false);
+      setError(false);
     }, 1500);
-    onCopy();
-    setChecked(true);
+    const result = onCopy();
+    if (!result) setError(true);
+    else setSuccess(true);
   }, [onCopy]);
 
   // Avoid updates after being unmounted
@@ -28,5 +31,5 @@ export function useCopyButton(
     };
   }, []);
 
-  return [checked, onClick];
+  return [success, error, onClick];
 }

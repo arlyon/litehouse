@@ -12,7 +12,8 @@ pub enum ManifestImport {
 #[derive(Debug, Clone)]
 pub struct Manifest {
     pub import: Import,
-    pub config: HashMap<String, serde_json::value::Map<String, serde_json::Value>>,
+    /// A map of instance names to their configuration
+    pub config: HashMap<String, Option<serde_json::Value>>,
 }
 
 #[derive(thiserror::Error, Debug)]

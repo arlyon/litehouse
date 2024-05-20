@@ -1,4 +1,5 @@
 import { createPreset } from "fumadocs-ui/tailwind-plugin";
+import animations from "@midudev/tailwind-animations";
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -10,4 +11,5 @@ export default {
     "./node_modules/fumadocs-ui/dist/**/*.js",
   ],
   presets: [createPreset()],
+  plugins: [animations],
 };

@@ -27,8 +27,8 @@ use jsonc_parser::CollectOptions;
 use jsonschema::error::ValidationErrorKind;
 use jsonschema::paths::{JSONPointer, PathChunk};
 use litehouse_config::{
-    ConfigError, Import, ImportAddResult, LitehouseConfig, ManifestImport, ParseError,
-    PluginInstance, SandboxStrategy,
+    ConfigError, Import, ImportAddResult, LitehouseConfig, Manifest, ManifestAddResult,
+    ManifestImport, ParseError, PluginInstance, SandboxStrategy,
 };
 use litehouse_plugin::serde_json::{self, Value};
 use miette::{miette, Diagnostic, IntoDiagnostic, NamedSource, Result, SourceSpan};
@@ -99,7 +99,7 @@ enum Subcommand {
     /// Add a new plugin to the imports field in the settings file.
     Add {
         /// The package to add.
-        package: litehouse_config::ManifestImport,
+        package: Vec<litehouse_config::ManifestImport>,
         /// The path to look for wasm files in.
         #[clap(default_value = "./wasm", short, long)]
         wasm_path: PathBuf,
@@ -222,33 +222,78 @@ async fn main_inner() -> Result<()> {
 
             Ok(())
         }
-        Subcommand::Add { package, wasm_path } => {
+        Subcommand::Add {
+            package: packages,
+            wasm_path,
+        } => {
             // search the package, and add it to the settings' imports
             let mut config = LitehouseConfig::load()?;
-            match package {
-                ManifestImport::Import(package) => {
-                    println!("adding package {}", package);
-                    match config.add_import(package) {
-                        ImportAddResult::Added(_) => {
-                            println!("package added");
-                        }
-                        ImportAddResult::Ignored(i) => {
-                            println!("package already added ({i})");
-                        }
-                        ImportAddResult::Replaced(r) => {
-                            println!("replaced {r}");
+            for package in packages {
+                match package {
+                    ManifestImport::Import(package) => {
+                        println!("adding package {}", package);
+                        match config.add_import(package) {
+                            ImportAddResult::Added(_) => {
+                                println!("package added");
+                            }
+                            ImportAddResult::Ignored(i) => {
+                                println!("package already added ({i})");
+                            }
+                            ImportAddResult::Replaced(r) => {
+                                println!("replaced {r}");
+                            }
                         }
                     }
-                }
-                ManifestImport::Manifest(manifest) => {
-                    println!("adding manifest");
-                    config.add_manifest(manifest);
+                    ManifestImport::Manifest(manifest) => {
+                        println!("adding manifest");
+                        let import = manifest.import.clone();
+                        let to_replace = config
+                            .add_manifest(manifest, false)
+                            .filter_map(|result| match result {
+                                ManifestAddResult::Added(k) => {
+                                    println!("- {k}: manifest added");
+                                    None
+                                }
+                                ManifestAddResult::Ignored(k) => {
+                                    println!("- {k}: identical manifest already exists");
+                                    None
+                                }
+                                ManifestAddResult::WouldReplace(k, v) => {
+                                    let ans = inquire::Confirm::new(&format!(
+                                        " `{k}` already exists, replace it?"
+                                    ))
+                                    .with_default(false)
+                                    .prompt();
+                                    if let Ok(true) = ans {
+                                        Some((k, v))
+                                    } else {
+                                        None
+                                    }
+                                }
+                                ManifestAddResult::Replaced(k, _old) => {
+                                    println!("- {k}: manifest replaced");
+                                    None
+                                }
+                            })
+                            .fold(
+                                Manifest {
+                                    import,
+                                    config: Default::default(),
+                                },
+                                |mut acc, (k, v)| {
+                                    acc.config.insert(k, v);
+                                    acc
+                                },
+                            );
+
+                        config.add_manifest(to_replace, true).for_each(drop);
+                    }
                 }
             }
 
             let cache_dir = litehouse_config::directories().map(|d| d.cache_dir().to_owned());
 
-            println!("downloading ");
+            println!("downloading");
 
             let pass = fetch(
                 &config,
@@ -302,7 +347,7 @@ async fn main_inner() -> Result<()> {
 
             let jobs = hosts
                 .into_iter()
-                .map(|(a, instance, host, mut store, _)| async move {
+                .map(|(a, _, host, mut store, _)| async move {
                     let store = store.enter().await;
                     let metadata = host
                         .litehouse_plugin_plugin()
@@ -453,15 +498,18 @@ async fn main_inner() -> Result<()> {
             package,
             access_key,
             secret_key,
-        } => Ok(publish(
-            package,
-            &registry
-                .with_upload(access_key, secret_key)
-                .build()
-                .await
-                .wrap_err("can't download")?,
-        )
-        .await),
+        } => {
+            publish(
+                package,
+                &registry
+                    .with_upload(access_key, secret_key)
+                    .build()
+                    .await
+                    .wrap_err("can't download")?,
+            )
+            .await;
+            Ok(())
+        }
         Subcommand::Fetch { wasm_path } => {
             let cache_dir = litehouse_config::directories().map(|d| d.cache_dir().to_owned());
             let config = LitehouseConfig::load()?;
@@ -482,7 +530,10 @@ async fn main_inner() -> Result<()> {
             wasm_path,
             package,
             debug,
-        } => Ok(build(&package, &wasm_path, debug).await),
+        } => {
+            build(&package, &wasm_path, debug).await;
+            Ok(())
+        }
         Subcommand::Search { query } => {
             let prefix = query.map(|q| Import {
                 plugin: q,
@@ -497,7 +548,10 @@ async fn main_inner() -> Result<()> {
             }
             Ok(())
         }
-        Subcommand::Lock { wasm_path } => Ok(lock(&wasm_path).await),
+        Subcommand::Lock { wasm_path } => {
+            lock(&wasm_path).await;
+            Ok(())
+        }
         Subcommand::Feedback { message: feedback } => {
             // create a message and send it using reqwest
 
@@ -700,7 +754,7 @@ async fn start(wasm_path: &Path, cache: bool) -> Result<()> {
                 let config = serde_json::to_string(&instance.config).expect("can't fail");
 
                 let (mut plugin, subs) =
-                    instantiate_plugin(&mut store, &runner, &nickname, &config).await?;
+                    instantiate_plugin(&mut store, &runner, nickname, &config).await?;
 
                 let mut listen_types = vec![];
 
@@ -774,12 +828,12 @@ async fn start(wasm_path: &Path, cache: bool) -> Result<()> {
                             // if we have trapped we should restart the plugin
                             if let Some(trap) = e.downcast_ref::<Trap>() {
                                 tracing::error!("plugin has crashed, restarting {}", trap);
-                                store = store_strategy.reset(&nickname).await;
+                                store = store_strategy.reset(nickname).await;
                                 host = instantiate_plugin_host(&mut store, &linker, &component)
                                     .await?;
                                 runner = host.litehouse_plugin_plugin().runner();
                                 (plugin, _) =
-                                    instantiate_plugin(&mut store, &runner, &nickname, &config)
+                                    instantiate_plugin(&mut store, &runner, nickname, &config)
                                         .await
                                         .expect("can't fail");
                                 tracing::debug!("plugin {} restarted", nickname);
@@ -814,7 +868,7 @@ async fn instantiate_plugin<T: Send>(
 ) -> Result<(ResourceAny, Vec<Subscription>)> {
     let mut store = store.enter().await;
     let instance = runner
-        .call_constructor(&mut store, nickname, Some(&config))
+        .call_constructor(&mut store, nickname, Some(config))
         .await
         .map_err(|e| miette!("failed to construct plugin: {:?}", e))?;
     let subs = runner
@@ -846,7 +900,7 @@ async fn set_up_engine(
         .async_support(true)
         .async_stack_size(1 << 20); // 1MiB
 
-    let cache = if cache == true {
+    let cache = if cache {
         let cache = Arc::new(ModuleCache::load().await?.unwrap_or_default());
         wasm_config
             .enable_incremental_compilation(cache.clone())

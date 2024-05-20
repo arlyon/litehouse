@@ -1,23 +1,12 @@
 "use client";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { StarIcon } from "lucide-react";
-import Link from "next/link";
-import type { SVGProps } from "react";
-import { Suspense, useState } from "react";
-import { AddButton } from "./add-button";
+import { useState } from "react";
 import { CopyBox } from "./copy-box";
 import z from "zod";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "./ui/input-otp";
 import { useForm } from "react-hook-form";
 import Ajv from "ajv";
+import { Input } from "./ui/input";
+import { toast } from "sonner";
 
 const configSchema = (name: string) =>
   z.object({
@@ -86,8 +75,6 @@ export const SchemaEditor = ({ id, schema: schemaString }) => {
       instance: data.config,
     });
 
-    console.log(conf, window.btoa(conf));
-
     setAddCommand(window.btoa(conf));
   });
 
@@ -99,7 +86,7 @@ export const SchemaEditor = ({ id, schema: schemaString }) => {
         </div>
       </div>
       <form
-        className="border border-accent bg-secondary p-4"
+        className="border border-accent bg-secondary p-4 flex flex-col gap-4"
         onSubmit={form.handleSubmit((data) => {
           console.log(data);
         })}
@@ -140,6 +127,10 @@ export const SchemaEditor = ({ id, schema: schemaString }) => {
             });
             const valid = ajv.validate(schemaData, form.getValues());
             if (!valid) {
+              toast.error("Invalid config", {
+                description: `Make sure you match the schema correctly: ${ajv.errorsText(ajv.errors)}`,
+                important: true,
+              });
               console.log("ERROR", ajv.errors);
               return false;
             } else {
@@ -171,7 +162,7 @@ const matchInput = (key: string, value: object, form: any) => {
     ] as const,
     [
       (value) => value.type === "number",
-      <input
+      <Input
         className="input bg-primary-foreground border rounded-lg"
         type="number"
         {...form.register(`config.${key}`, {

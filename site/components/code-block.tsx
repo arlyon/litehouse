@@ -5,7 +5,13 @@ import {
   ScrollViewport,
 } from "@/components/scroll-area";
 import { useCopyButton } from "@/hooks/use-copy-button";
-import { CheckIcon, CopyIcon, DownloadIcon } from "lucide-react";
+import {
+  CheckIcon,
+  CopyIcon,
+  CrossIcon,
+  DownloadIcon,
+  XIcon,
+} from "lucide-react";
 import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
 import { forwardRef, useCallback, useRef } from "react";
 import { twMerge as cn } from "tailwind-merge";
@@ -139,7 +145,10 @@ export function SaveButton({
   className,
   onSave,
   ...props
-}: { className?: string; onSave: () => void }) {
+}: {
+  className?: string;
+  onSave: () => void;
+}) {
   const [checked, onClick] = useCopyButton(onSave);
 
   return (
@@ -175,9 +184,9 @@ export function CopyButton({
   onCopy,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
-  onCopy: () => void;
+  onCopy: () => boolean;
 }): React.ReactElement {
-  const [checked, onClick] = useCopyButton(onCopy);
+  const [success, error, onClick] = useCopyButton(onCopy);
 
   return (
     <button
@@ -187,7 +196,7 @@ export function CopyButton({
           variant: "ghost",
           className: "transition-all group-hover:opacity-100",
         }),
-        !checked && "opacity-0",
+        !success && "opacity-0",
         className,
       )}
       aria-label="Copy Text"
@@ -195,12 +204,19 @@ export function CopyButton({
       {...props}
     >
       <CheckIcon
-        className={cn("size-3.5 transition-transform", !checked && "scale-0")}
+        className={cn("size-3.5 transition-transform", !success && "scale-0")}
+      />
+      <XIcon
+        className={cn(
+          "absolute size-3.5 transition-transform text-red-500",
+          !error && "scale-0",
+        )}
       />
       <CopyIcon
         className={cn(
           "absolute size-3.5 transition-transform",
-          checked && "scale-0",
+          success && "scale-0",
+          error && "scale-0",
         )}
       />
     </button>

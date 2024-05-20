@@ -1,3 +1,4 @@
+import { Toaster } from "@/components/ui/sonner";
 import "./global.css";
 import { RootProvider } from "fumadocs-ui/provider";
 import { AxiomWebVitals } from "next-axiom";
@@ -13,6 +14,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     <html lang="en" className={inter.className}>
       <AxiomWebVitals />
       <body>
+        <Toaster />
         <RootProvider>{children}</RootProvider>
       </body>
     </html>

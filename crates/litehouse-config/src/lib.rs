@@ -12,7 +12,11 @@ mod import;
 mod manifest;
 mod parallelism;
 
-use std::{cmp::Ordering, collections::HashMap, num::NonZeroU8};
+use std::{
+    cmp::Ordering,
+    collections::{hash_map::Entry, HashMap},
+    num::NonZeroU8,
+};
 
 use miette::{NamedSource, SourceOffset};
 use schemars::JsonSchema;
@@ -118,7 +122,7 @@ impl LitehouseConfig {
     ///   kept
     /// - if the target is equally specific as the existing plugin, and they are not equal, the
     ///   existing definition is kept, and the new one is ignored
-    pub fn add_import<'a>(&'a mut self, import: Import) -> ImportAddResult<'a> {
+    pub fn add_import(&mut self, import: Import) -> ImportAddResult {
         // this is awkward but the borrow checker does not understand
         // returning in the match statement
         let mut ret_replace = None;
@@ -163,18 +167,47 @@ impl LitehouseConfig {
         }
     }
 
-    pub fn add_manifest(&mut self, manifest: Manifest) {
-        manifest.config.into_iter().for_each(|(k, v)| {
-            self.plugins.insert(
-                k,
-                PluginInstance {
-                    plugin: manifest.import.clone(),
-                    config: Some(serde_json::to_value(v).unwrap()),
-                },
-            );
-        });
-        self.add_import(manifest.import);
+    pub fn add_manifest(
+        &mut self,
+        manifest: Manifest,
+        replace: bool,
+    ) -> impl Iterator<Item = ManifestAddResult> + '_ {
+        self.add_import(manifest.import.clone());
+        manifest
+            .config
+            .into_iter()
+            .map(move |(k, config)| match self.plugins.entry(k.clone()) {
+                Entry::Occupied(mut e) => {
+                    // check if they are equal, and ignore
+                    let val = e.get_mut();
+                    if val.plugin == manifest.import && val.config == config {
+                        ManifestAddResult::Ignored(k)
+                    } else if replace {
+                        let v_old = e.insert(PluginInstance {
+                            plugin: manifest.import.clone(),
+                            config,
+                        });
+                        ManifestAddResult::Replaced(k, v_old.config)
+                    } else {
+                        ManifestAddResult::WouldReplace(k, config)
+                    }
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(PluginInstance {
+                        plugin: manifest.import.clone(),
+                        config,
+                    });
+                    ManifestAddResult::Added(k)
+                }
+            })
     }
+}
+
+pub enum ManifestAddResult {
+    WouldReplace(String, Option<serde_json::Value>),
+    Replaced(String, Option<serde_json::Value>),
+    Added(String),
+    Ignored(String),
 }
 
 #[derive(Debug, PartialEq, Eq)]
