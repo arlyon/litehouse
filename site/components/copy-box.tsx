@@ -47,7 +47,7 @@ export function CopyBox({
       </div>
       <CopyButton
         onCopy={() => {
-          let accept = beforeCopy?.();
+          const accept = beforeCopy?.();
           if (accept === false) return false;
           navigator.clipboard.writeText(command);
           return true;

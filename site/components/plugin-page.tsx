@@ -1,8 +1,8 @@
 import { GithubStars as GithubBanner } from "@/components/github-stars";
-import { SchemaEditor } from "./shema-editor";
-import { SVGProps } from "react";
 import Link from "next/link";
+import type { SVGProps } from "react";
 import { AddButton } from "./add-button";
+import { SchemaEditor } from "./shema-editor";
 import { Button } from "./ui/button";
 
 export type Plugin = {

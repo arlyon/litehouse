@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { CopyBox } from "./copy-box";
-import z from "zod";
-import { useForm } from "react-hook-form";
 import Ajv from "ajv";
-import { Input } from "./ui/input";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import z from "zod";
+import { CopyBox } from "./copy-box";
+import { Input } from "./ui/input";
 
 const configSchema = (name: string) =>
   z.object({
@@ -128,14 +128,15 @@ export const SchemaEditor = ({ id, schema: schemaString }) => {
             const valid = ajv.validate(schemaData, form.getValues());
             if (!valid) {
               toast.error("Invalid config", {
-                description: `Make sure you match the schema correctly: ${ajv.errorsText(ajv.errors)}`,
+                description: `Make sure you match the schema correctly: ${ajv.errorsText(
+                  ajv.errors,
+                )}`,
                 important: true,
               });
               console.log("ERROR", ajv.errors);
               return false;
-            } else {
-              return true;
             }
+            return true;
           }}
           className="text-sm"
           command={`litehouse add ${id}${addCommand ? `#${addCommand}` : ""}`}

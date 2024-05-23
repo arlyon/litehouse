@@ -49,7 +49,9 @@ export function RegistryPage(props: {
         {props.pluginCount} out of {props.pluginCount} results
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {props.packages?.map((p) => <Package key={p.title} {...p} />)}
+        {props.packages?.map((p) => (
+          <Package key={p.title} {...p} />
+        ))}
       </div>
     </div>
   );

@@ -1,9 +1,6 @@
 import { type Plugin, PluginPage } from "@/components/plugin-page";
 import { getPluginData, getPlugins } from "@/lib/registry";
 import type { Metadata } from "next";
-import { NextPage } from "next";
-import { notFound, useRouter } from "next/navigation";
-import { PropsWithChildren } from "react";
 
 const Page = async ({ params }: { params: { slug: string[] } }) => {
   const plugin = params.slug[0];

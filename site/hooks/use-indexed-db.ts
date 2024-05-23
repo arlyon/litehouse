@@ -62,7 +62,7 @@ export const useIndexedDb = <T>(
         console.error(e);
       };
     },
-    [db, generation, increment, storeName],
+    [db, increment, storeName],
   );
 
   const subscribe = useCallback(
