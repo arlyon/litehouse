@@ -3,11 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "next build",
-    "dev": "next dev",
+    "build": "TURBOPACK=1 TURBOPACK_BUILD=1 next build",
+    "dev": "next dev --turbo",
     "start": "next start",
     "lint": "biome check .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "postinstall": "bunx @miblanchard/patch-package@8.0.12"
   },
   "dependencies": {
     "@midudev/tailwind-animations": "^0.0.7",
@@ -26,11 +27,11 @@
     "fumadocs-ui": "^11.0.5",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.378.0",
-    "next": "^14.3.0-canary.64",
+    "next": "15.0.0-rc.0",
     "next-axiom": "^1.2.0",
     "next-themes": "^0.3.0",
-    "react": "^19.0.0-rc.0",
-    "react-dom": "^19.0.0-rc.0",
+    "react": "19.0.0-rc-f994737d14-20240522",
+    "react-dom": "19.0.0-rc-f994737d14-20240522",
     "react-hook-form": "^7.51.4",
     "remark-code-import": "^1.2.0",
     "sonner": "^1.4.41",
@@ -43,6 +44,7 @@
     "@babel/plugin-syntax-jsx": "^7.24.1",
     "@biomejs/biome": "^1.7.3",
     "@types/mdx": "^2.0.13",
+    "@types/node": "20.12.12",
     "autoprefixer": "^10.4.19",
     "babel-plugin-react-compiler": "0.0.0-experimental-c23de8d-20240515",
     "postcss": "^8.4.38",

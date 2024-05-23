@@ -1,0 +1,148 @@
+diff --git a/node_modules/fumadocs-mdx/dist/config.mjs b/node_modules/fumadocs-mdx/dist/config.mjs
+index 2679769..faa0105 100644
+--- a/node_modules/fumadocs-mdx/dist/config.mjs
++++ b/node_modules/fumadocs-mdx/dist/config.mjs
+@@ -24,13 +24,20 @@ var MapWebpackPlugin = class _MapWebpackPlugin {
+   apply(compiler) {
+     const logger = compiler.getInfrastructureLogger(_MapWebpackPlugin.name);
+     compiler.hooks.beforeCompile.tap(_MapWebpackPlugin.name, () => {
+-      if (firstLoad && !fs.existsSync(this.options.rootMapFile)) {
+-        fs.writeFileSync(this.options.rootMapFile, content);
++      if (this.create()) {
+         logger.info("Created map.ts file for you automatically");
+-        firstLoad = false;
+       }
+     });
+   }
++  
++  create() {
++    if (firstLoad && !fs.existsSync(this.options.rootMapFile)) {
++      fs.writeFileSync(this.options.rootMapFile, content);
++      firstLoad = false;
++      return true;
++    }
++    return false;
++  }
+ };
+ 
+ // src/mdx-plugins/utils.ts
+@@ -142,8 +149,9 @@ var SearchIndexPlugin = class _SearchIndexPlugin {
+ };
+ 
+ // src/config.ts
+-function pluginOption(def, options = []) {
+-  const list = def(Array.isArray(options) ? options : []).filter(
++async function pluginOption(def, options = []) {
++  const awaitedOptions = await Promise.all(options);
++  const list = def(awaitedOptions).filter(
+     Boolean
+   );
+   if (typeof options === "function") {
+@@ -151,7 +159,7 @@ function pluginOption(def, options = []) {
+   }
+   return list;
+ }
+-function getMDXLoaderOptions({
++async function getMDXLoaderOptions({
+   valueToExport = [],
+   rehypeCodeOptions,
+   remarkImageOptions,
+@@ -165,7 +173,7 @@ function getMDXLoaderOptions({
+     "lastModified",
+     ...valueToExport
+   ];
+-  const remarkPlugins = pluginOption(
++  const remarkPlugins = await pluginOption(
+     (v) => [
+       remarkGfm,
+       [remarkHeading, remarkHeadingOptions],
+@@ -174,9 +182,21 @@ function getMDXLoaderOptions({
+       remarkStructure,
+       [remarkMdxExport, { values: mdxExports }]
+     ],
+-    mdxOptions.remarkPlugins
++    mdxOptions.remarkPlugins?.map(async (v) => {
++      // support default import with config
++      if (Array.isArray(v)) {
++        const plugin = (await import(v[0])).default;
++        if (v[1] !== undefined) {
++          return () => plugin(v[1])
++        } else {
++          return plugin
++        }
++      } else {
++        return v;
++      }
++    }),
+   );
+-  const rehypePlugins = pluginOption(
++  const rehypePlugins = await pluginOption(
+     (v) => [
+       rehypeCodeOptions !== false && [rehypeCode, rehypeCodeOptions],
+       ...v
+@@ -200,7 +220,6 @@ var createMDX = ({
+ } = {}) => (nextConfig = {}) => {
+   const rootMapFile = path2.resolve(cwd, rootMapPath);
+   const rootContentDir = path2.resolve(cwd, rootContentPath);
+-  const mdxLoaderOptions = getMDXLoaderOptions(mdxOptions);
+   return {
+     ...nextConfig,
+     ...{
+@@ -221,7 +240,7 @@ var createMDX = ({
+               options.defaultLoaders.babel,
+               {
+                 loader: "fumadocs-mdx/loader-mdx",
+-                options: mdxLoaderOptions
++                options: mdxOptions
+               }
+             ]
+           },
+@@ -257,5 +276,7 @@ var createMDX = ({
+   };
+ };
+ export {
+-  createMDX as default
++  createMDX as default,
++  getMDXLoaderOptions,
++  MapWebpackPlugin,
+ };
+diff --git a/node_modules/fumadocs-mdx/dist/loader-mdx.mjs b/node_modules/fumadocs-mdx/dist/loader-mdx.mjs
+index fa78fd8..8f9a3fd 100644
+--- a/node_modules/fumadocs-mdx/dist/loader-mdx.mjs
++++ b/node_modules/fumadocs-mdx/dist/loader-mdx.mjs
+@@ -2,6 +2,7 @@
+ import path2 from "node:path";
+ import { createProcessor } from "@mdx-js/mdx";
+ import grayMatter from "gray-matter";
++import { getMDXLoaderOptions } from "./config.mjs"
+ 
+ // src/utils/git-timestamp.ts
+ import path from "node:path";
+@@ -39,7 +40,8 @@ async function loader(source, callback) {
+   this.cacheable(true);
+   const context = this.context;
+   const filePath = this.resourcePath;
+-  const { lastModifiedTime, ...options } = this.getOptions();
++  const { lastModifiedTime, ...userOptions } = this.getOptions();
++  const options = await getMDXLoaderOptions(userOptions);
+   const { content, data: frontmatter } = grayMatter(source);
+   const detectedFormat = filePath.endsWith(".mdx") ? "mdx" : "md";
+   const format = options.format ?? detectedFormat;
+@@ -55,6 +57,7 @@ async function loader(source, callback) {
+   }
+   if (lastModifiedTime === "git")
+     timestamp = (await getGitTimestamp(filePath))?.getTime();
++  
+   processor.process({
+     value: content,
+     path: filePath,
+@@ -64,7 +67,8 @@ async function loader(source, callback) {
+     }
+   }).then(
+     (file) => {
+-      const info = this._module?.buildInfo;
++      const module = this._module;
++      const info = module.buildInfo ?? (module.buildInfo = {});
+       info.__fumadocs = {
+         path: filePath,
+         data: file.data

@@ -1,31 +1,61 @@
 import fs from "node:fs";
-import createMDX from "fumadocs-mdx/config";
+import path from "node:path";
+import process from "node:process";
 import { withAxiom } from "next-axiom";
-import codeImport from "remark-code-import";
 import { bundledLanguages } from "shiki";
+import { MapWebpackPlugin } from "fumadocs-mdx/config";
+
+const cwd = process.cwd();
+const rootMapPath = ".map.ts";
 
 const wit = JSON.parse(fs.readFileSync("wit.tmLanguage.json", "utf8"));
 
-const withMDX = createMDX({
-  mdxOptions: {
-    remarkPlugins: [
-      () =>
-        codeImport({
-          allowImportingFromOutside: true,
-        }),
-    ],
-    rehypeCodeOptions: {
-      langs: [...Object.keys(bundledLanguages), wit],
-    },
-  },
-});
+const rootMapFile = path.resolve(cwd, rootMapPath);
+
+// create the map file
+new MapWebpackPlugin({ rootMapFile }).create();
 
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  pageExtensions: ["ts", "tsx", "mdx"],
   experimental: {
+    useLightningcss: true,
     reactCompiler: true,
+    // typedRoutes: true,
+    // serverMinification: true,
+    // serverSourceMaps: true,
     ppr: true,
+    mdxRs: true,
+    turbo: {
+      rules: {
+        "*.{mx,mdx}": [
+          {
+            loader: "fumadocs-mdx/loader-mdx",
+            options: {
+              rootContentDir: "./content",
+              providerImportSource: "@/mdx-components",
+              rootMapFile,
+              rehypeCodeOptions: {
+                langs: [...Object.keys(bundledLanguages), wit],
+              },
+              remarkPlugins: [
+                ["remark-code-import", { allowImportingFromOutside: true }],
+              ],
+            },
+          },
+        ],
+        ".map.ts": [
+          {
+            loader: "fumadocs-mdx/loader",
+            options: {
+              rootContentDir: "./content",
+              rootMapFile,
+            },
+          },
+        ],
+      },
+    },
   },
   typescript: {
     // !! WARN !!
@@ -36,4 +66,4 @@ const config = {
   },
 };
 
-export default withAxiom(withMDX(config));
+export default withAxiom(config);
