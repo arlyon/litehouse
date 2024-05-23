@@ -18,7 +18,7 @@ new MapWebpackPlugin({ rootMapFile }).create();
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
-  pageExtensions: ["ts", "tsx", "mdx"],
+  pageExtensions: ["ts", "tsx"],
   experimental: {
     useLightningcss: true,
     reactCompiler: true,
