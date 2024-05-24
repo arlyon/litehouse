@@ -4,6 +4,8 @@ import process from "node:process";
 import { withAxiom } from "next-axiom";
 import { bundledLanguages } from "shiki";
 import { MapWebpackPlugin } from "fumadocs-mdx/config";
+import createMDX from "fumadocs-mdx/config";
+import codeImport from "remark-code-import";
 
 const cwd = process.cwd();
 const rootMapPath = ".map.ts";
@@ -11,6 +13,20 @@ const rootMapPath = ".map.ts";
 const wit = JSON.parse(fs.readFileSync("wit.tmLanguage.json", "utf8"));
 
 const rootMapFile = path.resolve(cwd, rootMapPath);
+
+const withMDX = createMDX({
+  mdxOptions: {
+    remarkPlugins: [
+      () =>
+        codeImport({
+          allowImportingFromOutside: true,
+        }),
+    ],
+    rehypeCodeOptions: {
+      langs: [...Object.keys(bundledLanguages), wit],
+    },
+  },
+});
 
 // create the map file
 new MapWebpackPlugin({ rootMapFile }).create();
@@ -20,7 +36,7 @@ const config = {
   reactStrictMode: true,
   pageExtensions: ["ts", "tsx"],
   experimental: {
-    useLightningcss: true,
+    // useLightningcss: true,
     reactCompiler: true,
     // typedRoutes: true,
     // serverMinification: true,
@@ -66,4 +82,4 @@ const config = {
   },
 };
 
-export default withAxiom(config);
+export default withAxiom(withMDX(config));

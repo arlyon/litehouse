@@ -118,11 +118,16 @@ async function CommitAndStars({ url }: { url: string }) {
     next: { revalidate: 86400 },
   }).then((res) => res.json());
   const stars = response.stargazers_count;
-  const commits = await fetch(response.commits_url.replace("{/sha}", ""), {
-    next: { revalidate: 86400 },
-  }).then((res) => res.json());
 
-  const commit = commits[0]
+  let commits = undefined;
+  if (response.commits_url) {
+    const response2 = await fetch(response.commits_url?.replace("{/sha}", ""), {
+      next: { revalidate: 86400 },
+    });
+    commits = await response2.json();
+  }
+
+  const commit = commits?.[0]
     ? {
         sha: commits[0].sha,
         date: new Date(commits[0].commit.author.date),

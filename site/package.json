@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "TURBOPACK=1 TURBOPACK_BUILD=1 next build",
+    "build": "next build",
     "dev": "next dev --turbo",
     "start": "next start",
     "lint": "biome check .",
@@ -50,5 +50,6 @@
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
     "typescript": "^5.4.5"
-  }
+  },
+  "trustedDependencies": ["@biomejs/biome"]
 }
