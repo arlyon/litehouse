@@ -1,13 +1,12 @@
 use litehouse_config::Import;
 use miette::{Context, IntoDiagnostic, Result};
+use opendal_fs_cache::CacheLayer;
 use std::{
     borrow::Cow,
     path::{Path, PathBuf},
 };
 
 use opendal::{services::S3, Builder, Entry, Operator};
-
-use crate::cache_layer;
 
 pub struct Registry<U, D> {
     op: Operator,
@@ -119,7 +118,7 @@ impl<U: GetCreds, D: GetCache> RegistryBuilder<U, D> {
             let mut fs_cache = opendal::services::Fs::default();
             fs_cache.root(local_cache.to_str().unwrap());
             let fs_cache = fs_cache.build().unwrap();
-            op.layer(cache_layer::CacheLayer::new(fs_cache)).finish()
+            op.layer(CacheLayer::new(fs_cache)).finish()
         } else {
             op.finish()
         };

@@ -1,0 +1,12 @@
+[package]
+name = "opendal-fs-cache"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+async-trait = "0.1.80"
+bytes = "1.6.0"
+opendal = { version = "0.45.1", default-features = false }

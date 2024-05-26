@@ -58,7 +58,6 @@ use wasmtime::{
 };
 
 mod cache;
-mod cache_layer;
 mod registry;
 mod runtime;
 mod store;
