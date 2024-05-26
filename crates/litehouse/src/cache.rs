@@ -1,3 +1,5 @@
+//! Module cache for storing compiled WebAssembly modules.
+
 use miette::{IntoDiagnostic, Result};
 use std::{
     borrow::Cow,

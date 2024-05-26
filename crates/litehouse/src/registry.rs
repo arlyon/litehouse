@@ -1,3 +1,5 @@
+//! Plugin registry
+
 use litehouse_config::Import;
 use miette::{Context, IntoDiagnostic, Result};
 use opendal_fs_cache::CacheLayer;

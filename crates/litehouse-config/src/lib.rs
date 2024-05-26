@@ -32,7 +32,7 @@ pub struct LitehouseConfig {
     #[serde(rename = "$schema", default = "default_schema")]
     pub schema: String,
     /// The list of plugins to use in this litehouse
-    pub plugins: HashMap<String, PluginInstance>,
+    pub plugins: HashMap<String, PluginConfig>,
     /// Additional registries to look for plugins in
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub registries: Vec<Registry>,
@@ -183,7 +183,7 @@ impl LitehouseConfig {
                     if val.plugin == manifest.import && val.config == config {
                         ManifestAddResult::Ignored(k)
                     } else if replace {
-                        let v_old = e.insert(PluginInstance {
+                        let v_old = e.insert(PluginConfig {
                             plugin: manifest.import.clone(),
                             config,
                         });
@@ -193,7 +193,7 @@ impl LitehouseConfig {
                     }
                 }
                 Entry::Vacant(entry) => {
-                    entry.insert(PluginInstance {
+                    entry.insert(PluginConfig {
                         plugin: manifest.import.clone(),
                         config,
                     });
@@ -258,8 +258,9 @@ pub struct Registry {
     pub url: String,
 }
 
+/// A combination of a plugin import and its configuration.
 #[derive(JsonSchema, Serialize, Deserialize, Debug)]
-pub struct PluginInstance {
+pub struct PluginConfig {
     #[schemars(with = "String")]
     pub plugin: Import,
     pub config: Option<serde_json::Value>,
