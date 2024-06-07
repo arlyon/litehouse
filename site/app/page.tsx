@@ -78,7 +78,7 @@ export default function HomePage() {
           </svg>
           <Link
             href="/registry"
-            className="border rounded-full px-4 py-2 text-xs dark:bg-green-950 dark:border-green-800 dark:text-green-500 flex flex-row gap-2 items-center"
+            className="border hover:-translate-y-1 transition-transform rounded-full px-4 py-2 text-xs dark:bg-green-950 dark:border-green-800 dark:text-green-500 flex flex-row gap-2 items-center"
           >
             <PartyPopper className="size-4" /> The Registry is now live. Check
             it out!
