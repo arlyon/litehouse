@@ -42,7 +42,7 @@ const LogoIcon = () => (
 export default function HomePage() {
   return (
     <>
-      <div className="main-grid grid w-screen grid-cols-[auto_10px_minmax(min-content,_max-content)_10px_auto] md:grid-cols-[auto_50px_minmax(min-content,_max-content)_50px_auto] gap-[1px] bg-border dark:bg-muted border-b">
+      <div className="main-grid grid w-screen grid-cols-[auto_10px_minmax(min-content,_max-content)_10px_auto] md:grid-cols-[auto_50px_minmax(min-content,_max-content)_50px_auto] gap-[1px] bg-border dark:bg-muted">
         <div />
         <div />
         <div className="flex items-center p-4 lg:p-8 justify-center">
@@ -158,7 +158,7 @@ export default function HomePage() {
 
         <div />
         <div />
-        <div className="flex items-center justify-center pattern-diagonal-lines pattern-green-700 pattern-bg-black pattern-size-2 pattern-opacity-100">
+        <div className="flex items-center justify-center pattern-diagonal-lines pattern-green-300 pattern-bg-green-50 dark:pattern-bg-black pattern-size-2 pattern-opacity-100">
           <div className="main-grid grid gap-[1px] sm:grid-cols-2 xl:grid-cols-4 bg-border outline outline-1 outline-border dark:outline-muted dark:bg-muted">
             {[
               {
