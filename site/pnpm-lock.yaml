@@ -77,6 +77,9 @@ dependencies:
   remark-code-import:
     specifier: ^1.2.0
     version: 1.2.0
+  shiki:
+    specifier: ^1.6.2
+    version: 1.6.2
   sonner:
     specifier: ^1.4.41
     version: 1.4.41(react-dom@19.0.0-rc-f994737d14-20240522)(react@19.0.0-rc-f994737d14-20240522)
