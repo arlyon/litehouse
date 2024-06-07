@@ -8,25 +8,23 @@ import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="w-full bg-neutral-900 py-12 text-sm">
+    <footer className="w-full bg-primary-foreground py-12 text-sm border-t">
       <div className="container mx-auto grid grid-cols-2 lg:grid-cols-[auto_1fr_1fr_max-content] gap-16 px-8">
         <div className="max-w-96">
           <Logo />
-          <h3 className="text-lg font-semibold text-white mb-4 mt-2">
-            Litehouse
-          </h3>
-          <p className="text-neutral-400">
+          <h3 className="text-lg font-semibold mb-4 mt-2">Litehouse</h3>
+          <p className="text-muted-foreground">
             Litehouse is a lightweight OS for your home, designed from the
             ground up to be easy to use, resource efficient, open, and secure.
           </p>
         </div>
         <div>
-          <h4 className="text-neutral-200 font-semibold mb-2">Resources</h4>
-          <ul className="text-neutral-400">
+          <h4 className="font-semibold mb-2">Resources</h4>
+          <ul className="text-muted-foreground">
             <li>
               <Link
                 href="https://github.com/arlyon/litehouse"
-                className="hover:text-white transition-colors"
+                className="hover:text-primary transition-colors"
                 prefetch={false}
               >
                 Source Code
@@ -35,7 +33,7 @@ export function Footer() {
             <li>
               <Link
                 href="/docs"
-                className="hover:text-white transition-colors"
+                className="hover:text-primary transition-colors"
                 prefetch={false}
               >
                 Documentation
@@ -44,7 +42,7 @@ export function Footer() {
             <li>
               <Link
                 href="/registry"
-                className="hover:text-white transition-colors"
+                className="hover:text-primary transition-colors"
                 prefetch={false}
               >
                 Registry
@@ -53,11 +51,11 @@ export function Footer() {
           </ul>
         </div>
         <div className="lg:order-3">
-          <p className="text-neutral-400">
+          <p className="text-muted-foreground">
             Made by{" "}
             <Link
-              href="#"
-              className="text-white hover:underline"
+              href="https://github.com/arlyon"
+              className="text-primary hover:underline"
               prefetch={false}
             >
               @arlyon
@@ -65,12 +63,12 @@ export function Footer() {
           </p>
         </div>
         <div>
-          <h4 className="text-neutral-200 font-semibold mb-2">Community</h4>
-          <ul className="text-neutral-400">
+          <h4 className="font-semibold mb-2">Community</h4>
+          <ul className="text-muted-foreground">
             <li>
               <Link
                 href="https://github.com/arlyon/litehouse/issues"
-                className="hover:text-white transition-colors"
+                className="hover:text-primary transition-colors"
                 prefetch={false}
               >
                 Raise an Issue
@@ -79,7 +77,7 @@ export function Footer() {
             <li>
               <Link
                 href="https://github.com/arlyon/litehouse/discussions"
-                className="hover:text-white transition-colors"
+                className="hover:text-primary transition-colors"
                 prefetch={false}
               >
                 Open a Discussion
