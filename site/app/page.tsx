@@ -1,23 +1,13 @@
-import { CopyBox } from "@/components/copy-box";
-import { GithubButton } from "@/components/github-button";
-import { RegistryButton } from "@/components/registry-button";
 import Link from "next/link";
-import style from "./page.module.css";
-import { cn } from "@/lib/utils";
+import "./page.css";
 import {
-  BellElectric,
   BoxIcon,
-  BrainCog,
   BrainIcon,
   CloudLightning,
-  GaugeIcon,
   GithubIcon,
-  GlobeIcon,
-  Link2,
   LockIcon,
   PartyPopper,
   Plug,
-  Power,
   Text,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -52,15 +42,10 @@ const LogoIcon = () => (
 export default function HomePage() {
   return (
     <>
-      <div
-        className={cn(
-          style.grid,
-          "grid w-screen grid-cols-[auto_50px_minmax(min-content,_max-content)_50px_auto] gap-[1px] bg-border dark:bg-muted border-b",
-        )}
-      >
+      <div className="main-grid grid w-screen grid-cols-[auto_10px_minmax(min-content,_max-content)_10px_auto] md:grid-cols-[auto_50px_minmax(min-content,_max-content)_50px_auto] gap-[1px] bg-border dark:bg-muted border-b">
         <div />
         <div />
-        <div className="flex items-center p-8 justify-center">
+        <div className="flex items-center p-4 lg:p-8 justify-center">
           <LogoIcon />
         </div>
         <div />
@@ -72,7 +57,7 @@ export default function HomePage() {
         <div />
         <div />
         <div />
-        <div className="bg-gradient-to-tl dark:from-black dark:to-green-950 flex relative flex-col gap-6 items-center justify-center bg-background p-16 outline outline-1 outline-green-500 dark:outline-green-600">
+        <div className="bg-gradient-to-tl dark:from-black dark:to-green-950 flex relative flex-col gap-6 items-center justify-center bg-background p-4 lg:p-16 outline outline-1 outline-green-500 dark:outline-green-600">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -80,9 +65,9 @@ export default function HomePage() {
             viewBox="0 0 24 24"
             fill="currentColor"
             stroke="none"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             className="absolute -left-2 -top-2 z-10 size-4 xl:scale-[200%]"
           >
             <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
@@ -98,7 +83,7 @@ export default function HomePage() {
             <PartyPopper className="size-4" /> The Registry is now live. Check
             it out!
           </Link>
-          <h1 className="text-8xl font-bold text-center">
+          <h1 className="text-4xl sm:text-6xl md:text-8xl font-bold text-center">
             <span className="inline-block">Home Automation</span>{" "}
             <span className="inline-block">
               That{" "}
@@ -107,7 +92,7 @@ export default function HomePage() {
               </span>
             </span>
           </h1>
-          <div className="flex flex-row gap-4 p-4 items-center mt-8">
+          <div className="flex flex-row flex-wrap gap-4 items-center justify-center mt-4">
             <Link href="/registry">
               <Button
                 className="inline-flex items-center gap-2"
@@ -126,7 +111,10 @@ export default function HomePage() {
                 Documentation
               </Button>
             </Link>
-            <Link href="https://github.com/arlyon/litehouse">
+            <Link
+              href="https://github.com/arlyon/litehouse"
+              className="hidden lg:block"
+            >
               <Button
                 className="inline-flex items-center gap-2"
                 variant="outline"
@@ -170,8 +158,8 @@ export default function HomePage() {
 
         <div />
         <div />
-        <div>
-          <div className="grid gap-8 p-16 grid-cols-2 xl:grid-cols-4">
+        <div className="flex items-center justify-center pattern-diagonal-lines pattern-green-700 pattern-bg-black pattern-size-2 pattern-opacity-100">
+          <div className="main-grid grid gap-[1px] sm:grid-cols-2 xl:grid-cols-4 bg-border outline outline-1 outline-border dark:outline-muted dark:bg-muted">
             {[
               {
                 icon: Plug,
@@ -208,7 +196,7 @@ export default function HomePage() {
         <div />
         <div />
         <div className="flex flex-col items-center p-16">
-          <h2 className="text-4xl">
+          <h2 className="text-4xl text-center">
             Integrate <u>Everything</u>
           </h2>
         </div>
@@ -220,7 +208,7 @@ export default function HomePage() {
 }
 
 const HomeTile = ({ title, desc, icon: Icon }) => (
-  <div className="flex flex-col items-start gap-4 max-w-80">
+  <div className="flex flex-col items-start justify-center gap-4 p-6 max-w-80">
     <div className="bg-neutral-100 p-3 rounded-md dark:bg-neutral-800">
       <Icon className="w-6 h-6" />
     </div>

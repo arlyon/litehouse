@@ -1,5 +1,0 @@
-.grid {
-    :global(div) {
-        background-color: hsl(var(--background) / var(--tw-bg-opacity));
-    }
-}
