@@ -45,8 +45,8 @@ dependencies:
     specifier: ^11.0.5
     version: 11.3.2(@types/react@18.3.3)(next@15.0.0-rc.0)(react-dom@19.0.0-rc-f994737d14-20240522)(react@19.0.0-rc-f994737d14-20240522)
   fumadocs-mdx:
-    specifier: ^8.2.14
-    version: 8.2.27(@types/react@18.3.3)(next@15.0.0-rc.0)(react-dom@19.0.0-rc-f994737d14-20240522)(react@19.0.0-rc-f994737d14-20240522)
+    specifier: 8.2.19
+    version: 8.2.19(@types/react@18.3.3)(next@15.0.0-rc.0)(react-dom@19.0.0-rc-f994737d14-20240522)(react@19.0.0-rc-f994737d14-20240522)
   fumadocs-ui:
     specifier: ^11.0.5
     version: 11.3.2(@types/react-dom@18.3.0)(@types/react@18.3.3)(next@15.0.0-rc.0)(react-dom@19.0.0-rc-f994737d14-20240522)(react@19.0.0-rc-f994737d14-20240522)(tailwindcss@3.4.4)
@@ -2686,6 +2686,37 @@ packages:
     requiresBuild: true
     optional: true
 
+  /fumadocs-core@11.1.1(@types/react@18.3.3)(next@15.0.0-rc.0)(react-dom@19.0.0-rc-f994737d14-20240522)(react@19.0.0-rc-f994737d14-20240522):
+    resolution: {integrity: sha512-zHDLgFNzKndIoAa1FQVoNe+avIxL0HBHMcjoBZFP0I05naYemCx2+ErkPEOutu+pBwdtSqjMYbm4N5Jmvm5arg==}
+    peerDependencies:
+      next: '>= 14.1.0'
+      react: '>= 18'
+      react-dom: '>= 18'
+    dependencies:
+      '@formatjs/intl-localematcher': 0.5.4
+      '@shikijs/rehype': 1.6.2
+      '@shikijs/transformers': 1.6.2
+      flexsearch: 0.7.21
+      github-slugger: 2.0.0
+      hast-util-to-estree: 3.1.0
+      negotiator: 0.6.3
+      next: 15.0.0-rc.0(@babel/core@7.24.7)(babel-plugin-react-compiler@0.0.0-experimental-c23de8d-20240515)(react-dom@19.0.0-rc-f994737d14-20240522)(react@19.0.0-rc-f994737d14-20240522)
+      npm-to-yarn: 2.2.1
+      react: 19.0.0-rc-f994737d14-20240522
+      react-dom: 19.0.0-rc-f994737d14-20240522(react@19.0.0-rc-f994737d14-20240522)
+      react-remove-scroll: 2.5.10(@types/react@18.3.3)(react@19.0.0-rc-f994737d14-20240522)
+      remark: 15.0.1
+      remark-gfm: 4.0.0
+      remark-mdx: 3.0.1
+      scroll-into-view-if-needed: 3.1.0
+      shiki: 1.6.2
+      swr: 2.2.5(react@19.0.0-rc-f994737d14-20240522)
+      unist-util-visit: 5.0.0
+    transitivePeerDependencies:
+      - '@types/react'
+      - supports-color
+    dev: false
+
   /fumadocs-core@11.3.2(@types/react@18.3.3)(next@15.0.0-rc.0)(react-dom@19.0.0-rc-f994737d14-20240522)(react@19.0.0-rc-f994737d14-20240522):
     resolution: {integrity: sha512-MNpMwXE7m/+EDPaRt0ge5jihMVKgIZcyDv7hOmw5ozA0XELOUPsMQhbcAIA1RgZxK3wpouiTBILFvCUkaM3byQ==}
     peerDependencies:
@@ -2717,8 +2748,8 @@ packages:
       - supports-color
     dev: false
 
-  /fumadocs-mdx@8.2.27(@types/react@18.3.3)(next@15.0.0-rc.0)(react-dom@19.0.0-rc-f994737d14-20240522)(react@19.0.0-rc-f994737d14-20240522):
-    resolution: {integrity: sha512-MMVtizHUEGeTxXq2ZD4EkhxSO1vxzHlZLg2WmLQZ3eaOx9I73UGE27+AO2GAanZ9m1Tcb8zlOLm8Az7iS/hITA==}
+  /fumadocs-mdx@8.2.19(@types/react@18.3.3)(next@15.0.0-rc.0)(react-dom@19.0.0-rc-f994737d14-20240522)(react@19.0.0-rc-f994737d14-20240522):
+    resolution: {integrity: sha512-3EGGZPSe0l8GRa76ZF/2bCSIrFOUqgiBXCTf4dOwronHX3HZjQZwCqJT+mste2sfSuQD8kTCw2IZDeU22wS6Eg==}
     peerDependencies:
       next: '>= 14.1.0'
     dependencies:
@@ -2726,7 +2757,7 @@ packages:
       cross-spawn: 7.0.3
       estree-util-value-to-estree: 3.1.1
       fast-glob: 3.3.2
-      fumadocs-core: 11.3.2(@types/react@18.3.3)(next@15.0.0-rc.0)(react-dom@19.0.0-rc-f994737d14-20240522)(react@19.0.0-rc-f994737d14-20240522)
+      fumadocs-core: 11.1.1(@types/react@18.3.3)(next@15.0.0-rc.0)(react-dom@19.0.0-rc-f994737d14-20240522)(react@19.0.0-rc-f994737d14-20240522)
       gray-matter: 4.0.3
       next: 15.0.0-rc.0(@babel/core@7.24.7)(babel-plugin-react-compiler@0.0.0-experimental-c23de8d-20240515)(react-dom@19.0.0-rc-f994737d14-20240522)(react@19.0.0-rc-f994737d14-20240522)
       zod: 3.23.8

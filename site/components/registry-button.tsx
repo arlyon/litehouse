@@ -24,7 +24,7 @@ export function RegistryButton() {
   return (
     <Button className="inline-flex items-center gap-2" variant="secondary">
       <BoxIcon className="h-5 w-5" />
-      View Package Registry
+      Package Registry
     </Button>
   );
 }

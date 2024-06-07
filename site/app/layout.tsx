@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { AxiomWebVitals } from "next-axiom";
 import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
+import { Footer } from "@/components/footer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -21,7 +22,12 @@ export default function Layout({ children }: { children: ReactNode }) {
       <AxiomWebVitals />
       <body>
         <Toaster />
-        <RootProvider>{children}</RootProvider>
+        <RootProvider>
+          <main className="min-h-screen flex flex-col">
+            <div className="flex-1">{children}</div>
+            <Footer />
+          </main>
+        </RootProvider>
       </body>
     </html>
   );

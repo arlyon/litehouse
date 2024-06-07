@@ -24,7 +24,7 @@
     "date-fns": "^3.6.0",
     "framer-motion": "^11.2.10",
     "fumadocs-core": "^11.0.5",
-    "fumadocs-mdx": "^8.2.14",
+    "fumadocs-mdx": "8.2.19",
     "fumadocs-ui": "^11.0.5",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.378.0",
@@ -52,7 +52,5 @@
     "tailwindcss": "^3.4.3",
     "typescript": "^5.4.5"
   },
-  "trustedDependencies": [
-    "@biomejs/biome"
-  ]
+  "trustedDependencies": ["@biomejs/biome"]
 }
