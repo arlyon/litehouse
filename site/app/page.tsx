@@ -87,7 +87,7 @@ export default function HomePage() {
             <span className="inline-block">Home Automation</span>{" "}
             <span className="inline-block">
               That{" "}
-              <span className="bg-gradient-to-b from-green-950 to-green-500 inline-block text-transparent bg-clip-text">
+              <span className="bg-gradient-to-b to-green-800 from-green-500 dark:from-green-900 dark:to-green-500 inline-block text-transparent bg-clip-text">
                 Scales
               </span>
             </span>
@@ -158,7 +158,7 @@ export default function HomePage() {
 
         <div />
         <div />
-        <div className="flex items-center justify-center pattern-diagonal-lines pattern-green-300 pattern-bg-green-50 dark:pattern-bg-black pattern-size-2 pattern-opacity-100">
+        <div className="flex items-center justify-center pattern-diagonal-lines pattern-green-300 dark:pattern-green-800 pattern-bg-green-50 dark:pattern-bg-black pattern-size-2 pattern-opacity-100">
           <div className="main-grid grid gap-[1px] sm:grid-cols-2 xl:grid-cols-4 bg-border outline outline-1 outline-border dark:outline-muted dark:bg-muted">
             {[
               {

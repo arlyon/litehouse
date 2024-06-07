@@ -5,6 +5,7 @@
  */
 import { Logo } from "@/app/page";
 import Link from "next/link";
+import { ThemeToggle } from "./theme-toggle";
 
 export function Footer() {
   return (
@@ -50,7 +51,7 @@ export function Footer() {
             </li>
           </ul>
         </div>
-        <div className="lg:order-3">
+        <div className="lg:order-3 flex flex-col items-start gap-4">
           <p className="text-muted-foreground">
             Made by{" "}
             <Link
@@ -61,6 +62,7 @@ export function Footer() {
               @arlyon
             </Link>
           </p>
+          <ThemeToggle />
         </div>
         <div>
           <h4 className="font-semibold mb-2">Community</h4>
