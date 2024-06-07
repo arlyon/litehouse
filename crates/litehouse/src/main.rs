@@ -5,6 +5,9 @@
 
 #![feature(let_chains)]
 
+#[cfg(target_os = "hermit")]
+use hermit as _;
+
 use std::collections::HashMap;
 use std::future;
 use std::{
