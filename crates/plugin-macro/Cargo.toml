@@ -1,9 +1,11 @@
 [package]
 name = "litehouse-plugin-macro"
 version = "0.1.0"
-edition = "2021"
-license = "MIT OR Apache-2.0"
 description = "A macro for generating Litehouse plugins"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
 
 [lib]
 proc-macro = true

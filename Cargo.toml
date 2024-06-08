@@ -2,6 +2,13 @@
 members = ["crates/*"]
 resolver = "2"
 
+[workspace.package]
+repository = "https://github.com/arlyon/litehouse"
+authors = ["Alexander Lyon <arlyon@me.com>"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "A lightweight home automation server"
+
 [profile.release]
 strip = true
 opt-level = "z"
@@ -19,14 +26,14 @@ opendal = { git = "https://github.com/apache/opendal", rev = "4d5df20" }
 
 [workspace.metadata.groups]
 plugins = [
-    "path:crates/samsung",
-    "path:crates/sonoff",
-    "path:crates/tasmota",
-    "path:crates/weather",
+  "path:crates/samsung",
+  "path:crates/sonoff",
+  "path:crates/tasmota",
+  "path:crates/weather",
 ]
 bin = [
-    "path:crates/litehouse",
-    "path:crates/litehouse-config",
-    "path:crates/plugin",
-    "path:crates/plugin-macro",
+  "path:crates/litehouse",
+  "path:crates/litehouse-config",
+  "path:crates/plugin",
+  "path:crates/plugin-macro",
 ]
