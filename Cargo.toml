@@ -45,8 +45,9 @@ bin = [
 
 # Config for 'cargo dist'
 [workspace.metadata.dist]
+allow-dirty = ["ci", "msi"]
 # The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)
-cargo-dist-version = "0.15.1"
+cargo-dist-version = "0.16.7"
 # CI backends to support
 ci = "github"
 # The installers to generate for each app
@@ -54,6 +55,7 @@ installers = ["shell", "powershell", "homebrew", "msi"]
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = [
   "aarch64-apple-darwin",
+  "aarch64-unknown-linux-gnu",
   "x86_64-apple-darwin",
   "x86_64-unknown-linux-gnu",
   "x86_64-pc-windows-msvc",
@@ -62,3 +64,7 @@ targets = [
 pr-run-mode = "plan"
 # Whether to install an updater program
 install-updater = true
+
+[workspace.metadata.dist.github-custom-runners]
+aarch64-unknown-linux-gnu = "buildjet-8vcpu-ubuntu-2204-arm"
+aarch64-unknown-linux-musl = "buildjet-8vcpu-ubuntu-2204-arm"
