@@ -10,15 +10,7 @@ import { ThemeToggle } from "./theme-toggle";
 export function Footer() {
   return (
     <footer className="w-full bg-primary-foreground py-12 text-sm border-t">
-      <div className="container mx-auto grid grid-cols-2 lg:grid-cols-[auto_1fr_1fr_max-content] gap-16 px-8">
-        <div className="max-w-96">
-          <Logo />
-          <h3 className="text-lg font-semibold mb-4 mt-2">Litehouse</h3>
-          <p className="text-muted-foreground">
-            Litehouse is a lightweight OS for your home, designed from the
-            ground up to be easy to use, resource efficient, open, and secure.
-          </p>
-        </div>
+      <div className="container mx-auto grid grid-cols-2 lg:grid-cols-[auto_1fr_1fr_max-content] gap-8 sm:gap-16 px-8">
         <div>
           <h4 className="font-semibold mb-2">Resources</h4>
           <ul className="text-muted-foreground">
@@ -51,19 +43,6 @@ export function Footer() {
             </li>
           </ul>
         </div>
-        <div className="lg:order-3 flex flex-col items-start gap-4">
-          <p className="text-muted-foreground">
-            Made by{" "}
-            <Link
-              href="https://github.com/arlyon"
-              className="text-primary hover:underline"
-              prefetch={false}
-            >
-              @arlyon
-            </Link>
-          </p>
-          <ThemeToggle />
-        </div>
         <div>
           <h4 className="font-semibold mb-2">Community</h4>
           <ul className="text-muted-foreground">
@@ -86,6 +65,27 @@ export function Footer() {
               </Link>
             </li>
           </ul>
+        </div>
+        <div className="lg:-order-1 max-w-96">
+          <Logo />
+          <h3 className="text-lg font-semibold mb-4 mt-2">Litehouse</h3>
+          <p className="text-muted-foreground">
+            Litehouse is a lightweight OS for your home, designed from the
+            ground up to be easy to use, resource efficient, open, and secure.
+          </p>
+        </div>
+        <div className="flex flex-col items-start gap-4">
+          <p className="text-muted-foreground">
+            Made by{" "}
+            <Link
+              href="https://github.com/arlyon"
+              className="text-primary hover:underline"
+              prefetch={false}
+            >
+              @arlyon
+            </Link>
+          </p>
+          <ThemeToggle />
         </div>
       </div>
     </footer>

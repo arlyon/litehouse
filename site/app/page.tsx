@@ -32,7 +32,7 @@ const LogoIcon = () => (
     aria-current="page"
     className="rounded-2xl justify-center items-center p-[1px] flex relative overflow-hidden hover:scale-105 transition-transform"
   >
-    <div className="animate-[spin_5s_linear_infinite] duration-500 absolute bg-gradient-to-br from-green-600 to-green-400 dark:from-green-950 dark:to-green-500 size-20"></div>
+    <div className="animate-[spin_3s_linear_infinite] duration-500 absolute bg-gradient-to-br from-green-600 to-green-400 dark:from-green-950 dark:to-green-500 size-20"></div>
     <div className="relative text-white bg-gradient-to-br from-green-600 to-green-400 dark:from-black dark:to-green-800 p-3 aspect-square rounded-2xl flex items-center justify-center">
       <Logo />
     </div>
@@ -57,7 +57,7 @@ export default function HomePage() {
         <div />
         <div />
         <div />
-        <div className="bg-gradient-to-tl dark:from-black dark:to-green-950 flex relative flex-col gap-6 items-center justify-center bg-background p-4 lg:p-16 outline outline-1 outline-green-500 dark:outline-green-600">
+        <div className="dark:bg-gradient-to-tl dark:from-black dark:to-green-950 flex relative flex-col gap-6 items-center justify-center bg-background p-4 lg:p-16 outline outline-1 outline-green-500 dark:outline-green-600">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
