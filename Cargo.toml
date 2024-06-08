@@ -8,6 +8,7 @@ authors = ["Alexander Lyon <arlyon@me.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A lightweight home automation server"
+homepage = "https://litehouse.arlyon.dev"
 
 [profile.release]
 strip = true
