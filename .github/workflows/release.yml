@@ -70,7 +70,7 @@ jobs:
       # but also really annoying to build CI around when it needs secrets to work right.)
       - id: plan
         run: |
-          cargo dist ${{ (!github.event.pull_request && format('host --steps=create --tag={0}', github.ref_name)) || 'plan' }} --output-format=json > plan-dist-manifest.json
+          cargo dist ${{ (!github.event.pull_request && format('host --steps=create --tag={0}', github.ref_name)) || 'plan' }} --output-format=json | sed 's/axodotdev\/cargo-dist/arlyon\/cargo-dist/g' > plan-dist-manifest.json
           echo "cargo dist ran successfully"
           cat plan-dist-manifest.json
           echo "manifest=$(jq -c "." plan-dist-manifest.json)" >> "$GITHUB_OUTPUT"
@@ -114,6 +114,7 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           key: ${{ join(matrix.targets, '-') }}
+          cache-provider: buildjet
       - name: Install cargo-dist
         run: ${{ matrix.install_dist }}
       # Get the dist-manifest
