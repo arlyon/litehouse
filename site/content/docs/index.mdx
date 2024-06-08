@@ -10,6 +10,7 @@ import { AppRequestButton } from '@/components/app-request-button';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { OpenGraph } from '@/components/open-graph';
 import { CodeBlock, Pre } from '@/components/code-block';
+import { getLatestRelease } from "@/lib/github";
 
 Litehouse is a lightweight program for home automation. Think of it as a set of
 rules you define about what should happen when certain triggers are set. For
@@ -70,7 +71,8 @@ You can install the server directly onto most OSes with a single command.
 
 #### Prebuilt
 
-export const latest_version = "v0.2.0";
+export const releaseData = await getLatestRelease();
+export const latest_version = releaseData.tag_name;
 
 We have pre-built binaries available for windows, macOS and linux. The latest version is {latest_version}. To see more about this release, see here:
 
