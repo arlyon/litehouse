@@ -1,11 +1,11 @@
 import { Toaster } from "@/components/ui/sonner";
 import "./global.css";
+import { Footer } from "@/components/footer";
 import { RootProvider } from "fumadocs-ui/provider";
 import type { Metadata } from "next";
 import { AxiomWebVitals } from "next-axiom";
 import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
-import { Footer } from "@/components/footer";
 
 const inter = Inter({
   subsets: ["latin"],

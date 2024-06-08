@@ -1,5 +1,6 @@
 import Link from "next/link";
 import "./page.css";
+import { Button } from "@/components/ui/button";
 import {
   BoxIcon,
   BrainIcon,
@@ -10,7 +11,7 @@ import {
   Plug,
   Text,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { FC } from "react";
 
 export const Logo = () => (
   <svg
@@ -32,11 +33,33 @@ const LogoIcon = () => (
     aria-current="page"
     className="rounded-2xl justify-center items-center p-[1px] flex relative overflow-hidden hover:scale-105 transition-transform"
   >
-    <div className="animate-[spin_3s_linear_infinite] duration-500 absolute bg-gradient-to-br from-green-600 to-green-400 dark:from-green-950 dark:to-green-500 size-20"></div>
+    <div className="animate-[spin_3s_linear_infinite] duration-500 absolute bg-gradient-to-br from-green-600 to-green-400 dark:from-green-950 dark:to-green-500 size-20" />
     <div className="relative text-white bg-gradient-to-br from-green-600 to-green-400 dark:from-black dark:to-green-800 p-3 aspect-square rounded-2xl flex items-center justify-center">
       <Logo />
     </div>
   </a>
+);
+
+const Star = (props: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    stroke="none"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    {...props}
+  >
+    <title>Star</title>
+    <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+    <path d="M20 3v4" />
+    <path d="M22 5h-4" />
+    <path d="M4 17v2" />
+    <path d="M5 18H3" />
+  </svg>
 );
 
 export default function HomePage() {
@@ -52,30 +75,13 @@ export default function HomePage() {
         <div />
         <div />
         <div />
-        <div className="h-[50px]"></div>
+        <div className="h-[50px]" />
         <div />
         <div />
         <div />
         <div />
         <div className="dark:bg-gradient-to-tl dark:from-black dark:to-green-950 flex relative flex-col gap-6 items-center justify-center bg-background p-4 lg:p-16 outline outline-1 outline-green-500 dark:outline-green-600">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            stroke="none"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="absolute -left-2 -top-2 z-10 size-4 xl:scale-[200%]"
-          >
-            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
-            <path d="M20 3v4"></path>
-            <path d="M22 5h-4"></path>
-            <path d="M4 17v2"></path>
-            <path d="M5 18H3"></path>
-          </svg>
+          <Star className="absolute -right-2 -bottom-2 z-10 size-4 xl:scale-[200%]" />
           <Link
             href="/registry"
             className="border hover:-translate-y-1 transition-transform rounded-full px-4 py-2 text-xs dark:bg-green-950 dark:border-green-800 dark:text-green-500 flex flex-row gap-2 items-center"
@@ -124,24 +130,7 @@ export default function HomePage() {
               </Button>
             </Link>
           </div>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            stroke="none"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            className="absolute -right-2 -bottom-2 z-10 size-4 xl:scale-[200%]"
-          >
-            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
-            <path d="M20 3v4"></path>
-            <path d="M22 5h-4"></path>
-            <path d="M4 17v2"></path>
-            <path d="M5 18H3"></path>
-          </svg>
+          <Star className="absolute -right-2 -bottom-2 z-10 size-4 xl:scale-[200%]" />
         </div>
         <div />
         <div />
@@ -181,8 +170,8 @@ export default function HomePage() {
                 title: "Ergonomic",
                 desc: "We built the system from the ground up to be easy to configure. No more yaml.",
               },
-            ].map((data, idx) => (
-              <HomeTile key={idx} {...data} />
+            ].map((data) => (
+              <HomeTile key={data.title} {...data} />
             ))}
           </div>
         </div>

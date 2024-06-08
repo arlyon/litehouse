@@ -5,7 +5,7 @@ import { PackageIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
 import type { PropsWithChildren } from "react";
 
-const Layout = ({ children }: PropsWithChildren<any>) => {
+const Layout = ({ children }: PropsWithChildren<unknown>) => {
   return (
     <div>
       <div className="sticky top-0 z-50 h-16 border-b transition-colors border-foreground/10 bg-background/50 backdrop-blur-md">

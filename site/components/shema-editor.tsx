@@ -92,7 +92,7 @@ export const SchemaEditor = ({ id, schema: schemaString }) => {
         })}
       >
         {Object.entries(nonConstFields).map(([key, value]) => (
-          <div className="flex flex-col gap-2">
+          <div key={key} className="flex flex-col gap-2">
             <div>
               <span className="font-mono font-bold">{key} </span>
               <span className="text-xs text-muted-foreground">
@@ -150,9 +150,11 @@ const matchInput = (key: string, value: object, form: any) => {
   const validators = [
     [
       (value) => value.type === "array" && value.minItems === value.maxItems,
-      <InputGroup>
+      <InputGroup key={key}>
         {value?.items?.map((item, i) => (
           <InputGroupItem
+            // biome-ignore lint/suspicious/noArrayIndexKey: can't really do anything about this
+            key={`${key}-${i}`}
             {...form.register(`config.${key}[${i}]`, {
               valueAsNumber: item.type === "integer",
             })}
@@ -164,6 +166,7 @@ const matchInput = (key: string, value: object, form: any) => {
     [
       (value) => value.type === "number",
       <Input
+        key={key}
         className="input bg-primary-foreground border rounded-lg"
         type="number"
         {...form.register(`config.${key}`, {
