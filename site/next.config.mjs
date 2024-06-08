@@ -34,6 +34,9 @@ new MapWebpackPlugin({ rootMapFile }).create();
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  images: {
+    domains: ["opengraph.githubassets.com"],
+  },
   pageExtensions: ["ts", "tsx"],
   experimental: {
     // useLightningcss: true,

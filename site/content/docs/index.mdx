@@ -7,6 +7,9 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Callout } from 'fumadocs-ui/components/callout';
 import { File, Folder, Files } from 'fumadocs-ui/components/files';
 import { AppRequestButton } from '@/components/app-request-button';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { OpenGraph } from '@/components/open-graph';
+import { CodeBlock, Pre } from '@/components/code-block';
 
 Litehouse is a lightweight program for home automation. Think of it as a set of
 rules you define about what should happen when certain triggers are set. For
@@ -63,20 +66,46 @@ unparalleled security, and buzzwords.
 
 ### Direct
 
-Installing the server directly can be done using `cargo`, the rust package management tool.
-To install cargo, please visit [rustup.rs](https://rustup.rs) and follow the instructions.
+You can install the server directly onto most OSes with a single command.
 
-```bash title="Terminal"
-cargo install litehouse
-```
+#### Prebuilt
 
-Alternatively, you can install the lastest bleeding edge version with the following
-command instead:
+export const latest_version = "v0.2.0";
+
+We have pre-built binaries available for windows, macOS and linux. The latest version is {latest_version}. To see more about this release, see here:
+
+<OpenGraph href={`https://github.com/arlyon/litehouse/releases/tag/${latest_version}`} />
+
+To install, run one of the commands below. Each of these comes with an update
+utility as well.
+
+<Tabs items={['Windows', 'Linux', 'macOS', 'Homebrew']}>
+  <Tab value="Windows">
+  <CodeBlock><Pre>{"powershell -c \"irm https://github.com/arlyon/litehouse/releases/download/" + latest_version + "/litehouse-installer.ps1 | iex\""}</Pre></CodeBlock>
+  </Tab>
+  <Tab value="Linux">
+  <CodeBlock><Pre>{"curl --proto '=https' --tlsv1.2 -LsSf https://github.com/arlyon/litehouse/releases/download/" + latest_version + "/litehouse-installer.sh | sh"}</Pre></CodeBlock>
+  </Tab>
+  <Tab value="macOS">
+  <CodeBlock><Pre>{"curl --proto '=https' --tlsv1.2 -LsSf https://github.com/arlyon/litehouse/releases/download/" + latest_version + "/litehouse-installer.sh | sh"}</Pre></CodeBlock>
+  </Tab>
+  <Tab value="Homebrew">
+  ```
+  brew install litehouse
+  ```
+  </Tab>
+</Tabs>
+
+#### Bleeding Edge
+
+Alternatively, you can build the latest bleeding edge version. For this, you
+need a wust toolchain. Please visit [rustup.rs](https://rustup.rs) and follow
+the instructions. Then, you can install `litehouse` directly from source by
+specifying the git repo.
 
 ```bash title="Terminal"
 cargo install --git https://github.com/arlyon/litehouse litehouse
 ```
-
 
 ### Docker
 
