@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { withAxiom } from "next-axiom";
-import { bundledLanguages } from "shiki";
 import { MapWebpackPlugin } from "fumadocs-mdx/config";
 import createMDX from "fumadocs-mdx/config";
+import { withAxiom } from "next-axiom";
 import codeImport from "remark-code-import";
+import { bundledLanguages } from "shiki";
 
 const cwd = process.cwd();
 const rootMapPath = ".map.ts";
