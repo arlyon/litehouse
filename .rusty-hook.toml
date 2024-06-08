@@ -1,0 +1,5 @@
+[hooks]
+pre-commit = "cargo fmt --all && taplo fmt"
+
+[logging]
+verbose = true
