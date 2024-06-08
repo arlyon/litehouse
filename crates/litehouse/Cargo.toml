@@ -7,6 +7,12 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 
+[package.metadata.wix]
+upgrade-guid = "F7E1B0C3-288D-4A0B-A32A-FDDFEB53C43B"
+path-guid = "A900FCC7-3925-486F-9E52-E4EFCECE2AE2"
+license = false
+eula = false
+
 [features]
 dhat-heap = []                       # if you are doing heap profiling
 console = ["dep:console-subscriber"]
