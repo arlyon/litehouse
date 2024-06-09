@@ -1,0 +1,28 @@
+namespace litehouse;
+
+table Summaries {
+    summaries: [Summary];
+}
+
+table Summary {
+    title:string;
+    versions:[Version];
+    size:uint;
+    description:string;
+}
+
+struct Version {
+  major:ushort;
+  minor:ushort;
+  patch:ushort;
+}
+
+table Entry {
+  title:string;
+  version:Version;
+  description:string;
+  capabilities:[string];
+  schema:string;
+  size:uint;
+  sha:string;
+}

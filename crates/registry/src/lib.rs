@@ -1,5 +1,7 @@
 //! Plugin registry
 
+#![feature(let_chains)]
+
 use litehouse_config::Import;
 use miette::{Context, IntoDiagnostic, Result};
 use opendal_fs_cache::CacheLayer;
@@ -9,6 +11,16 @@ use std::{
 };
 
 use opendal::{services::S3, Builder, Entry, Operator};
+
+pub mod io;
+pub mod naming;
+pub mod partition;
+pub mod partition_scheme;
+
+#[allow(non_snake_case)]
+#[allow(unused_imports)]
+#[path = "../target/flatbuffers/registry_generated.rs"]
+pub mod proto;
 
 pub struct Registry<U, D> {
     op: Operator,
