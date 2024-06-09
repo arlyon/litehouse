@@ -10,11 +10,12 @@
 
 use flatbuffers::{Follow, Verifiable};
 use futures::{stream::StreamExt, Future};
-use std::{marker::PhantomData, mem::transmute};
+use memmap2::Mmap;
+use std::{marker::PhantomData, mem::transmute, sync::Mutex};
 use tokio::sync::RwLock;
 
 use crate::{
-    io::s3::MMapS3IoScheme,
+    io::{s3::MMapS3IoScheme, IndexIOScheme},
     naming::NumericalPrefixed,
     partition::{IntoBuffer, Partition},
     partition_scheme::{Alphabetical, PartitioningScheme},
@@ -139,6 +140,34 @@ where
             })
             .fold(0, |acc, next| std::future::ready(acc + next))
             .await
+    }
+}
+
+pub struct Index<'a, IO: IndexIOScheme<'a, T>, T: Follow<'a> + Verifiable> {
+    io: IO,
+    mmap: Mutex<Option<Mmap>>,
+    _phantom: PhantomData<&'a T>,
+}
+
+impl<'a, IO: IndexIOScheme<'a, T>, T: Follow<'a> + Verifiable> Index<'a, IO, T> {
+    pub fn new(io: IO) -> Self {
+        Self {
+            io,
+            mmap: Default::default(),
+            _phantom: PhantomData,
+        }
+    }
+
+    pub async fn insert(&self, title: &str) {
+        let partition = self.mmap.lock();
+
+        todo!()
+    }
+
+    /// Get all items in the index whose keys start with the given prefix.
+    pub async fn find(&self, prefix: &str) -> impl Iterator<Item = T> {
+        let partition = self.mmap.lock();
+        std::iter::empty()
     }
 }
 
