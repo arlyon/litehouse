@@ -227,6 +227,13 @@ impl<'a> IntoBuffer<'a, Entry<'a>> for IntoEntry {
         let schema = Some(builder.create_string(&self.schema));
         let sha = Some(builder.create_string(&self.sha));
 
+        builder.start_vector::<WIPOffset<&str>>(self.capabilities.len());
+        for cap in &self.capabilities {
+            let str = builder.create_string(cap);
+            builder.push(str);
+        }
+        let capabilities = Some(builder.end_vector(self.capabilities.len()));
+
         Entry::create(
             builder,
             &EntryArgs {
@@ -237,8 +244,8 @@ impl<'a> IntoBuffer<'a, Entry<'a>> for IntoEntry {
                     self.version.2,
                 )),
                 description,
-                capabilities: None, // TODO: support capabilities
                 schema,
+                capabilities,
                 size_: self.size,
                 sha,
             },

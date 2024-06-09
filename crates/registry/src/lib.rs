@@ -17,8 +17,7 @@ pub mod naming;
 pub mod partition;
 pub mod partition_scheme;
 
-#[allow(non_snake_case)]
-#[allow(unused_imports)]
+#[allow(clippy::all, warnings)]
 #[rustfmt::skip]
 #[path = "../target/flatbuffers/registry_generated.rs"]
 pub mod proto;
