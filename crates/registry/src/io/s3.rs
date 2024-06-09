@@ -27,6 +27,12 @@ where
     naming_scheme: N,
 }
 
+/// Extend the lifetime of stable heap allocated data.
+///
+/// # Safety
+///
+/// Ensure that the data being extended is not dropped before the lifetime of the returned reference.
+/// In our case, these lifetimes are stored in the map above, with a guarantee that no keys are removed.
 pub unsafe fn extend_lifetime<'a, T: StableDeref>(ptr: &T) -> &'a T::Target {
     &*(&**ptr as *const T::Target)
 }
@@ -70,6 +76,7 @@ where
                     .read(true)
                     .write(true)
                     .create(true)
+                    .truncate(false)
                     .open(&self.naming_scheme.index())
                     .await
                     .unwrap();

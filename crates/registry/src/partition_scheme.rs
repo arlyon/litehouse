@@ -109,7 +109,7 @@ where
             let bucket_count = 28 / bucket_divisor;
 
             // map ascii characters a-z + '-' and '_' to 0-27
-            let index = if letter >= 'a' && letter <= 'z' {
+            let index = if ('a'..='z').contains(&letter) {
                 letter as usize - 'a' as usize
             } else if letter == '-' {
                 26
