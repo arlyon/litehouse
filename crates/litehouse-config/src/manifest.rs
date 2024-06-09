@@ -1,5 +1,7 @@
 //! The manifest file format contains a plugin import alongside 1 or more instance configurations
 
+use base64::Engine;
+
 use crate::{import::ImportParseError, Import};
 use std::{collections::HashMap, str::FromStr};
 
@@ -48,7 +50,9 @@ impl FromStr for Manifest {
             .split_once('#')
             .ok_or(ManifestImportError::MissingDelimiter)?;
         let import = Import::from_str(import)?;
-        let json = base64::decode(base64_json).map_err(|_| ManifestImportError::InvalidBase64)?;
+        let json = base64::prelude::BASE64_STANDARD
+            .decode(base64_json)
+            .map_err(|_| ManifestImportError::InvalidBase64)?;
         let config =
             serde_json::from_slice(&json).map_err(|_| ManifestImportError::InvalidManifest)?;
 

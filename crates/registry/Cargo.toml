@@ -1,0 +1,24 @@
+[package]
+name = "litehouse-registry"
+version = "0.1.0"
+repository.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+description.workspace = true
+homepage.workspace = true
+
+[dependencies]
+litehouse-config = { version = "0.1.0", path = "../litehouse-config" }
+miette = "7.2.0"
+opendal = "0.45.1"
+opendal-fs-cache = { version = "0.1.0", path = "../opendal-fs-cache" }
+tokio = { version = "1.38.0", features = ["fs"] }
+
+# anonymous s3
+anyhow = "1.0.86"
+reqsign = { version = "0.14.9" }
+reqwest = { version = "0.11.24", default-features = false, features = [
+  "rustls-tls",
+] }
+async-trait = "0.1.80"

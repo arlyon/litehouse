@@ -12,7 +12,6 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 
 mod cache;
 mod cmd;
-mod registry;
 mod runtime;
 mod store;
 mod util;

@@ -14,11 +14,11 @@ use litehouse_config::{
     ManifestImport, ParseError, PluginConfig,
 };
 use litehouse_plugin::serde_json;
+use litehouse_registry::Registry;
 use miette::{Context, IntoDiagnostic, NamedSource, Result};
 use tokio::sync::broadcast::channel;
 
 use crate::{
-    registry::Registry,
     runtime::{set_up_engine, PluginRunnerFactory},
     store::StoreStrategy,
     util::resolve_span,
@@ -222,7 +222,7 @@ impl Subcommand {
 
                 println!("downloading");
 
-                let pass = packages::fetch(
+                let _pass = packages::fetch(
                     &config,
                     &registry
                         .with_download(wasm_path, cache_dir)
@@ -442,7 +442,7 @@ impl Subcommand {
                 let cache_dir = litehouse_config::directories().map(|d| d.cache_dir().to_owned());
                 let config = LitehouseConfig::load()?;
 
-                let pass = packages::fetch(
+                let _pass = packages::fetch(
                     &config,
                     &registry
                         .with_download(wasm_path, cache_dir)

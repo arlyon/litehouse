@@ -65,6 +65,7 @@ bytes = "1.5.0"
 which = "6.0.1"
 inquire = "0.7.5"
 opendal-fs-cache = { version = "0.1.0", path = "../opendal-fs-cache" }
+litehouse-registry = { version = "0.1.0", path = "../registry" }
 
 [dev-dependencies]
 rusty-hook = "0.11.2"

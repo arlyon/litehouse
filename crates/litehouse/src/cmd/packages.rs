@@ -9,7 +9,7 @@ use litehouse_plugin::serde_json;
 use tokio::process::Command;
 use tokio_stream::StreamExt;
 
-use crate::registry::{Download, Registry, Upload};
+use litehouse_registry::{Download, Registry, Upload};
 
 const WASM_PROCESS_FILE: &[u8] =
     include_bytes!("../../../litehouse/wasi_snapshot_preview1.reactor.wasm");
