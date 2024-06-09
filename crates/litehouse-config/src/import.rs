@@ -322,7 +322,7 @@ impl Display for Import {
         let sha = self
             .sha
             .as_ref()
-            .map(|v| format!("{}{}", SHA_SEPERATOR, v.to_string()))
+            .map(|v| format!("{}{}", SHA_SEPERATOR, v))
             .unwrap_or_default();
 
         write!(f, "{}{}{}{}", registry, self.plugin, version, sha)
