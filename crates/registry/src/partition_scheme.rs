@@ -31,7 +31,7 @@ where
     fn get(
         &'a self,
         prefix: &str,
-    ) -> Result<impl futures::Future<Output = &RwLock<Partition<T>>>, ()> {
+    ) -> Result<impl futures::Future<Output = &'a RwLock<Partition<'a, T>>>, ()> {
         let id = self.partition(prefix)?;
         Ok(self.open(id))
     }
@@ -109,7 +109,7 @@ where
             let bucket_count = 28 / bucket_divisor;
 
             // map ascii characters a-z + '-' and '_' to 0-27
-            let index = if ('a'..='z').contains(&letter) {
+            let index = if letter.is_ascii_lowercase() {
                 letter as usize - 'a' as usize
             } else if letter == '-' {
                 26

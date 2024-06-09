@@ -21,6 +21,7 @@ pub mod partition_scheme;
 #[rustfmt::skip]
 #[path = "../target/flatbuffers/registry_generated.rs"]
 pub mod proto;
+pub mod next;
 
 pub struct Registry<U, D> {
     op: Operator,

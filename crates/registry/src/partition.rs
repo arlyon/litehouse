@@ -8,7 +8,10 @@ use tokio::{
     io::{AsyncWriteExt as _, BufReader},
 };
 
-use crate::proto::litehouse::{Entry, EntryArgs, Version};
+use crate::{
+    next::Partitionable,
+    proto::litehouse::{Entry, EntryArgs, Version},
+};
 
 /// An element in a partitioning scheme.
 ///
@@ -45,6 +48,9 @@ where
             .unwrap();
         let data = unsafe { memmap2::Mmap::map(&file).unwrap() };
         let size = file.metadata().await.unwrap().len();
+        tracing::debug!("opened partition {path:?} with size {size}");
+        tracing::debug!("slice size is {}", data.len());
+
         Self {
             access: data,
             path,
@@ -56,6 +62,14 @@ where
 
     /// Get all the offsets of the chunks in the partition
     fn elements(&self) -> impl Iterator<Item = Range<usize>> + '_ {
+        let file = std::fs::OpenOptions::new()
+            .read(true)
+            .open(&self.path)
+            .unwrap()
+            .metadata()
+            .unwrap();
+        tracing::debug!("checking file metadata again: {file:?}");
+
         Self::elements_inner(&self.access)
     }
 
@@ -194,13 +208,13 @@ pub trait IntoBuffer<'a, T: Follow<'a> + Verifiable> {
 }
 
 pub struct IntoEntry {
-    title: String,
-    version: (u16, u16, u16),
-    description: String,
-    capabilities: Vec<String>,
-    schema: String,
-    size: u32,
-    sha: String,
+    pub title: String,
+    pub version: (u16, u16, u16),
+    pub description: String,
+    pub capabilities: Vec<String>,
+    pub schema: String,
+    pub size: u32,
+    pub sha: String,
 }
 
 impl<'a, 'b> PartialEq<&'b Entry<'a>> for IntoEntry {
@@ -217,6 +231,12 @@ impl<'a, 'b> PartialOrd<&'b Entry<'a>> for IntoEntry {
     // check title then version
     fn partial_cmp(&self, other: &&Entry<'a>) -> Option<std::cmp::Ordering> {
         Some(self.title.as_str()).partial_cmp(&other.title())
+    }
+}
+
+impl Partitionable for IntoEntry {
+    fn key(&self) -> &str {
+        &self.title
     }
 }
 
