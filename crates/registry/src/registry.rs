@@ -22,12 +22,6 @@ use crate::{
     proto::litehouse::Entry,
 };
 
-pub type LitehouseRegistry<'a> = Registry<
-    'a,
-    Entry<'a>,
-    Alphabetical<'a, 1, Entry<'a>, MMapS3IoScheme<'a, Entry<'a>, NumericalPrefixed>>,
->;
-
 pub struct Registry<'a, T, P>
 where
     T: Follow<'a, Inner = T> + Verifiable + 'a,

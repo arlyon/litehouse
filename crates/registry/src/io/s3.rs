@@ -2,14 +2,17 @@ use std::{
     collections::{hash_map::Entry, HashMap},
     io::ErrorKind,
     path::Path,
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
 
 use flatbuffers::{Follow, Verifiable};
 use opendal::{services::S3, Builder, Operator};
 use opendal_fs_cache::CacheLayer;
 use stable_deref_trait::StableDeref;
-use tokio::{fs::OpenOptions, sync::RwLock};
+use tokio::{
+    fs::OpenOptions,
+    sync::{Mutex, RwLock},
+};
 
 use crate::{naming::NamingScheme, partition::Partition};
 
@@ -43,7 +46,7 @@ where
     N: NamingScheme,
 {
     async fn open(&'a self, id: usize) -> &'a RwLock<Partition<'a, T>> {
-        let mut mmaps = self.mmaps.lock().unwrap();
+        let mut mmaps = self.mmaps.lock().await;
         match mmaps.entry(id) {
             Entry::Occupied(e) => unsafe {
                 tracing::debug!("partition {} already exists", id);
@@ -63,7 +66,7 @@ where
     N: NamingScheme,
 {
     async fn open(&self) -> Index {
-        let mut index = self.index.lock().unwrap();
+        let mut index = self.index.lock().await;
         match index.as_ref() {
             Some(i) => i.to_owned(),
             None => {

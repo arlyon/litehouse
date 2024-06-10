@@ -7,6 +7,12 @@ import { withAxiom } from "next-axiom";
 import codeImport from "remark-code-import";
 import { bundledLanguages } from "shiki";
 
+import { LitehouseRegistry } from "litehouse-litehouse-registry-js";
+
+const registry = await new LitehouseRegistry();
+const results = await registry.get("tasmota");
+console.log(results);
+
 const cwd = process.cwd();
 const rootMapPath = ".map.ts";
 

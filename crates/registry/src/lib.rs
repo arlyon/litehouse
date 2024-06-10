@@ -2,9 +2,14 @@
 
 #![feature(let_chains)]
 
+use futures::Future;
+use io::s3::MMapS3IoScheme;
 use litehouse_config::Import;
 use miette::{Context, IntoDiagnostic, Result};
+use naming::NumericalPrefixed;
 use opendal_fs_cache::CacheLayer;
+use partition::IntoEntry;
+use partition_scheme::{Alphabetical, Split};
 use std::{
     borrow::Cow,
     path::{Path, PathBuf},
@@ -22,6 +27,53 @@ pub mod partition_scheme;
 #[path = "../target/flatbuffers/registry_generated.rs"]
 pub mod proto;
 pub mod registry;
+
+pub struct LitehouseRegistry<'a> {
+    reg: registry::Registry<
+        'a,
+        proto::litehouse::Entry<'a>,
+        Alphabetical<
+            'a,
+            1,
+            proto::litehouse::Entry<'a>,
+            MMapS3IoScheme<'a, proto::litehouse::Entry<'a>, NumericalPrefixed>,
+        >,
+    >,
+}
+
+impl<'a> LitehouseRegistry<'a> {
+    pub async fn new() -> Self {
+        let naming = NumericalPrefixed::new("registry");
+        let partitioning = Alphabetical::new([Split::Seven], MMapS3IoScheme::new(naming, None));
+        LitehouseRegistry {
+            reg: registry::Registry::new(partitioning),
+        }
+    }
+
+    /// Insert the given entry into the registry.
+    pub fn insert(&'a self, entry: IntoEntry) -> impl Future<Output = Result<(), ()>> + 'a {
+        self.reg.insert(entry)
+    }
+
+    /// Get all the versions for the given plugin.
+    pub async fn get(&'a self, title: &str) -> Vec<proto::litehouse::Entry<'a>> {
+        vec![]
+    }
+
+    /// Get all the entries in the registry that match the given prefix.
+    pub async fn get_prefix(&'a self, prefix: &str) -> Vec<proto::litehouse::Entry<'a>> {
+        todo!()
+    }
+
+    /// Get an exact title and version from the registry.
+    pub async fn get_exact(
+        &'a self,
+        title: &str,
+        version: (u8, u8, u8),
+    ) -> Option<proto::litehouse::Entry<'a>> {
+        todo!()
+    }
+}
 
 pub struct Registry<U, D> {
     op: Operator,

@@ -9,8 +9,8 @@ use tokio::{
 };
 
 use crate::{
-    next::Partitionable,
     proto::litehouse::{Entry, EntryArgs, Version},
+    registry::Partitionable,
 };
 
 /// An element in a partitioning scheme.

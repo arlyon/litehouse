@@ -1,0 +1,27 @@
+[package]
+version = "0.0.0"
+name = "litehouse-registry-js"
+repository.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+description.workspace = true
+homepage.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+futures = "0.3.30"
+litehouse-registry = { version = "0.1.0", path = "../registry" }
+# Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
+napi = { version = "2.12.2", default-features = false, features = [
+  "napi4",
+  "tokio",
+  "tokio_rt",
+] }
+napi-derive = "2.12.2"
+tokio = { version = "1.38.0", features = ["sync"] }
+
+[build-dependencies]
+napi-build = "2.0.1"

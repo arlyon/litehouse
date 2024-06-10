@@ -1,0 +1,12 @@
+{
+  "name": "litehouse-registry-js-linux-arm-gnueabihf",
+  "version": "0.0.0",
+  "os": ["linux"],
+  "cpu": ["arm"],
+  "main": "litehouse-registry-js.linux-arm-gnueabihf.node",
+  "files": ["litehouse-registry-js.linux-arm-gnueabihf.node"],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10"
+  }
+}
