@@ -1,8 +1,15 @@
 {
-  "name": "litehouse-litehouse-registry-js",
+  "$schema": "https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/package.json",
+  "name": "litehouse-registry-js",
   "version": "0.0.0",
   "main": "index.js",
   "types": "index.d.ts",
+  "module": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "type": "module",
+  "files": ["npm", "index.d.ts", "index.js", "*.node"],
   "napi": {
     "name": "litehouse-registry-js",
     "triples": {

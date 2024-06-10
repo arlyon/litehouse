@@ -17,4 +17,5 @@ export class LitehouseRegistry {
   static global(): Promise<JsLitehouseRegistry>
   get(title: string): Array<Entry>
   insert(entry: Entry): undefined | null
+  getExact(title: string, version: [number, number, number]): Entry | null
 }
