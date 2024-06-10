@@ -4,6 +4,7 @@ import type { SVGProps } from "react";
 import { AddButton } from "./add-button";
 import { SchemaEditor } from "./shema-editor";
 import { Button } from "./ui/button";
+import { ShareButton } from "./share-button";
 
 export type Plugin = {
   title: string;
@@ -129,7 +130,7 @@ export function PluginPage(
       </div>
       <h3 className="text-lg font-medium flex items-end justify-between">
         <span>Configuration</span>
-        <Button variant="ghost">Share</Button>
+        <ShareButton />
       </h3>
       <SchemaEditor id={id} schema={props.configSchema} />
     </div>

@@ -1,12 +1,14 @@
 "use client";
 
 import Ajv from "ajv";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod";
 import { CopyBox } from "./copy-box";
 import { Input } from "./ui/input";
+import { useRouter } from "next/navigation";
+import { useHashState } from "@/hooks/use-hash";
 
 const configSchema = (name: string) =>
   z.object({
@@ -25,9 +27,21 @@ const configSchema = (name: string) =>
   });
 
 export const SchemaEditor = ({ id, schema: schemaString }) => {
+  const page = useRouter();
+  const [hash, setHash] = useHashState({});
+
+  let defaultData = {};
+  if (hash) {
+    try {
+      defaultData = JSON.parse(window.atob(hash)).instance;
+    } catch (e) {
+      setHash(null);
+    }
+  }
+
   const form = useForm({
     defaultValues: {
-      config: {},
+      config: defaultData,
       plugin: id,
     },
   });
@@ -46,6 +60,24 @@ export const SchemaEditor = ({ id, schema: schemaString }) => {
     ),
   );
   const [addCommand, setAddCommand] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (addCommand) {
+      setHash(addCommand);
+    }
+  }, [addCommand]);
+
+  useEffect(() => {
+    if (hash) {
+      try {
+        const data = JSON.parse(window.atob(hash));
+        const dataInner = data.instance;
+        form.setValue("config", dataInner);
+      } catch (e) {
+        // no-op
+      }
+    }
+  }, [hash]);
 
   const schemaData = JSON.parse(schemaString);
   const schema = configSchema(id).safeParse(schemaData);
