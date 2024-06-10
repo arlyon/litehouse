@@ -115,7 +115,7 @@ pub async fn build(package: &str, wasm_path: &Path, debug: bool) {
 }
 
 pub async fn publish<D>(package: &str, op: &Registry<Upload, D>) {
-    let (import, path) = build_in_temp(&package, true).await.unwrap();
+    let (import, path) = build_in_temp(package, true).await.unwrap();
 
     let success = op.publish(&import, &path).await;
     if success {

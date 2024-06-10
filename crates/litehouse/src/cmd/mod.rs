@@ -401,9 +401,7 @@ impl Subcommand {
                                         ) if p.as_ref() == "plugins" => {
                                             format!("invalid plugin definiton for `{}`", plugin)
                                         }
-                                        _ => {
-                                            format!("invalid setting")
-                                        }
+                                        _ => "invalid setting".to_string(),
                                     };
 
                                     FailedValidation {
@@ -472,7 +470,7 @@ impl Subcommand {
                 let registry = registry.build().await.wrap_err("can't search")?;
                 let results = registry.list(prefix.as_ref()).await;
                 for (import, _) in results {
-                    println!("{}", import.to_string());
+                    println!("{}", import);
                 }
                 Ok(())
             }

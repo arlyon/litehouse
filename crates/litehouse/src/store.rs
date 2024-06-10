@@ -7,6 +7,8 @@ use wasmtime::{AsContext, AsContextMut, Engine, Store};
 
 use crate::runtime::{PluginRunner, PluginRunnerFactory};
 
+type MutexStore<T> = Arc<Mutex<Store<PluginRunner<T>>>>;
+
 /// A strategy for handling stores between plugin runners.
 /// A single runner can instantiate multiple plugins with
 /// different configurations, and this enum allows for
@@ -15,14 +17,14 @@ use crate::runtime::{PluginRunner, PluginRunnerFactory};
 pub enum StoreStrategy<T> {
     /// All plugins live in the same store. All plugins share the
     /// same memory space, and only one plugin can run at a time.
-    Global(Arc<Mutex<Store<PluginRunner<T>>>>, PluginRunnerFactory<T>),
+    Global(MutexStore<T>, PluginRunnerFactory<T>),
     /// All instances of a specific plugin live in the same store.
     /// Different types of plugin run at the same time, but instantiations
     /// of the same type run sequentially.
     PerPlugin(
         Engine,
         PluginRunnerFactory<T>,
-        std::sync::Mutex<HashMap<String, Arc<Mutex<Store<PluginRunner<T>>>>>>,
+        std::sync::Mutex<HashMap<String, MutexStore<T>>>,
     ),
     /// Each plugin instance has its own store, allowing full parallelism.
     PerInstance(Engine, PluginRunnerFactory<T>),
