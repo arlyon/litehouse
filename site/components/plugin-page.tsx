@@ -75,6 +75,7 @@ export function PluginPage(
           <div className="space-y-2 text-sm">
             {props.versions?.map((v) => (
               <Link
+                scroll={false}
                 key={`${props.title}@${v.version}`}
                 href={`/registry/${props.title}/${v.version}`}
                 // @ts-expect-error

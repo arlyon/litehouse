@@ -1,5 +1,5 @@
 import { RegistryPage } from "@/components/registry-page";
-import { getPluginData, getPlugins } from "@/lib/registry";
+import { getPlugins } from "@/lib/registry";
 
 export default async function HomePage() {
   const packages = await getPlugins();

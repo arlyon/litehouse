@@ -1,35 +1,72 @@
-import { ManifestButton } from "@/components/manifest-button";
 import { ManifestEditor } from "@/components/manifest-editor";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import {
+  SignInButton,
+  SignUp,
+  SignedIn,
+  SignedOut,
+  UserButton,
+} from "@clerk/nextjs";
 import { PackageIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
 import type { PropsWithChildren } from "react";
 
+const LoginButton = () => {
+  if (process.env.NODE_ENV === "development") {
+    return null;
+  }
+  return (
+    <>
+      <SignedIn>
+        <UserButton
+          userProfileMode="navigation"
+          userProfileUrl="/profile"
+          afterSignOutUrl="/registry"
+        />
+      </SignedIn>
+      <SignedOut>
+        <SignInButton
+          fallbackRedirectUrl="/registry"
+          signUpFallbackRedirectUrl="/registry"
+        >
+          <Button>Sign In</Button>
+        </SignInButton>
+      </SignedOut>
+    </>
+  );
+};
+
+export const Header = ({ title }) => (
+  <div className="sticky top-0 z-50 h-16 border-b transition-colors border-foreground/10 bg-background/50 backdrop-blur-md">
+    <div className="mx-auto flex size-full max-w-container flex-row items-center justify-between gap-4 px-4">
+      <h1 className="font-semibold flex items-center">
+        <Link href="/">
+          <PackageIcon className="mr-2 h-6 w-6" />
+        </Link>
+        <Link href="/registry">{title}</Link>
+      </h1>
+      <div className="relative w-full max-w-md flex items-center gap-2">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <SearchIcon className="h-5 w-5 text-primary" />
+        </div>
+        <input
+          className="block w-full rounded-full border-accent bg-secondary border pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent dark:focus:ring-neutral-50"
+          placeholder="Search packages..."
+          type="text"
+        />
+        <ThemeToggle />
+        <ManifestEditor />
+        <LoginButton />
+      </div>
+    </div>
+  </div>
+);
+
 const Layout = ({ children }: PropsWithChildren<unknown>) => {
   return (
     <div>
-      <div className="sticky top-0 z-50 h-16 border-b transition-colors border-foreground/10 bg-background/50 backdrop-blur-md">
-        <div className="mx-auto flex size-full max-w-container flex-row items-center justify-between gap-4 px-4">
-          <h1 className="font-semibold flex items-center">
-            <Link href="/">
-              <PackageIcon className="mr-2 h-6 w-6" />
-            </Link>
-            <Link href="/registry">Litehouse Plugins</Link>
-          </h1>
-          <div className="relative w-full max-w-md flex items-center gap-2">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <SearchIcon className="h-5 w-5 text-primary" />
-            </div>
-            <input
-              className="block w-full rounded-full border-accent bg-secondary border pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent dark:focus:ring-neutral-50"
-              placeholder="Search packages..."
-              type="text"
-            />
-            <ThemeToggle />
-            <ManifestEditor />
-          </div>
-        </div>
-      </div>
+      <Header title="Litehouse Registry" />
       {/* <div className="flex justify-between mb-6">
         <div>
           <p className="text-muted-foreground">Total Downloads</p>

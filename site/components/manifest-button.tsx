@@ -4,7 +4,7 @@ import { Button, type ButtonProps } from "./ui/button";
 export const ManifestButton = (props: ButtonProps & { items?: object[] }) => {
   return (
     <Button className="relative" variant="ghost" {...props}>
-      <ReceiptTextIcon className="h-5 w-5" />
+      <ReceiptTextIcon className="h-4 w-4 text-muted-foreground" />
       {props.items ? (
         <span
           data-count={props.items.length ? "yes" : "no"}

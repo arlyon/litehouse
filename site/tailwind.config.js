@@ -1,6 +1,7 @@
 import animations from "@midudev/tailwind-animations";
 import { createPreset } from "fumadocs-ui/tailwind-plugin";
 import bgPatterns from "tailwindcss-bg-patterns";
+import animate from "tailwindcss-animate";
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -36,7 +37,7 @@ export default {
       },
     },
   },
-  plugins: [bgPatterns],
+  plugins: [bgPatterns, animate],
   presets: [createPreset()],
   // plugins: [animations],
 };
