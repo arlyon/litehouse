@@ -9,9 +9,18 @@ import { bundledLanguages } from "shiki";
 
 import { LitehouseRegistry } from "litehouse-litehouse-registry-js";
 
-const registry = await new LitehouseRegistry();
-const results = await registry.get("tasmota");
-console.log(results);
+const registry = await LitehouseRegistry.global();
+const results = registry.insert({
+  title: "tasmota",
+  version: [0, 1, 2],
+  description: "tasmota",
+  capabilities: [],
+  schema: "{}",
+  sha: "deadbeef",
+  size: 12345,
+});
+const find = registry.get("tasmota");
+console.log(find);
 
 const cwd = process.cwd();
 const rootMapPath = ".map.ts";

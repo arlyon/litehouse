@@ -15,11 +15,9 @@ use std::{marker::PhantomData, mem::transmute, sync::Mutex};
 use tokio::sync::RwLock;
 
 use crate::{
-    io::{s3::MMapS3IoScheme, IndexIOScheme},
-    naming::NumericalPrefixed,
+    io::IndexIOScheme,
     partition::{IntoBuffer, Partition},
-    partition_scheme::{Alphabetical, PartitioningScheme},
-    proto::litehouse::Entry,
+    partition_scheme::PartitioningScheme,
 };
 
 pub struct Registry<'a, T, P>
@@ -73,6 +71,19 @@ where
     //         .then(move |p| async { tokio_stream::iter(p.entries().await) })
     //         .flatten()
     // }
+
+    pub async fn range(
+        &'a self,
+        prefix_start: &str,
+        prefix_end: &str,
+    ) -> Vec<&RwLock<Partition<T>>> {
+        let partitions = self.partitioning.range(prefix_start, prefix_end).unwrap();
+        let mut out = vec![];
+        for p in partitions {
+            out.push(self.partitioning.open(p).await);
+        }
+        out
+    }
 
     pub async fn insert<'b, IB, T2>(&'a self, item: IB) -> Result<(), ()>
     where
@@ -170,23 +181,23 @@ mod test {
     use std::collections::hash_map::Entry as MapEntry;
     use std::collections::HashMap;
     use std::path::PathBuf;
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
 
     use flatbuffers::{Follow, Verifiable};
 
     use stable_deref_trait::StableDeref;
 
-    use tokio::sync::RwLock;
+    use tokio::sync::{Mutex, RwLock};
 
     use crate::io::Index;
     use crate::partition::IntoEntry;
 
     use crate::{
         io::{IndexIOScheme, PartitionIOScheme},
-        next::Registry,
         partition::Partition,
         partition_scheme::{Alphabetical, Split},
         proto::litehouse::Entry,
+        registry::Registry,
     };
 
     struct FakeIOScheme<'a, T>
@@ -230,7 +241,7 @@ mod test {
         T: Follow<'a> + Verifiable,
     {
         async fn open(&'a self, id: usize) -> &RwLock<Partition<T>> {
-            let mut mmaps = self.mmaps.lock().unwrap();
+            let mut mmaps = self.mmaps.lock().await;
             match mmaps.entry(id) {
                 MapEntry::Occupied(e) => unsafe {
                     tracing::debug!("partition {} already exists", id);

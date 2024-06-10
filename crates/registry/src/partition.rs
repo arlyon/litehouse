@@ -173,7 +173,7 @@ where
             builder.finish_size_prefixed(offset, None);
             let bytes = builder.finished_data();
             tracing::trace!("wrote {} bytes", bytes.len());
-            let written = cursor.write(bytes).await.unwrap();
+            let _written = cursor.write(bytes).await.unwrap();
 
             let bytes = cursor.write(&self.access[lower_bound..]).await.unwrap();
             tracing::trace!(

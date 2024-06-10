@@ -1,6 +1,7 @@
 //! Plugin registry
 
 #![feature(let_chains)]
+#![feature(map_try_insert)]
 
 use futures::Future;
 use io::s3::MMapS3IoScheme;
@@ -8,10 +9,11 @@ use litehouse_config::Import;
 use miette::{Context, IntoDiagnostic, Result};
 use naming::NumericalPrefixed;
 use opendal_fs_cache::CacheLayer;
-use partition::IntoEntry;
+use partition::{IntoEntry, Partition};
 use partition_scheme::{Alphabetical, Split};
 use std::{
     borrow::Cow,
+    mem::transmute,
     path::{Path, PathBuf},
 };
 
@@ -56,22 +58,57 @@ impl<'a> LitehouseRegistry<'a> {
     }
 
     /// Get all the versions for the given plugin.
-    pub async fn get(&'a self, title: &str) -> Vec<proto::litehouse::Entry<'a>> {
-        vec![]
+    pub async fn get(&'a self, title: String) -> Vec<proto::litehouse::Entry<'_>> {
+        let mut out = vec![];
+        let x = self.reg.range(&title, &title).await;
+        for x in x {
+            let x = x.read().await;
+            let x: &Partition<proto::litehouse::Entry> = &x;
+            let x: &Partition<proto::litehouse::Entry> = unsafe { transmute(x) };
+            out.extend(x.entries().skip_while(|e| e.title() != Some(&title)))
+        }
+        out
     }
 
     /// Get all the entries in the registry that match the given prefix.
     pub async fn get_prefix(&'a self, prefix: &str) -> Vec<proto::litehouse::Entry<'a>> {
-        todo!()
+        let mut out = vec![];
+        let x = self.reg.range(prefix, prefix).await;
+        for x in x {
+            let x = x.read().await;
+            let x: &Partition<proto::litehouse::Entry> = &x;
+            let x: &Partition<proto::litehouse::Entry> = unsafe { transmute(x) };
+            out.extend(x.entries())
+        }
+        out
     }
 
     /// Get an exact title and version from the registry.
     pub async fn get_exact(
         &'a self,
         title: &str,
-        version: (u8, u8, u8),
+        version_exp: (u16, u16, u16),
     ) -> Option<proto::litehouse::Entry<'a>> {
-        todo!()
+        let x = self.reg.range(title, title).await;
+        for x in x {
+            let x = x.read().await;
+            let x: &Partition<proto::litehouse::Entry> = &x;
+            let x: &Partition<proto::litehouse::Entry> = unsafe { transmute(x) };
+            for e in x.entries() {
+                if e.title() != Some(title) {
+                    continue;
+                }
+
+                let version = e.version().map(|v| (v.major(), v.minor(), v.patch()));
+                if version != Some(version_exp) {
+                    continue;
+                }
+
+                return Some(e);
+            }
+        }
+
+        None
     }
 }
 

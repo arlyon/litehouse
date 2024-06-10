@@ -3,8 +3,6 @@
 #[macro_use]
 extern crate napi_derive;
 
-use std::future::Future;
-
 use futures::FutureExt;
 use litehouse_registry::{partition::IntoEntry, LitehouseRegistry};
 use tokio::sync::OnceCell;
@@ -20,82 +18,75 @@ pub struct Entry {
     pub sha: String,
 }
 
-impl Into<IntoEntry> for Entry {
-    fn into(self) -> IntoEntry {
+impl From<Entry> for IntoEntry {
+    fn from(val: Entry) -> Self {
         IntoEntry {
-            title: self.title,
-            version: (self.version[0], self.version[1], self.version[2]),
-            description: self.description,
-            schema: self.schema,
-            sha: self.sha,
-            size: self.size,
-            capabilities: self.capabilities,
+            title: val.title,
+            version: (val.version[0], val.version[1], val.version[2]),
+            description: val.description,
+            schema: val.schema,
+            sha: val.sha,
+            size: val.size,
+            capabilities: val.capabilities,
         }
     }
 }
 
-impl<'a> Into<Entry> for litehouse_registry::proto::litehouse::Entry<'a> {
-    fn into(self) -> Entry {
+impl<'a> From<litehouse_registry::proto::litehouse::Entry<'a>> for Entry {
+    fn from(val: litehouse_registry::proto::litehouse::Entry<'a>) -> Entry {
         Entry {
-            title: self.title().map(|s| s.to_string()).unwrap_or_default(),
-            version: self
+            title: val.title().map(|s| s.to_string()).unwrap_or_default(),
+            version: val
                 .version()
                 .map(|v| vec![v.major(), v.minor(), v.patch()])
                 .unwrap(),
-            description: self
-                .description()
-                .map(|s| s.to_string())
-                .unwrap_or_default(),
+            description: val.description().map(|s| s.to_string()).unwrap_or_default(),
             capabilities: vec![],
-            schema: self.schema().map(|s| s.to_string()).unwrap_or_default(),
-            size: self.size_(),
-            sha: self.sha().map(|s| s.to_string()).unwrap_or_default(),
+            schema: val.schema().map(|s| s.to_string()).unwrap_or_default(),
+            size: val.size_(),
+            sha: val.sha().map(|s| s.to_string()).unwrap_or_default(),
         }
     }
 }
 
 #[napi(js_name = "LitehouseRegistry")]
-pub struct JsLitehouseRegistry(&'static LitehouseRegistry<'static>);
+pub struct JsLitehouseRegistry(
+    &'static LitehouseRegistry<'static>,
+    &'static tokio::runtime::Runtime,
+);
 
 static ONCE: OnceCell<LitehouseRegistry<'static>> = OnceCell::const_new();
+static RT: std::sync::OnceLock<tokio::runtime::Runtime> = std::sync::OnceLock::new();
 
 #[napi]
 impl JsLitehouseRegistry {
-    #[napi(constructor)]
-    pub async fn new() -> Self {
+    #[napi(factory)]
+    pub async fn global() -> Self {
         let reg = ONCE
             .get_or_init(|| async { LitehouseRegistry::new().await })
             .await;
-        Self(reg)
+        let rt = RT.get_or_init(|| tokio::runtime::Runtime::new().unwrap());
+        Self(reg, rt)
     }
 
     #[napi]
-    pub async fn insert(&self, entry: Entry) -> Option<()> {
-        // self.0.insert(entry.into()).map(|f| f.ok()).await
-        todo!()
+    pub fn get(&self, title: String) -> Vec<Entry> {
+        let rt = self.1;
+        let reg = self.0;
+        rt.block_on(async move { reg.get(title).await.into_iter().map(Into::into).collect() })
     }
 
     #[napi]
-    pub async fn get(&'static self, title: String) -> Vec<Entry> {
-        self.0
-            .get(&title)
-            .await
-            .into_iter()
-            .map(Into::into)
-            .collect()
+    pub fn insert(&self, entry: Entry) -> Option<()> {
+        let rt = self.1;
+        let reg = self.0;
+        rt.block_on(async { reg.insert(entry.into()).map(|f| f.ok()).await })
     }
 
     #[napi]
-    pub async fn get_prefix(&'static self, prefix: String) -> Vec<Entry> {
-        self.0
-            .get_prefix(&prefix)
-            .await
-            .into_iter()
-            .map(Into::into)
-            .collect()
-    }
-
-    pub async fn get_exact(&'static self, title: String, version: (u8, u8, u8)) -> Option<Entry> {
-        self.0.get_exact(&title, version).await.map(Into::into)
+    pub fn get_exact(&self, title: String, version: (u16, u16, u16)) -> Option<Entry> {
+        let rt = self.1;
+        let reg = self.0;
+        rt.block_on(async { reg.get_exact(&title, version).await.map(Into::into) })
     }
 }

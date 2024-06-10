@@ -1,11 +1,7 @@
-use std::{
-    collections::{hash_map::Entry, HashMap},
-    io::ErrorKind,
-    path::Path,
-    sync::Arc,
-};
+use std::{collections::HashMap, io::ErrorKind, path::Path, sync::Arc};
 
 use flatbuffers::{Follow, Verifiable};
+use futures::Future;
 use opendal::{services::S3, Builder, Operator};
 use opendal_fs_cache::CacheLayer;
 use stable_deref_trait::StableDeref;
@@ -42,20 +38,30 @@ pub unsafe fn extend_lifetime<'a, T: StableDeref>(ptr: &T) -> &'a T::Target {
 
 impl<'a, T, N> PartitionIOScheme<'a, T> for MMapS3IoScheme<'a, T, N>
 where
-    T: Follow<'a> + Verifiable,
-    N: NamingScheme,
+    T: Follow<'a> + Verifiable + Sync,
+    N: NamingScheme + Sync,
 {
+    /// Note: to avoid holding the lock during IO, we lock, check, unlock,
+    /// then lock again. This may be a little slower in the case of a
+    /// new partition but it is only ever called once per partition.
     async fn open(&'a self, id: usize) -> &'a RwLock<Partition<'a, T>> {
-        let mut mmaps = self.mmaps.lock().await;
-        match mmaps.entry(id) {
-            Entry::Occupied(e) => unsafe {
+        {
+            let mmaps = self.mmaps.lock().await;
+            if let Some(mmap) = mmaps.get(&id) {
                 tracing::debug!("partition {} already exists", id);
-                extend_lifetime(e.get())
-            },
-            Entry::Vacant(v) => unsafe {
-                tracing::debug!("loading partition {}", id);
-                extend_lifetime(v.insert(Box::new(RwLock::new(self.load(id).await))))
-            },
+                return unsafe { extend_lifetime(mmap) };
+            }
+        }
+
+        // the item does not exist, load it
+        let data = self.load(id).await;
+
+        {
+            let mut mmaps = self.mmaps.lock().await;
+
+            // if this fails, leave the original value in the map
+            _ = mmaps.try_insert(id, Box::new(RwLock::new(data)));
+            return unsafe { extend_lifetime(mmaps.get(&id).unwrap()) };
         }
     }
 }
@@ -96,8 +102,8 @@ where
 
 impl<'a, T, N> MMapS3IoScheme<'a, T, N>
 where
-    T: Follow<'a> + Verifiable,
-    N: NamingScheme,
+    T: Follow<'a> + Verifiable + Sync,
+    N: NamingScheme + Sync,
 {
     pub fn new(naming_scheme: N, cache: Option<&Path>) -> Self {
         // Create s3 backend builder.

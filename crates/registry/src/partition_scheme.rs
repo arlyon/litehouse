@@ -20,6 +20,9 @@ where
     fn partition(&self, prefix: &str) -> Result<usize, ()>;
 
     /// The partitions that a particular range exists within
+    ///
+    /// This is inclusive of the end so that abc..def will also
+    /// return entries for def.
     fn range(&self, prefix_start: &str, prefix_end: &str) -> Result<Range<usize>, ()>;
 
     /// Get the underlying io scheme
@@ -130,7 +133,7 @@ where
     fn range(&self, prefix_start: &str, prefix_end: &str) -> Result<Range<usize>, ()> {
         let start = self.partition(prefix_start)?;
         let end = self.partition(prefix_end)?;
-        Ok(start..end)
+        Ok(start..(end + 1))
     }
 
     fn io_scheme(&self) -> &Self::IOScheme {
@@ -140,6 +143,8 @@ where
 
 #[cfg(test)]
 mod test {
+    use std::ops::Range;
+
     use test_case::test_case;
 
     use crate::{
@@ -147,39 +152,36 @@ mod test {
         proto::litehouse::Entry,
     };
 
-    #[tokio::test]
     #[test_case("a", Ok(0))]
     #[test_case("b", Ok(0))]
     #[test_case("z", Ok(0))]
     #[test_case("!", Err(()) ; "invalid character")]
-    async fn one_partition(key: &str, partition: Result<usize, ()>) {
+    fn one_partition(key: &str, partition: Result<usize, ()>) {
         let naming = crate::naming::NumericalPrefixed::new(".");
         let io = crate::io::s3::MMapS3IoScheme::<Entry, _>::new(naming, None);
         let scheme = Alphabetical::<1, Entry, _>::new([Split::One], io);
         assert_eq!(scheme.partition(key), partition);
     }
 
-    #[tokio::test]
     #[test_case("a", Ok(0))]
     #[test_case("b", Ok(0))]
     #[test_case("n", Ok(0))]
     #[test_case("o", Ok(1))]
     #[test_case("z", Ok(1))]
     #[test_case("_", Ok(1))]
-    async fn two_partition(key: &str, partition: Result<usize, ()>) {
+    fn two_partition(key: &str, partition: Result<usize, ()>) {
         let naming = crate::naming::NumericalPrefixed::new(".");
         let io = crate::io::s3::MMapS3IoScheme::<Entry, _>::new(naming, None);
         let scheme = Alphabetical::<1, Entry, _>::new([Split::Two], io);
         assert_eq!(scheme.partition(key), partition);
     }
 
-    #[tokio::test]
     #[test_case("a", Ok(0))]
     #[test_case("b", Ok(1))]
     #[test_case("m", Ok(12))]
     #[test_case("n", Ok(13))]
     #[test_case("z", Ok(25))]
-    async fn twenty_eight_partition(key: &str, partition: Result<usize, ()>) {
+    fn twenty_eight_partition(key: &str, partition: Result<usize, ()>) {
         let naming = crate::naming::NumericalPrefixed::new(".");
         let io = crate::io::s3::MMapS3IoScheme::<Entry, _>::new(naming, None);
         let scheme = Alphabetical::<1, Entry, _>::new([Split::TwentyEight], io);
@@ -199,5 +201,15 @@ mod test {
         let io = crate::io::s3::MMapS3IoScheme::<Entry, _>::new(naming, None);
         let scheme = Alphabetical::<2, Entry, _>::new([Split::TwentyEight, Split::Two], io);
         assert_eq!(scheme.partition(key), partition);
+    }
+
+    #[test_case("a", "_", 0..28 ; "all")]
+    #[test_case("a", "a", 0..1 ; "inclusive 1")]
+    fn test_range(start: &str, end: &str, expected: Range<usize>) {
+        let naming = crate::naming::NumericalPrefixed::new(".");
+        let io = crate::io::s3::MMapS3IoScheme::<Entry, _>::new(naming, None);
+        let scheme = Alphabetical::<1, Entry, _>::new([Split::TwentyEight], io);
+        let partitions = scheme.range(start, end).unwrap();
+        assert_eq!(partitions, expected);
     }
 }

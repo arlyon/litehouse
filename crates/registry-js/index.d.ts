@@ -14,8 +14,7 @@ export interface Entry {
 }
 export type JsLitehouseRegistry = LitehouseRegistry
 export class LitehouseRegistry {
-  constructor()
-  insert(entry: Entry): Promise<undefined | null>
-  get(title: string): Promise<Array<Entry>>
-  getPrefix(prefix: string): Promise<Array<Entry>>
+  static global(): Promise<JsLitehouseRegistry>
+  get(title: string): Array<Entry>
+  insert(entry: Entry): undefined | null
 }
