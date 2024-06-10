@@ -1,0 +1,5 @@
+{
+  "name": "litehouse",
+  "version": "1.0.0",
+  "workspaces": ["site", "crates/registry-js", "crates/registry-js/npm/*"]
+}
