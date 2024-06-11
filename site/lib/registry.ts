@@ -43,7 +43,7 @@ export const getPluginData = async (
 ): Promise<Plugin> => {
   const plugin = PLUGINS[title];
   return {
-    version: version || plugin.versions[0].version,
+    version: version || plugin?.versions?.[0]?.version,
     title,
     ...plugin,
   };
