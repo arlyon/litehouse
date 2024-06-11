@@ -5,7 +5,9 @@ import Link from "next/link";
 export async function OpenGraph({ href }: { href: string }) {
   const data = await ogFetch(href);
   if ("error" in data) {
-    throw new Error(data.error);
+    throw new Error(
+      `failed to get opengraph for ${href}: ${JSON.stringify(data.error)}`,
+    );
   }
 
   const url = data.url.replace("https://", "").split("/")[0];

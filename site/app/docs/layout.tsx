@@ -2,6 +2,8 @@ import { DocsLayout } from "fumadocs-ui/layout";
 import type { ReactNode } from "react";
 import { pageTree } from "../source";
 
+export const dynamic = "force-static";
+
 export default function RootDocsLayout({ children }: { children: ReactNode }) {
   return (
     <DocsLayout

@@ -82,7 +82,6 @@ export const SchemaEditor = ({ id, schema: schemaString }) => {
   const schemaData = JSON.parse(schemaString);
   const schema = configSchema(id).safeParse(schemaData);
   if (!schema.success) {
-    console.log(schemaData, schema.error);
     return <div>Invalid schema</div>;
   }
 
@@ -119,9 +118,7 @@ export const SchemaEditor = ({ id, schema: schemaString }) => {
       </div>
       <form
         className="border border-accent bg-secondary p-4 flex flex-col gap-4"
-        onSubmit={form.handleSubmit((data) => {
-          console.log(data);
-        })}
+        onSubmit={form.handleSubmit((data) => {})}
       >
         {Object.entries(nonConstFields).map(([key, value]) => (
           <div key={key} className="flex flex-col gap-2">
@@ -165,7 +162,6 @@ export const SchemaEditor = ({ id, schema: schemaString }) => {
                 )}`,
                 important: true,
               });
-              console.log("ERROR", ajv.errors);
               return false;
             }
             return true;

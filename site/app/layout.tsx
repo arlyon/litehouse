@@ -7,8 +7,6 @@ import { AxiomWebVitals } from "next-axiom";
 import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
 
-import { ClerkProvider } from "@clerk/nextjs";
-
 const inter = Inter({
   subsets: ["latin"],
 });
@@ -20,22 +18,20 @@ export const metadata: Metadata = {
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <ClerkProvider>
-      <html lang="en" className={inter.className}>
-        <head>
-          <link rel="icon" href="/favicon.svg" />
-        </head>
-        <AxiomWebVitals />
-        <body>
-          <Toaster />
-          <RootProvider>
-            <main className="min-h-screen flex flex-col">
-              <div className="flex-1">{children}</div>
-              <Footer />
-            </main>
-          </RootProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en" className={inter.className}>
+      <head>
+        <link rel="icon" href="/favicon.svg" />
+      </head>
+      <AxiomWebVitals />
+      <body>
+        <Toaster />
+        <RootProvider>
+          <main className="min-h-screen flex flex-col">
+            <div className="flex-1">{children}</div>
+            <Footer />
+          </main>
+        </RootProvider>
+      </body>
+    </html>
   );
 }

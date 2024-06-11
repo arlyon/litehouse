@@ -5,6 +5,7 @@
  */
 
 import { Button } from "@/components/ui/button";
+import { starsAndCommits } from "@/lib/github";
 /** Add fonts into your Next.js project:
 
 import { Inter } from 'next/font/google'
@@ -114,26 +115,7 @@ function RepoData({
 async function CommitAndStars({ url }: { url: string }) {
   const repoName = url.split("/").slice(-2).join("/");
   // fetch github stars from the api for the repo
-  const response = await fetch(`https://api.github.com/repos/${repoName}`, {
-    next: { revalidate: 86400 },
-  }).then((res) => res.json());
-  const stars = response.stargazers_count;
-
-  let commits = undefined;
-  if (response.commits_url) {
-    const response2 = await fetch(response.commits_url?.replace("{/sha}", ""), {
-      next: { revalidate: 86400 },
-    });
-    commits = await response2.json();
-  }
-
-  const commit = commits?.[0]
-    ? {
-        sha: commits[0].sha,
-        date: new Date(commits[0].commit.author.date),
-        url: commits[0].html_url,
-      }
-    : undefined;
+  const { stars, commit } = await starsAndCommits(repoName);
 
   return <RepoData url={url} name={repoName} commit={commit} stars={stars} />;
 }

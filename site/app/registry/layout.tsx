@@ -1,43 +1,13 @@
+import { LoginButton } from "@/components/login-button";
 import { ManifestEditor } from "@/components/manifest-editor";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
-import {
-  SignInButton,
-  SignUp,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from "@clerk/nextjs";
+import { ClerkProvider } from "@clerk/nextjs";
 import { PackageIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
-import type { PropsWithChildren } from "react";
+import { Suspense, type PropsWithChildren, Error, Fragment } from "react";
+import { ErrorBoundary } from "react-error-boundary";
 
-const LoginButton = () => {
-  if (process.env.NODE_ENV === "development") {
-    return null;
-  }
-  return (
-    <>
-      <SignedIn>
-        <UserButton
-          userProfileMode="navigation"
-          userProfileUrl="/profile"
-          afterSignOutUrl="/registry"
-        />
-      </SignedIn>
-      <SignedOut>
-        <SignInButton
-          fallbackRedirectUrl="/registry"
-          signUpFallbackRedirectUrl="/registry"
-        >
-          <Button>Sign In</Button>
-        </SignInButton>
-      </SignedOut>
-    </>
-  );
-};
-
-export const Header = ({ title }) => (
+export const Header = ({ title, provider: Provider = Fragment }) => (
   <div className="sticky top-0 z-50 h-16 border-b transition-colors border-foreground/10 bg-background/50 backdrop-blur-md">
     <div className="mx-auto flex size-full max-w-container flex-row items-center justify-between gap-4 px-4">
       <h1 className="font-semibold flex items-center">
@@ -57,7 +27,27 @@ export const Header = ({ title }) => (
         />
         <ThemeToggle />
         <ManifestEditor />
-        <LoginButton />
+        <div>
+          <div className="size-[28px]">
+            <ErrorBoundary
+              fallback={
+                <div>
+                  <div className="animate-pulse size-[28px] rounded-full bg-muted" />
+                </div>
+              }
+            >
+              <Suspense
+                fallback={
+                  <div className="animate-pulse bg-muted rounded-full size-[28px]" />
+                }
+              >
+                <Provider>
+                  <LoginButton />
+                </Provider>
+              </Suspense>
+            </ErrorBoundary>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -66,7 +56,7 @@ export const Header = ({ title }) => (
 const Layout = ({ children }: PropsWithChildren<unknown>) => {
   return (
     <div>
-      <Header title="Litehouse Registry" />
+      <Header title="Litehouse Registry" provider={ClerkProvider} />
       {/* <div className="flex justify-between mb-6">
         <div>
           <p className="text-muted-foreground">Total Downloads</p>
