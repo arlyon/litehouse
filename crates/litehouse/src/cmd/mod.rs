@@ -1,5 +1,6 @@
 //! The main commands for the Litehouse CLI.
 
+mod auth;
 mod generate;
 mod packages;
 mod run;
@@ -7,6 +8,7 @@ mod validate;
 
 use std::path::PathBuf;
 
+use auth::AuthCommand;
 use jsonc_parser::CollectOptions;
 use jsonschema::{error::ValidationErrorKind, paths::PathChunk};
 use litehouse_config::{
@@ -120,6 +122,11 @@ pub enum Subcommand {
     /// Send any feedback! Note that this will be sent to the litehouse team
     /// with your git email and name (so that we can get in touch).
     Feedback { message: String },
+    /// Authenticate with litehouse.arlyon.dev to upload plugins
+    Auth {
+        #[command(subcommand)]
+        auth_command: AuthCommand,
+    },
 }
 
 impl Subcommand {
@@ -528,6 +535,10 @@ impl Subcommand {
                     return Err(miette::miette!("failed to send feedback ({})", status));
                 }
 
+                Ok(())
+            }
+            Subcommand::Auth { auth_command } => {
+                auth::do_auth(auth_command).await;
                 Ok(())
             }
         }

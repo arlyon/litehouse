@@ -1,6 +1,6 @@
 [package]
 name = "litehouse"
-version = "0.2.0"
+version = "0.3.0"
 description = "A lightweight home automation server"
 edition.workspace = true
 license.workspace = true
@@ -66,6 +66,8 @@ which = "6.0.1"
 inquire = "0.7.5"
 opendal-fs-cache = { version = "0.1.0", path = "../opendal-fs-cache" }
 litehouse-registry = { version = "0.1.0", path = "../registry" }
+litehouse-auth = { version = "0.1.0", path = "../auth" }
+serde_json = "1.0.117"
 
 [dev-dependencies]
 rusty-hook = "0.11.2"

@@ -45,6 +45,7 @@ bin = [
 
 # Config for 'cargo dist'
 [workspace.metadata.dist]
+# Skip checking whether the specified configuration files are up to date
 allow-dirty = ["ci", "msi"]
 # The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)
 cargo-dist-version = "0.16.7"
@@ -55,17 +56,29 @@ installers = ["shell", "powershell", "homebrew", "msi"]
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = [
   "aarch64-apple-darwin",
-  "aarch64-unknown-linux-gnu",
+  # "aarch64-unknown-linux-gnu", disabled until flatc is updated
   "x86_64-apple-darwin",
   "x86_64-unknown-linux-gnu",
-  "x86_64-pc-windows-msvc",
+  # "x86_64-pc-windows-msvc", # disabled until flatc is updated
 ]
 # Publish jobs to run in CI
 pr-run-mode = "plan"
 # Whether to install an updater program
 install-updater = true
+# Cache provider for builds. Can be one of github or buildjet.
 cache-provider = "buildjet"
 
 [workspace.metadata.dist.github-custom-runners]
 aarch64-unknown-linux-gnu = "buildjet-8vcpu-ubuntu-2204-arm"
 aarch64-unknown-linux-musl = "buildjet-8vcpu-ubuntu-2204-arm"
+x86_64-pc-windows-msvc = "windows-2022"
+x86_64-unknown-linux-gnu = "ubuntu-24.04"
+
+[workspace.metadata.dist.dependencies.homebrew]
+flatbuffers = '*'
+
+[workspace.metadata.dist.dependencies.apt]
+flatbuffers-compiler = '*'
+
+[workspace.metadata.dist.dependencies.chocolatey]
+flatc = '*'

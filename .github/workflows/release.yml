@@ -72,8 +72,9 @@ jobs:
         run: |
           cargo dist ${{ (!github.event.pull_request && format('host --steps=create --tag={0}', github.ref_name)) || 'plan' }} --output-format=json | sed 's/axodotdev\/cargo-dist/arlyon\/cargo-dist/g' > plan-dist-manifest.json
           echo "cargo dist ran successfully"
-          cat plan-dist-manifest.json
-          echo "manifest=$(jq -c "." plan-dist-manifest.json)" >> "$GITHUB_OUTPUT"
+          jq < plan-dist-manifest.json '.ci.github.artifacts_matrix.include = [.ci.github.artifacts_matrix.include[] | select(.targets[] | contains("x86_64-unknown-linux-gnu")).packages_install = "curl -L https://github.com/google/flatbuffers/releases/download/v24.3.25/Linux.flatc.binary.g++-13.zip | zcat > flatc && chmod +x flatc && sudo mv flatc /bin"'] > plan-dist-manifest.json.2
+          cat plan-dist-manifest.json.2
+          echo "manifest=$(jq -c "." plan-dist-manifest.json.2)" >> "$GITHUB_OUTPUT"
       - name: "Upload dist-manifest.json"
         uses: actions/upload-artifact@v4
         with:
