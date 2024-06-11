@@ -2,13 +2,10 @@ import { type Plugin, PluginPage } from "@/components/plugin-page";
 import { getPluginData, getPlugins } from "@/lib/registry";
 import type { Metadata } from "next";
 
-const Page = async ({ params }: { params: { slug: string[] } }) => {
-  const plugin = params.slug[0];
-  const slugVersion = params.slug[1];
-  const pluginData = await getPluginData(plugin, slugVersion);
-  const pageVersion =
-    pluginData.versions.find((v) => v.version === params.slug[1]) ??
-    pluginData.versions[0];
+const Page = async ({ params }: { params: { title: string } }) => {
+  const plugin = params.title;
+  const pluginData = await getPluginData(plugin);
+  const pageVersion = pluginData.versions[0];
 
   const versions = pluginData.versions.map((version) => ({
     ...version,
@@ -32,14 +29,11 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string[] };
+  params: { title: string };
 }) {
-  const plugin = params.slug[0];
-  const slugVersion = params.slug[1];
-  const pluginData = await getPluginData(plugin, slugVersion);
-  const pageVersion =
-    pluginData.versions.find((v) => v.version === params.slug[1]) ??
-    pluginData.versions[0];
+  const plugin = params.title;
+  const pluginData = await getPluginData(plugin);
+  const pageVersion = pluginData.versions[0];
 
   // if (page == null) notFound();
 
