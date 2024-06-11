@@ -88,7 +88,7 @@ function Package(props: {
             </div>
             <AddButton
               name={props.title}
-              version={props.version}
+              version={props.version.version}
               downloads={props.downloads ?? 0}
             />
           </div>
