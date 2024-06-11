@@ -13,7 +13,15 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Litehouse",
-  description: "Liteweight house automation system, build on web assembly.",
+  description: "A lightweight home automation server.",
+  metadataBase: new URL("https://litehouse.arlyon.dev"),
+  creator: "@arlyon",
+  openGraph: {
+    type: "website",
+  },
+  viewport: "width=device-width, initial-scale=1",
+  robots: "index, follow",
+  keywords: ["home automation", "home", "automation", "server", "wasm"],
 };
 
 export default function Layout({ children }: { children: ReactNode }) {

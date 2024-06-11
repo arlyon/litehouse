@@ -82,7 +82,7 @@ export default async function Image({ params }: { title: string }) {
             paddingRight: 24,
           }}
         >
-          {params.title}
+          {params.title} @ latest
         </div>
         <Star
           style={{

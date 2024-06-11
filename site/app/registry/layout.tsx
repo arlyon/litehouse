@@ -6,15 +6,18 @@ import { PackageIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense, type PropsWithChildren, Error, Fragment } from "react";
 import { ErrorBoundary } from "react-error-boundary";
+import { Logo } from "../page";
 
 export const Header = ({ title, provider: Provider = Fragment }) => (
   <div className="sticky top-0 z-50 h-16 border-b transition-colors border-foreground/10 bg-background/50 backdrop-blur-md">
     <div className="mx-auto flex size-full max-w-container flex-row items-center justify-between gap-4 px-4">
       <h1 className="font-semibold flex items-center">
         <Link href="/">
-          <PackageIcon className="mr-2 h-6 w-6" />
+          <Logo className="mr-2 h-6 w-6" />
         </Link>
-        <Link href="/registry">{title}</Link>
+        <Link href="/registry">
+          Litehouse <span className="text-green-600">{title}</span>
+        </Link>
       </h1>
       <div className="relative w-full max-w-md flex items-center gap-2">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -56,7 +59,7 @@ export const Header = ({ title, provider: Provider = Fragment }) => (
 const Layout = ({ children }: PropsWithChildren<unknown>) => {
   return (
     <div>
-      <Header title="Litehouse Registry" provider={ClerkProvider} />
+      <Header title="Registry" provider={ClerkProvider} />
       {/* <div className="flex justify-between mb-6">
         <div>
           <p className="text-muted-foreground">Total Downloads</p>
