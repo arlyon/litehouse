@@ -12,8 +12,7 @@ export default function Page() {
         <RedirectToSignIn />
       </SignedOut>
       <SignedIn>
-        <UserProfile routing="hash">
-        </UserProfile>
+        <UserProfile />
       </SignedIn>
     </>
   );
