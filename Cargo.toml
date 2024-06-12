@@ -14,7 +14,7 @@ homepage = "https://litehouse.arlyon.dev"
 strip = true
 opt-level = "z"
 panic = "abort"
-lto = "thin"
+lto = "fat"
 
 [profile.release-with-debug]
 inherits = "release"

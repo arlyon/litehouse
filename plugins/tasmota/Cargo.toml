@@ -15,7 +15,6 @@ litehouse-plugin = { version = "0.1.0", path = "../../crates/plugin" }
 schemars = "0.8.16"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
-serde_path_to_error = "0.1.14"
 tracing = "0.1.40"
 
 [lib]

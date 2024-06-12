@@ -107,6 +107,12 @@ pub enum Subcommand {
         wasm_path: PathBuf,
         #[clap(long, default_value_t = false)]
         debug: bool,
+        /// Do not perform the final packaging, leaving a regular wasm file.
+        #[clap(long)]
+        no_package: bool,
+        /// Do not optimise the wasm file for size.
+        #[clap(long)]
+        no_optimise: bool,
     },
     /// Search for a package in the registry.
     Search {
@@ -463,8 +469,10 @@ impl Subcommand {
                 wasm_path,
                 package,
                 debug,
+                no_package,
+                no_optimise,
             } => {
-                packages::build(&package, &wasm_path, debug).await;
+                packages::build(&package, &wasm_path, debug, !no_optimise, no_package).await;
                 Ok(())
             }
             Subcommand::Search { query } => {

@@ -15,7 +15,6 @@ pub struct PersistentPlugin {
 
 impl GuestRunner for PersistentPlugin {
     fn new(nickname: String, _config: Option<String>) -> Self {
-        litehouse_plugin::tracing_subscriber();
         // let (commands_tx, commands_rx) = std::sync::mpsc::channel();
         // let (updates_tx, updates_rx) = std::sync::mpsc::channel();
         std::thread::spawn(move || loop {

@@ -32,8 +32,6 @@ pub struct WeatherConfig {
 
 impl GuestRunner for WeatherPlugin {
     fn new(nickname: String, config: Option<String>) -> Self {
-        litehouse_plugin::tracing_subscriber();
-
         let WeatherConfig { lat, lon } = serde_json::from_str(&config.unwrap_or_default()).unwrap();
         let mut request_path = String::new();
         write!(

@@ -11,11 +11,10 @@ repository.workspace = true
 [dependencies]
 base64 = "0.21.7"
 litehouse-plugin = { version = "0.1.0", path = "../../crates/plugin" }
-rustls = "0.23.7"
+rustls = { version = "0.23.9", default-features = false, features = ["std"] }
 schemars = "0.8.16"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
-serde_path_to_error = "0.1.14"
 tracing = "0.1.40"
 tungstenite = "0.21.0"
 url = "2.5.0"

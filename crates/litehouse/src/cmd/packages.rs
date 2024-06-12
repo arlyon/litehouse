@@ -14,7 +14,12 @@ use litehouse_registry::{Download, Registry, Upload};
 const WASM_PROCESS_FILE: &[u8] =
     include_bytes!("../../../litehouse/wasi_snapshot_preview1.reactor.wasm");
 
-pub async fn build_in_temp(package: &str, release: bool) -> Option<(Import, PathBuf)> {
+pub async fn build_in_temp(
+    package: &str,
+    release: bool,
+    optimise: bool,
+    no_package: bool,
+) -> Option<(Import, PathBuf)> {
     let workspaces_json = Command::new("cargo")
         .arg("metadata")
         .output()
@@ -53,11 +58,28 @@ pub async fn build_in_temp(package: &str, release: bool) -> Option<(Import, Path
 
     // run cargo build
     let out = Command::new("cargo")
-        .args(["build", "--target", "wasm32-wasi", "-p", package])
+        .args([
+            "build",
+            "-Zbuild-std=panic_abort,std",
+            "--target",
+            "wasm32-wasi",
+            "-p",
+            package,
+        ])
         .args(if release { &["--release"][..] } else { &[] })
         .status()
         .await
         .unwrap();
+
+    let disk_name = package.replace("-", "_");
+    let pwd = std::env::current_dir().unwrap();
+    let build_output_path = format!(
+        "target/wasm32-wasi/{}/{}.wasm",
+        if release { "release" } else { "debug" },
+        disk_name
+    );
+
+    let mut build_output_path = pwd.join(build_output_path);
 
     tracing::info!("built the binary");
 
@@ -72,11 +94,40 @@ pub async fn build_in_temp(package: &str, release: bool) -> Option<(Import, Path
         sha: None,
     };
 
-    // write the wasm file to a temp dir
     let tmp = std::env::temp_dir().join("litehouse");
-    let wasi_path = tmp.join("wasi_snapshot_preview1.wasm");
-    let out_path = tmp.join(import.file_name());
     std::fs::create_dir_all(&tmp).unwrap();
+
+    if optimise {
+        // run wasm-opt
+        let wasm_path_opt = tmp.join("opt.wasm");
+        let out = Command::new("wasm-opt")
+            .args([
+                "-Oz",
+                "--enable-mutable-globals",
+                "--enable-bulk-memory",
+                build_output_path.to_str().unwrap(),
+                "-o",
+                wasm_path_opt.to_str().unwrap(),
+            ])
+            .status()
+            .await
+            .unwrap();
+
+        if !out.success() {
+            tracing::error!("failed");
+            return None;
+        }
+        build_output_path = wasm_path_opt;
+    };
+
+    if no_package {
+        tracing::debug!("exiting without packaging");
+        return Some((import, build_output_path));
+    }
+
+    // write the wasm file to a temp dir
+    let wasi_path = tmp.join("wasi_snapshot_preview1.wasm");
+    let component_path = tmp.join(import.file_name());
     std::fs::write(&wasi_path, WASM_PROCESS_FILE).unwrap();
 
     tracing::info!("wrote process file to {}", wasi_path.display());
@@ -86,11 +137,11 @@ pub async fn build_in_temp(package: &str, release: bool) -> Option<(Import, Path
         .args([
             "component",
             "new",
-            &format!("./target/wasm32-wasi/release/{}.wasm", package),
+            build_output_path.to_str().unwrap(),
             "--adapt",
             wasi_path.to_str().unwrap(),
             "-o",
-            out_path.to_str().unwrap(),
+            component_path.to_str().unwrap(),
         ])
         .status()
         .await
@@ -104,18 +155,20 @@ pub async fn build_in_temp(package: &str, release: bool) -> Option<(Import, Path
     }
 
     tracing::info!("created component");
-    Some((import, out_path))
+    Some((import, component_path))
 }
 
-pub async fn build(package: &str, wasm_path: &Path, debug: bool) {
-    let (import, path) = build_in_temp(package, !debug).await.unwrap();
+pub async fn build(package: &str, wasm_path: &Path, debug: bool, optimise: bool, no_package: bool) {
+    let (import, path) = build_in_temp(package, !debug, optimise, no_package)
+        .await
+        .unwrap();
     tokio::fs::create_dir_all(wasm_path).await.unwrap();
     let dest_file = wasm_path.join(import.file_name());
     tokio::fs::copy(&path, &dest_file).await.unwrap();
 }
 
 pub async fn publish<D>(package: &str, op: &Registry<Upload, D>) {
-    let (import, path) = build_in_temp(package, true).await.unwrap();
+    let (import, path) = build_in_temp(package, true, true, false).await.unwrap();
 
     let success = op.publish(&import, &path).await;
     if success {

@@ -104,8 +104,6 @@ pub struct SamsungConfig {
 
 impl GuestRunner for SamsungPlugin {
     fn new(nickname: String, config: Option<String>) -> Self {
-        litehouse_plugin::tracing_subscriber();
-
         let SamsungConfig { ip, name, token } =
             serde_json::from_str(&config.unwrap_or_default()).unwrap();
         Self {
