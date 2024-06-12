@@ -7,6 +7,7 @@ import { AxiomWebVitals } from "next-axiom";
 import { Inter } from "next/font/google";
 import { Suspense, type ReactNode } from "react";
 import { ClerkProvider } from "@clerk/nextjs";
+import { cn } from "@/lib/utils";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -32,11 +33,11 @@ export default function Layout({ children }: { children: ReactNode }) {
         <link rel="icon" href="/favicon.svg" />
       </head>
       <AxiomWebVitals />
-      <body>
+      <body className="!pointer-events-auto">
         <Toaster />
         <RootProvider>
           <main className="min-h-screen flex flex-col">
-            <div className="flex-1">{children}</div>
+            <div className="flex-1 flex flex-col">{children}</div>
             <Footer />
           </main>
         </RootProvider>
