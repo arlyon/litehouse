@@ -1,0 +1,27 @@
+---
+title: Registry
+icon: Container
+---
+
+## Fetch
+
+Fetch the plugins defined in the `imports` fields in your [settings.json](/docs/settings) from the registry.
+
+```bash title="Terminal"
+litehouse fetch
+```
+
+## Search
+
+Search the registry for a plugin. This will return a list of plugins that match the search term.
+
+```bash title="Terminal"
+litehouse search tasmota@0.1
+tasmota@0.1.0
+tasmota@0.1.1
+tasmota@0.1.2
+```
+
+## Publish
+
+Publish a plugin to the registry. For more, see [the build docs](/docs/commands/build#publish).

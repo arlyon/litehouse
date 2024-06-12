@@ -1,5 +1,8 @@
 {
   "name": "litehouse",
   "version": "1.0.0",
-  "workspaces": ["site", "crates/registry-js", "crates/registry-js/npm/*"]
+  "workspaces": ["site", "crates/registry-js", "crates/registry-js/npm/*"],
+  "scripts": {
+    "postinstall": "bunx @miblanchard/patch-package@8.0.12"
+  }
 }

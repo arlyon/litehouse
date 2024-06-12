@@ -1,0 +1,9 @@
+[package]
+name = "noop"
+version = "0.1.0"
+
+[dependencies]
+litehouse-plugin = { version = "0.1.0", path = "../../crates/plugin" }
+
+[lib]
+crate-type = ["cdylib"]

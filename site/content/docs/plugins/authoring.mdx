@@ -1,0 +1,140 @@
+---
+title: Authoring
+description: Plugins can be written in any language that supports generating wit bindings. This guide explains how to set this up in rust.
+icon: Wrench
+---
+
+import { File, Folder, Files } from 'fumadocs-ui/components/files';
+import Link from "next/link";
+import { Callout } from "fumadocs-ui/components/callout";
+
+## Introduction
+
+Litehouse plugins are WebAssembly modules that extend the functionality of the Litehouse home automation system. They can be written in any language that compiles to WebAssembly, offering a wide range of possibilities for automation, integration, and customization.
+
+## The `build` command
+
+The authoring workflow centers around the `build` command. This command
+packages your plugin source into the litehouse plugin format which is, under
+the hood, just a wasm component. For more about the `build` command, see the
+[build](/docs/commands/build) command page.
+
+## Getting Started
+
+The easiest way to start is to copy the sample plugin, `noop` in the
+repository. Please see [the crate](https://github.com/arlyon/litehouse/tree/main/plugins/noop) for more,
+or follow the guide below.
+
+### Anatomy of a plugin
+
+<Files>
+  <Folder name="src" defaultOpen>
+    <Link href="#lib"><File name="lib.rs" /></Link>
+  </Folder>
+  <Link href="#cargo"><File name="Cargo.toml" /></Link>
+  <File name="readme.md" />
+</Files>
+
+
+Lets learn a little about how to create plugins by walking through the anatomy
+of the `noop` plugin and see how we can extend it. It looks a lot like a
+regular rust library, but with some extra tools to set up the traits you
+need to implement and define what the plugin's configuration looks like.
+
+<Callout>
+At any time you can bail out and implement the plugin the 'manual' way; as long
+as it adheres to the [plugin definition](/docs/plugins), it will work. The
+following is just a convenience wrapper for rust libraries.
+</Callout>
+
+To get started, you'll need to import the `litehouse-plugin` crate which
+includes some convenience macros for getting started with rust, the primary
+entrypoint of which is the `generate` macro. Notice that the `crate-type` is
+set to `cdylib`. This is important for wasm modules as it signifies to cargo
+that we intend on loading this plugin dynamically.
+
+<div id="cargo">
+```toml title="Cargo.toml" file=../../../../plugins/noop/Cargo.toml
+```
+</div>
+
+Looking at the `lib.rs` file, we can see that it is mostly just a regular rust
+library. `generate` expects a struct which is instantiated by litehouse. You
+may store any local state you like in here. The `generate` macro also generates
+for you some trait and types from the plugin schema.
+
+<div id="lib">
+```rust title="src/lib.rs" file=../../../../plugins/noop/src/lib.rs
+//! A basic no-op plugin intended to be used as a starting point for writing
+//! your own plugin.
+
+use crate::exports::litehouse::plugin::plugin::{Event, GuestRunner, Subscription};
+
+litehouse_plugin::generate!(NoopPlugin);
+
+pub struct NoopPlugin;
+
+impl GuestRunner for NoopPlugin {
+    fn new(_nickname: String, _config: Option<String>) -> Self {
+        Self
+    }
+
+    fn subscribe(&self) -> Result<Vec<Subscription>, u32> {
+        Ok(vec![])
+    }
+
+    fn update(&self, _events: Vec<Event>) -> Result<bool, u32> {
+        Ok(true)
+    }
+}
+```
+</div>
+
+<Callout type="warn">
+If you forget to implement GuestRunner for your plugin, you will get a compile
+error. Same for if you fail to implement the interface correctly.
+
+<div className="pb-2 pr-8">
+```sh
+error[E0277]: the trait bound `NoopPlugin: GuestRunner` is not satisfied
+ --> plugins/noop/src/lib.rs:6:29
+  |
+6 | litehouse_plugin::generate!(NoopPlugin);
+  |                             ^^^^^^^^^^ the trait `GuestRunner` is not implemented for `NoopPlugin`
+  |
+help: this trait has no implementations, consider adding one
+ --> plugins/noop/src/lib.rs:6:1`
+ ```
+ </div>
+
+</Callout>
+
+### Lifecycle
+
+When the function is created, you will receive a nickname which is the name the
+user used to instantiate the plugin. This is guaranteed to be unique. Then,
+subscribe will called to opt-in to a set of event types. Subscribing to nothing
+means that the server will never wake the plugin.
+
+Lets change that to the most fundamental subscription, time.
+
+```rust
+use crate::exports::litehouse::plugin::plugin::{Event, GuestRunner, Subscription, TimeSubscription, TimeUnit, Every};
+
+impl GuestRunner for NoopPlugin {}
+    fn subscribe(&self) -> Result<Vec<Subscription>, u32> {
+        Ok(vec![Subscription::Time(
+            TimeSubscription::Every(Every {
+                amount: 1,
+                unit: TimeUnit::Minute,
+            }),
+        )])
+    }
+}
+```
+
+The `update` function is called whenever an event happens in the system that
+matches one of your subscriptions. For us, you'll get an update every minute.
+Note that schedules do not get persisted between starts. We are considering
+allowing configuring the interval relative to some point in time such as
+'every 4pm'.

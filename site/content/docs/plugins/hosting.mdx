@@ -1,0 +1,29 @@
+---
+title: Hosting
+description: Plugins can be written in any language that supports generating wit bindings. This guide explains how to set this up in rust.
+icon: Cloud
+---
+
+## Introduction
+
+Litehouse is designed to be decentralized, meaning you can host your own
+private registries. While the capability is built in to the tool already, the
+details of the protocol are still being finalized. If you would like to
+self-host a registry, please get in touch with us.
+
+## Architecture
+
+The registry is a flat list of wasm files, alongside an index. Each plugin
+contains its own metadata but to speed up reading we abstract this at three
+levels:
+
+| Level   | Description |
+| ------- | ---- |
+| Level&nbsp;1 | The plugins themselves. Inefficient for enumeration. |
+| Level&nbsp;2 | The metadata index. This is stored as a series of flatbuffer files with an adjustable partitioning scheme. That way, if requesting a specific plugin, only a small subset of the registry needs to be downloaded. |
+| Level&nbsp;3 | A single flatbuffer file with just title, version, and short description |
+
+## Specifying the Registry
+
+You can specify which registry an import should be sourced from by a prefix.
+See [import syntax](/docs/plugins#importing-plugins) for more.

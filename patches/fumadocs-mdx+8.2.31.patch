@@ -1,8 +1,8 @@
 diff --git a/node_modules/fumadocs-mdx/dist/config.mjs b/node_modules/fumadocs-mdx/dist/config.mjs
-index 2679769..faa0105 100644
+index 857bebf..fc30854 100644
 --- a/node_modules/fumadocs-mdx/dist/config.mjs
 +++ b/node_modules/fumadocs-mdx/dist/config.mjs
-@@ -24,13 +24,20 @@ var MapWebpackPlugin = class _MapWebpackPlugin {
+@@ -24,13 +24,19 @@ var MapWebpackPlugin = class _MapWebpackPlugin {
    apply(compiler) {
      const logger = compiler.getInfrastructureLogger(_MapWebpackPlugin.name);
      compiler.hooks.beforeCompile.tap(_MapWebpackPlugin.name, () => {
@@ -14,7 +14,6 @@ index 2679769..faa0105 100644
        }
      });
    }
-+  
 +  create() {
 +    if (firstLoad && !fs.existsSync(this.options.rootMapFile)) {
 +      fs.writeFileSync(this.options.rootMapFile, content);
@@ -26,7 +25,7 @@ index 2679769..faa0105 100644
  };
  
  // src/mdx-plugins/utils.ts
-@@ -142,8 +149,9 @@ var SearchIndexPlugin = class _SearchIndexPlugin {
+@@ -138,8 +144,9 @@ var SearchIndexPlugin = class _SearchIndexPlugin {
  };
  
  // src/config.ts
@@ -38,7 +37,7 @@ index 2679769..faa0105 100644
      Boolean
    );
    if (typeof options === "function") {
-@@ -151,7 +159,7 @@ function pluginOption(def, options = []) {
+@@ -147,7 +154,7 @@ function pluginOption(def, options = []) {
    }
    return list;
  }
@@ -47,7 +46,7 @@ index 2679769..faa0105 100644
    valueToExport = [],
    rehypeCodeOptions,
    remarkImageOptions,
-@@ -165,7 +173,7 @@ function getMDXLoaderOptions({
+@@ -161,7 +168,7 @@ function getMDXLoaderOptions({
      "lastModified",
      ...valueToExport
    ];
@@ -56,7 +55,7 @@ index 2679769..faa0105 100644
      (v) => [
        remarkGfm,
        [remarkHeading, remarkHeadingOptions],
-@@ -174,9 +182,21 @@ function getMDXLoaderOptions({
+@@ -170,9 +177,21 @@ function getMDXLoaderOptions({
        remarkStructure,
        [remarkMdxExport, { values: mdxExports }]
      ],
@@ -80,15 +79,15 @@ index 2679769..faa0105 100644
      (v) => [
        rehypeCodeOptions !== false && [rehypeCode, rehypeCodeOptions],
        ...v
-@@ -200,7 +220,6 @@ var createMDX = ({
- } = {}) => (nextConfig = {}) => {
+@@ -197,7 +216,6 @@ function createMDX({
+ } = {}) {
    const rootMapFile = path2.resolve(cwd, rootMapPath);
    const rootContentDir = path2.resolve(cwd, rootContentPath);
 -  const mdxLoaderOptions = getMDXLoaderOptions(mdxOptions);
-   return {
-     ...nextConfig,
-     ...{
-@@ -221,7 +240,7 @@ var createMDX = ({
+   return (nextConfig = {}) => {
+     return {
+       ...nextConfig,
+@@ -219,7 +237,7 @@ function createMDX({
                options.defaultLoaders.babel,
                {
                  loader: "fumadocs-mdx/loader-mdx",
@@ -97,28 +96,28 @@ index 2679769..faa0105 100644
                }
              ]
            },
-@@ -257,5 +276,7 @@ var createMDX = ({
+@@ -255,5 +273,7 @@ function createMDX({
    };
- };
+ }
  export {
 -  createMDX as default
 +  createMDX as default,
 +  getMDXLoaderOptions,
-+  MapWebpackPlugin,
++  MapWebpackPlugin
  };
 diff --git a/node_modules/fumadocs-mdx/dist/loader-mdx.mjs b/node_modules/fumadocs-mdx/dist/loader-mdx.mjs
-index fa78fd8..8f9a3fd 100644
+index 9493c54..a77b9d2 100644
 --- a/node_modules/fumadocs-mdx/dist/loader-mdx.mjs
 +++ b/node_modules/fumadocs-mdx/dist/loader-mdx.mjs
 @@ -2,6 +2,7 @@
  import path2 from "node:path";
  import { createProcessor } from "@mdx-js/mdx";
  import grayMatter from "gray-matter";
-+import { getMDXLoaderOptions } from "./config.mjs"
++import { getMDXLoaderOptions } from "./config.mjs";
  
  // src/utils/git-timestamp.ts
  import path from "node:path";
-@@ -39,7 +40,8 @@ async function loader(source, callback) {
+@@ -37,7 +38,8 @@ async function loader(source, callback) {
    this.cacheable(true);
    const context = this.context;
    const filePath = this.resourcePath;
@@ -128,15 +127,7 @@ index fa78fd8..8f9a3fd 100644
    const { content, data: frontmatter } = grayMatter(source);
    const detectedFormat = filePath.endsWith(".mdx") ? "mdx" : "md";
    const format = options.format ?? detectedFormat;
-@@ -55,6 +57,7 @@ async function loader(source, callback) {
-   }
-   if (lastModifiedTime === "git")
-     timestamp = (await getGitTimestamp(filePath))?.getTime();
-+  
-   processor.process({
-     value: content,
-     path: filePath,
-@@ -64,7 +67,8 @@ async function loader(source, callback) {
+@@ -62,7 +64,8 @@ async function loader(source, callback) {
      }
    }).then(
      (file) => {

@@ -1,0 +1,53 @@
+---
+title: Building
+icon: Package
+---
+
+Litehouse comes with a utility to build, optimise, and package plugins ready
+to be uploaded to the registry.
+
+## Build
+
+To package a plugin as a wasm bundle, run the `build` command. litehouse does
+a few things to make this work:
+
+- Compile the plugin to wasm
+- Optimise the wasm file
+- Package it into a wasm-component package
+- Dump it to the `wasm` folder in your workspace
+
+Currently this only supports rust plugins. To use it, run it
+from the root of your package workspace, and specify the name of the crate. To
+do the optimisation and packaging steps, you will need `wasm-opt` and
+`wasm-tools` on your path.
+
+```bash title="Terminal"
+> litehouse build my-plugin
+* Building...
+* Optimising...
+* Packaging...
+Done!
+```
+
+## Publish
+
+Once you are happy with your plugin, publish it! You'll need to [authenticate](/docs/commands/auth) to the registry first.
+
+```bash title="Terminal"
+> litehouse publish my-plugin
+* Publishing...
+Done!
+```
+
+This may fail in the following cases:
+
+- The plugin is already claimed by another user
+- The version you are uploading already exists
+
+If you are unsure, you can check the registry to see if the plugin is already
+published.
+
+```bash title="Terminal"
+> litehouse search my-plugin
+my-plugin@0.1.0
+```

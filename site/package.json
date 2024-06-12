@@ -7,8 +7,7 @@
     "dev": "next dev --turbo",
     "start": "next start",
     "lint": "biome check .",
-    "typecheck": "tsc --noEmit",
-    "postinstall": "bunx @miblanchard/patch-package@8.0.12"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@clerk/nextjs": "^5.1.4",
@@ -24,9 +23,9 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "framer-motion": "11.2.10",
-    "fumadocs-core": "11.3.2",
-    "fumadocs-mdx": "8.2.19",
-    "fumadocs-ui": "11.3.2",
+    "fumadocs-core": "12.0.3",
+    "fumadocs-mdx": "8.2.31",
+    "fumadocs-ui": "12.0.3",
     "html-entities": "^2.5.2",
     "input-otp": "^1.2.4",
     "litehouse-registry-js": "workspace:^",
@@ -40,7 +39,7 @@
     "react-error-boundary": "^4.0.13",
     "react-hook-form": "^7.51.4",
     "remark-code-import": "^1.2.0",
-    "shiki": "1.6.1",
+    "shiki": "1.6.4",
     "sonner": "^1.4.41",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
@@ -60,5 +59,5 @@
     "tailwindcss-bg-patterns": "^0.3.0",
     "typescript": "^5.4.5"
   },
-  "trustedDependencies": ["@biomejs/biome"]
+  "trustedDependencies": ["@biomejs/biome", "site"]
 }

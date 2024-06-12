@@ -2565,6 +2565,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "noop"
+version = "0.1.0"
+dependencies = [
+ "litehouse-plugin",
+]
+
+[[package]]
 name = "nu-ansi-term"
 version = "0.46.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2935,12 +2942,7 @@ checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 name = "persistent-task"
 version = "0.1.0"
 dependencies = [
- "base64 0.21.7",
  "litehouse-plugin",
- "schemars",
- "serde",
- "serde_json",
- "serde_path_to_error",
  "tracing",
 ]
 

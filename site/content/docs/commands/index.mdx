@@ -4,15 +4,21 @@ description: How to use Litehouse and the various commands
 ---
 
 Litehouse has a number of commands, which can be found by running `litehouse --help`. A reference for them (with some additional explainers) can be found
-below.
+below. They are listed roughly in order of usage. To set up a new instance:
 
-## Run
+- initialize the project
+- add some plugins
+- generate a schema file for your selected plugins
+- add all the plugins to the settings file
+- validate the settings
+- run litehouse
 
-The `run` command is what starts up an instance of Litehouse. It will search
-your config file for plugin instances, boot them up, and serve them with updates.
+## Init
+
+Initialize a new Litehouse project. This will create a `settings.json` file and a `wasm` folder.
 
 ```bash title="Terminal"
-litehouse run
+litehouse init
 ```
 
 ## Add
@@ -29,7 +35,7 @@ example, a plugin configured using the registry website. It is run just the
 same.
 
 ```bash title="Terminal"
-litehouse add #bGl0ZWhvdXNl
+litehouse add litehouse add tasmota@0.1.2#eyJpbnN0YW5jZSI6eyJpcCI6WzE5MiwxNjgsMSwxXX19
 ```
 
 ## Generate
@@ -38,14 +44,6 @@ Generate the `schema.json` file, based on the plugins in your local `wasm` folde
 
 ```bash title="Terminal"
 litehouse generate
-```
-
-## Init
-
-Initialize a new Litehouse project. This will create a `settings.json` file and a `wasm` folder.
-
-```bash title="Terminal"
-litehouse init
 ```
 
 ## Validate
@@ -57,36 +55,13 @@ more thorough than what the intellisense can provide.
 litehouse validate
 ```
 
-## Build / Publish
+## Run
 
-Build your plugin or publish it to the registry. This will make it available for others to use. Currently this only supports rust plugins. To use it, run it
-from the root of your package workspace, and specify the name of the crate.
-For more information, please see the [registry](/registry)!
-
-```bash title="Terminal"
-# build it to your local wasm folder
-litehouse build <PACKAGE>
-# or, build and publish it to the registry
-litehouse publish <PACKAGE>
-```
-
-## Fetch
-
-Fetch the plugins defined in the `imports` fields in your [settings.json](/docs/settings) from the registry.
+The `run` command is what starts up an instance of Litehouse. It will search
+your config file for plugin instances, boot them up, and serve them with updates.
 
 ```bash title="Terminal"
-litehouse fetch
-```
-
-## Search
-
-Search the registry for a plugin. This will return a list of plugins that match the search term.
-
-```bash title="Terminal"
-litehouse search tasmota@0.1
-tasmota@0.1.0
-tasmota@0.1.1
-tasmota@0.1.2
+litehouse run
 ```
 
 ## Lock

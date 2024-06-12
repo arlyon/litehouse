@@ -25,7 +25,10 @@ export default function RootDocsLayout({ children }: { children: ReactNode }) {
             Litehouse<span className="text-purple-600">Docs</span>
           </span>
         ),
-        githubUrl: "https://github.com/arlyon/litehouse",
+      }}
+      githubUrl="https://github.com/arlyon/litehouse"
+      sidebar={{
+        defaultOpenLevel: 0,
       }}
     >
       {children}

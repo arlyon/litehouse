@@ -1,0 +1,33 @@
+---
+title: Authentication
+icon: User
+---
+
+Interacting with the registry requires that you log in. This is done securely
+over the command line, and allows you to edit previously uploaded plugins.
+You can delete your account at any time. You can authenticate in a number of
+ways but we recommend setting up passkeys.
+
+## Login
+
+Log in to the registry. This will open a browser window to authenticate you.
+
+```bash title="Terminal"
+litehouse auth login
+```
+
+## Logout
+
+Log out of the registry by deleting your local credentials.
+
+```bash title="Terminal"
+litehouse auth logout
+```
+
+## Whoami
+
+Check the currently logged-in user.
+
+```bash title="Terminal"
+litehouse auth whoami
+```
