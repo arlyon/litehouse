@@ -64,7 +64,7 @@ export function FlowEditor({ initialNodes, initialEdges }) {
 
   return (
     <ctx.Provider value={{ onClick: (id: string) => setSelected(id) }}>
-      <div className="relative flex-1 flex flex-col">
+      <div className="relative flex-1 flex flex-col min-h-[750px]">
         <ReactFlow
           nodeTypes={types}
           colorMode="dark"
