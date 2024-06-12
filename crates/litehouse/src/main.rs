@@ -18,9 +18,13 @@ mod util;
 
 /// CLI options for litehouse
 #[derive(clap::Parser)]
+#[command(arg_required_else_help(true))]
 struct Opt {
     #[command(subcommand)]
-    command: Subcommand,
+    command: Option<Subcommand>,
+    /// Print the current version of litehouse and exit
+    #[clap(long)]
+    version: bool,
 }
 
 #[cfg(feature = "dhat-heap")]
@@ -61,5 +65,14 @@ async fn main_inner() -> Result<()> {
 
     let opt = Opt::parse();
 
-    opt.command.run().await
+    if opt.version {
+        println!("{}", env!("CARGO_PKG_VERSION"));
+        return Ok(());
+    }
+
+    if let Some(command) = opt.command {
+        return command.run().await;
+    }
+
+    Ok(())
 }
