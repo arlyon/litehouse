@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Suspense, type PropsWithChildren, Error, Fragment } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { Logo } from "../page";
+import { Toolbar } from "@/components/toolbar";
 
 export const Header = ({ title, provider: Provider = Fragment }) => (
   <div className="sticky top-0 z-50 h-16 border-b transition-colors border-foreground/10 bg-background/50 backdrop-blur-md">
@@ -45,6 +46,7 @@ export const Header = ({ title, provider: Provider = Fragment }) => (
                 }
               >
                 <Provider>
+                  <Toolbar />
                   <LoginButton />
                 </Provider>
               </Suspense>
