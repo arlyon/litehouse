@@ -21,6 +21,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "./ui/button";
 import { Loader } from "lucide-react";
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
 const messages = [
   "Querying Relay...",
@@ -28,7 +29,7 @@ const messages = [
   "Validating the IP...",
 ];
 
-export const FindServer = () => {
+export const FindServer = ({ className }) => {
   const [message, setMessage] = useState(0);
 
   useEffect(() => {
@@ -43,7 +44,12 @@ export const FindServer = () => {
   return (
     <Dialog>
       <DialogTrigger>
-        <div className="border text-green-400 w-[225px] rounded-full px-3 py-2 border-green-500 flex flex-row gap-2 relative overflow-hidden">
+        <div
+          className={cn(
+            "border text-green-400 bg-green-950 w-[225px] rounded-full px-3 py-2 border-green-500 flex flex-row gap-2 relative overflow-hidden",
+            className,
+          )}
+        >
           <Loader className="animate-spin" />
           <AnimatePresence mode="popLayout">
             <motion.div

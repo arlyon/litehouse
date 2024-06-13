@@ -47,7 +47,7 @@ const initialEdges = [{ id: "e1-2", source: "1", target: "2" }];
 
 const ctx = createContext({});
 
-export function FlowEditor({ initialNodes, initialEdges, servers, server }) {
+export function FlowEditor({ initialNodes, initialEdges, server }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selected, setSelected] = useState<string | null>(null);
@@ -84,9 +84,6 @@ export function FlowEditor({ initialNodes, initialEdges, servers, server }) {
         >
           <Background variant="dots" gap={10} size={1} />
         </ReactFlow>
-        <div className="absolute top-4 left-4 px-4 py-2 rounded-xl bg-primary-foreground border">
-          <RootToggle options={servers} />
-        </div>
         {isDesktop ? (
           selected !== null ? (
             <div className="hidden md:block absolute right-0 w-96 h-full bg-background border-l">

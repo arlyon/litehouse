@@ -28,13 +28,13 @@ import { CopyBox } from "./copy-box";
 import { PlusIcon, Trash } from "lucide-react";
 import { Button } from "./ui/button";
 
-export function ManifestEditor() {
+export function ManifestEditor({ className }) {
   const { items, remove } = useManifestStore();
 
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <ManifestButton items={items} />
+        <ManifestButton items={items} className={className} />
       </SheetTrigger>
       <SheetContent side="right" className="flex flex-col h-full gap-4">
         <div className="flex flex-col gap-4">

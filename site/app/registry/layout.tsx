@@ -32,7 +32,7 @@ export const Header = ({
           <Link href="/">
             <Logo className="mr-2 h-6 w-6" />
           </Link>
-          <Link href="/registry">
+          <Link href="/registry" className="w-max">
             Litehouse <span className="text-green-600">{title}</span>
           </Link>
         </h1>
@@ -45,8 +45,8 @@ export const Header = ({
             placeholder="Search packages..."
             type="text"
           />
-          <ThemeToggle />
-          <ManifestEditor />
+          <ThemeToggle className="hidden md:inline-flex" />
+          <ManifestEditor className="hidden md:block" />
           <div>
             <div className="size-[28px]">
               <ErrorBoundary
