@@ -11,6 +11,7 @@ import {
 import {
   Background,
   Handle,
+  NodeToolbar,
   ReactFlow,
   addEdge,
   useEdgesState,
@@ -21,7 +22,9 @@ import { RootToggle } from "fumadocs-ui/components/layout/root-toggle";
 import Link from "next/link";
 
 import "@xyflow/react/dist/style.css";
-import { Home, InfoIcon } from "lucide-react";
+import "./flow-editor.css";
+
+import { FileClock, Home, InfoIcon, Power } from "lucide-react";
 import { ActionSidePanel } from "./action-side-panel";
 import {
   Sheet,
@@ -44,7 +47,7 @@ const initialEdges = [{ id: "e1-2", source: "1", target: "2" }];
 
 const ctx = createContext({});
 
-export function FlowEditor({ initialNodes, initialEdges }) {
+export function FlowEditor({ initialNodes, initialEdges, servers, server }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selected, setSelected] = useState<string | null>(null);
@@ -68,9 +71,11 @@ export function FlowEditor({ initialNodes, initialEdges }) {
         <ReactFlow
           nodeTypes={types}
           colorMode="dark"
+          fitView
+          selectionOnDrag
+          panOnScroll
           style={{ height: undefined }}
           className="flex-1"
-          panOnScroll={true}
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
@@ -80,16 +85,7 @@ export function FlowEditor({ initialNodes, initialEdges }) {
           <Background variant="dots" gap={10} size={1} />
         </ReactFlow>
         <div className="absolute top-4 left-4 px-4 py-2 rounded-xl bg-primary-foreground border">
-          <RootToggle
-            options={[
-              {
-                title: "salient-sasquach",
-                icon: <Home />,
-                description: "Default server",
-                url: "/cockpit/salient-sasquach",
-              },
-            ]}
-          />
+          <RootToggle options={servers} />
         </div>
         {isDesktop ? (
           selected !== null ? (
@@ -113,6 +109,10 @@ const Node = (props) => {
   const { onClick } = useContext(ctx);
   return (
     <div className="flex flex-col gap-2">
+      <NodeToolbar className="border-2 bg-muted flex flex-row gap-4 rounded-lg px-2 py-2">
+        <Power className="text-green-500" />
+        <FileClock />
+      </NodeToolbar>
       {props.type === "input" ? (
         <Handle id="a" type="source" position="bottom" />
       ) : null}
@@ -124,8 +124,8 @@ const Node = (props) => {
         <InfoIcon className=" size-3" />
       </Link>
       <header className="text-sm flex flex-row items-center gap-1 w-full">
-        <div className="size-4">{props.data.icon}</div>
-        <span className=" truncate">{props.data.label}</span>
+        <div className="size-3">{props.data.icon}</div>
+        <span className=" truncate font-mono">{props.data.label}</span>
       </header>
       <div className="flex flex-row">
         <input
