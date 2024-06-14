@@ -1,10 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { MapWebpackPlugin } from "fumadocs-mdx/config";
 import createMDX from "fumadocs-mdx/config";
 import { withAxiom } from "next-axiom";
-import codeImport from "remark-code-import";
 import { bundledLanguages } from "shiki";
 
 const cwd = process.cwd();
@@ -16,20 +14,15 @@ const rootMapFile = path.resolve(cwd, rootMapPath);
 
 const withMDX = createMDX({
   mdxOptions: {
+    providerImportSource: "@/mdx-components",
     remarkPlugins: [
-      () =>
-        codeImport({
-          allowImportingFromOutside: true,
-        }),
+      ["remark-code-import", { allowImportingFromOutside: true }],
     ],
     rehypeCodeOptions: {
       langs: [...Object.keys(bundledLanguages), wit],
     },
   },
 });
-
-// create the map file
-new MapWebpackPlugin({ rootMapFile }).create();
 
 /** @type {import('next').NextConfig} */
 const config = {
@@ -51,35 +44,6 @@ const config = {
     // serverSourceMaps: true,
     ppr: true,
     mdxRs: true,
-    turbo: {
-      rules: {
-        "*.{mx,mdx}": [
-          {
-            loader: "fumadocs-mdx/loader-mdx",
-            options: {
-              rootContentDir: "./content",
-              providerImportSource: "@/mdx-components",
-              rootMapFile,
-              rehypeCodeOptions: {
-                langs: [...Object.keys(bundledLanguages), wit],
-              },
-              remarkPlugins: [
-                ["remark-code-import", { allowImportingFromOutside: true }],
-              ],
-            },
-          },
-        ],
-        ".map.ts": [
-          {
-            loader: "fumadocs-mdx/loader",
-            options: {
-              rootContentDir: "./content",
-              rootMapFile,
-            },
-          },
-        ],
-      },
-    },
   },
   typescript: {
     // !! WARN !!
