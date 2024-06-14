@@ -31,7 +31,7 @@ export default function CockpitPage({ children }) {
       <SignedOut>
         <RedirectToSignIn />
       </SignedOut>
-      <div className="relative">
+      <div className="relative flex-1 flex">
         {children}
         <div className="absolute top-4 sm:left-4 px-4 py-2 rounded-xl bg-primary-foreground border">
           <RootToggle options={servers} />

@@ -6,7 +6,7 @@ import { Home, Loader, PlusIcon } from "lucide-react";
 
 export default function CockpitPage() {
   return (
-    <div className="flex flex-col flex-1 relative items-center pt-32 justify-center bg-gradient-to-t from-green-950 to-black">
+    <div className="flex flex-col w-full flex-1 relative items-center pt-32 justify-center bg-gradient-to-t from-green-950 to-black">
       <h1 className="text-4xl md:text-6xl font-bold text-center mx-8">
         Searching for Litehouses...
       </h1>
