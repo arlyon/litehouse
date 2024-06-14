@@ -21,7 +21,6 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
   },
-  viewport: "width=device-width, initial-scale=1",
   robots: "index, follow",
   keywords: ["home automation", "home", "automation", "server", "wasm"],
 };
