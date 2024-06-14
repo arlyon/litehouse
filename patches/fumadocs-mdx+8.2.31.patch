@@ -1,13 +1,12 @@
 diff --git a/node_modules/fumadocs-mdx/dist/.DS_Store b/node_modules/fumadocs-mdx/dist/.DS_Store
 new file mode 100644
-index 0000000..5008ddf
-Binary files /dev/null and b/node_modules/fumadocs-mdx/dist/.DS_Store differ
+index 0000000..e69de29
 diff --git a/node_modules/fumadocs-mdx/dist/chunk-2D5JCHQ5.mjs b/node_modules/fumadocs-mdx/dist/chunk-2D5JCHQ5.mjs
 new file mode 100644
-index 0000000..8c26a76
+index 0000000..512fcbb
 --- /dev/null
 +++ b/node_modules/fumadocs-mdx/dist/chunk-2D5JCHQ5.mjs
-@@ -0,0 +1,303 @@
+@@ -0,0 +1,306 @@
 +// src/config.ts
 +import path2 from "node:path";
 +import {
@@ -236,7 +235,9 @@ index 0000000..8c26a76
 +      ...nextConfig,
 +      pageExtensions: nextConfig.pageExtensions ?? defaultPageExtensions,
 +      experimental: {
++        ...nextConfig.experimental,
 +        turbo: {
++          ...nextConfig.experimental?.turbo,
 +          rules: {
 +            "*.{md,mdx}": [
 +              {
@@ -255,8 +256,9 @@ index 0000000..8c26a76
 +                  ...loadOptions
 +                }
 +              }
-+            ]
-+          }
++            ],
++            ...nextConfig.experimental?.turbo?.rules
++          },
 +        }
 +      },
 +      webpack: (config, options) => {

@@ -10,8 +10,6 @@ const rootMapPath = ".map.ts";
 
 const wit = JSON.parse(fs.readFileSync("wit.tmLanguage.json", "utf8"));
 
-const rootMapFile = path.resolve(cwd, rootMapPath);
-
 const withMDX = createMDX({
   mdxOptions: {
     providerImportSource: "@/mdx-components",
@@ -42,7 +40,7 @@ const config = {
     // typedRoutes: true,
     // serverMinification: true,
     // serverSourceMaps: true,
-    ppr: true,
+    ppr: "incremental",
     mdxRs: true,
   },
   typescript: {

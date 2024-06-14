@@ -8,7 +8,5 @@ export const Toolbar = () => {
     return null;
   }
 
-  console.log("enabling toolbar for admin");
-
   return <VercelToolbar />;
 };
