@@ -30,18 +30,8 @@ inherits = "release"
 opendal = { git = "https://github.com/apache/opendal", rev = "4d5df20" }
 
 [workspace.metadata.groups]
-plugins = [
-  "path:crates/samsung",
-  "path:crates/sonoff",
-  "path:crates/tasmota",
-  "path:crates/weather",
-]
-bin = [
-  "path:crates/litehouse",
-  "path:crates/litehouse-config",
-  "path:crates/plugin",
-  "path:crates/plugin-macro",
-]
+plugins = ["path:plugins/*"]
+bin = ["path:crates/litehouse", "path:crates/cockpit"]
 
 # Config for 'cargo dist'
 [workspace.metadata.dist]
