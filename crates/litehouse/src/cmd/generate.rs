@@ -160,7 +160,7 @@ fn inject_plugin_instance(
     let definitions = json
         .get_mut("definitions")
         .expect("this is always present")
-        .get_mut("PluginInstance")
+        .get_mut("PluginConfig")
         .expect("always exists")
         .as_object_mut()
         .expect("is always an object");
