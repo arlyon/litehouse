@@ -7,26 +7,25 @@
 //! cargo test -p example-sse
 //! ```
 
+mod future_on_close_stream;
+
+use ::core::{future::Future, marker::Send, pin::Pin};
 use axum::{
     body::Body,
-    extract::{ConnectInfo, State},
+    extract::{ConnectInfo, FromRequestParts, Path, State},
+    http::request::Parts,
     response::sse::{Event, Sse},
     routing::get,
     Json, Router,
 };
 use axum_extra::TypedHeader;
+use future_on_close_stream::FutureOnCloseStream;
 use futures::stream::{self, Stream};
 use std::{
-    collections::{BTreeMap, HashMap},
-    convert::Infallible,
-    future::Future,
-    net::SocketAddr,
-    path::PathBuf,
-    sync::Arc,
+    collections::BTreeMap, convert::Infallible, net::SocketAddr, path::PathBuf, sync::Arc,
     time::Duration,
 };
 use tokio::sync::{oneshot::Sender, Mutex};
-use tokio_stream::StreamExt as _;
 use tower_http::{services::ServeDir, trace::TraceLayer};
 
 #[tokio::main]
@@ -61,6 +60,7 @@ fn app() -> Router {
     };
     Router::new()
         .fallback_service(static_files_service)
+        .route("/litehouse/{account}", get(known_connection))
         .route("/litehouse", get(known_connection))
         .route("/client", get(client_handler))
         .layer(TraceLayer::new_for_http())
@@ -73,7 +73,6 @@ fn app() -> Router {
 struct SseOpen {
     // server-issued JWT with the identifier
     token: String,
-    account: Option<String>,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
@@ -91,6 +90,38 @@ struct AppState {
     unknown_connections: Arc<Mutex<BTreeMap<SocketAddr, Sender<Offer>>>>,
 }
 
+enum Auth {
+    Unauth,
+    Auth(
+        Path<String>,
+        TypedHeader<headers::Authorization<headers::authorization::Bearer>>,
+    ),
+}
+
+impl<S> FromRequestParts<S> for Auth
+where
+    S: Send + Sync,
+{
+    type Rejection = ();
+
+    async fn from_request_parts<'a, 'b>(
+        parts: &'a mut Parts,
+        state: &'b S,
+    ) -> Result<Self, Self::Rejection> {
+        let a = Path::<String>::from_request_parts(parts, state).await;
+        let b = TypedHeader::<headers::Authorization<headers::authorization::Bearer>>::from_request_parts(
+            parts, state,
+        ).await;
+
+        match (a, b) {
+            (Ok(a), Ok(b)) => Ok(Auth::Auth(a, b)),
+            (Ok(_), Err(_)) => Ok(Auth::Unauth),
+            (Err(_), Ok(_)) => Ok(Auth::Unauth),
+            (Err(_), Err(_)) => Err(()),
+        }
+    }
+}
+
 #[axum::debug_handler]
 async fn known_connection(
     State(AppState {
@@ -98,6 +129,7 @@ async fn known_connection(
         ..
     }): State<AppState>,
     TypedHeader(user_agent): TypedHeader<headers::UserAgent>,
+    account: Option<Path<String>>,
     ConnectInfo(remote_addr): ConnectInfo<SocketAddr>,
     Json(request): Json<SseOpen>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
@@ -114,7 +146,7 @@ async fn known_connection(
         }
     });
 
-    let Some(account) = request.account else {
+    let Some(Path(account)) = account else {
         tracing::warn!("no account provided");
         panic!()
     };
@@ -125,53 +157,17 @@ async fn known_connection(
         tracing::debug!("got {} connections", connections.len());
     }
 
-    let stream = FutureOnCloseStream {
-        stream,
-        future: async move {
-            tracing::debug!("removing connection from {}", account);
-            let mut connections = connections.lock().await;
-            connections.remove(&(account, request.token));
-        },
-    };
+    let stream = FutureOnCloseStream::new(stream, async move {
+        tracing::debug!("removing connection from {}", account);
+        let mut connections = connections.lock().await;
+        connections.remove(&(account, request.token));
+    });
 
     Sse::new(stream).keep_alive(
         axum::response::sse::KeepAlive::new()
             .interval(Duration::from_secs(60))
             .text("keep-alive-text"),
     )
-}
-
-pin_project_lite::pin_project! {
-    /// Stream adaptor to run a future once after the stream is closed
-    struct FutureOnCloseStream<S, F> {
-        #[pin]
-        stream: S,
-        #[pin]
-        future: F,
-    }
-}
-
-impl<S, F> Stream for FutureOnCloseStream<S, F>
-where
-    S: Stream,
-    F: Future<Output = ()>,
-{
-    type Item = S::Item;
-
-    fn poll_next(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Option<Self::Item>> {
-        let this = self.as_mut().project();
-        match this.stream.poll_next(cx) {
-            std::task::Poll::Ready(Some(item)) => std::task::Poll::Ready(Some(item)),
-            std::task::Poll::Ready(None) => match this.future.poll(cx) {
-                std::task::Poll::Ready(_) => std::task::Poll::Ready(None),
-                std::task::Poll::Pending => std::task::Poll::Pending,
-            },
-            std::task::Poll::Pending => std::task::Poll::Pending,
-        }
-    }
 }
 
 async fn client_handler(
