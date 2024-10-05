@@ -18,6 +18,7 @@ use litehouse_config::{
 use litehouse_plugin::serde_json;
 use litehouse_registry::Registry;
 use miette::{Context, IntoDiagnostic, NamedSource, Result};
+use reqwest::Url;
 use tokio::sync::broadcast::channel;
 
 use crate::{
@@ -47,6 +48,9 @@ pub enum Subcommand {
         /// Whether to enable the wasm cache
         #[clap(long)]
         no_cache: bool,
+        /// A broker to use to facilitate webrtc connections.
+        #[clap(long)]
+        broker: Option<Url>,
     },
     /// Inspect a plugin to see its metadata
     Inspect {
@@ -252,7 +256,8 @@ impl Subcommand {
             Subcommand::Run {
                 wasm_path,
                 no_cache,
-            } => run::run(&wasm_path, !no_cache)
+                broker,
+            } => run::run(&wasm_path, !no_cache, broker)
                 .await
                 .wrap_err("unable to start litehouse"),
             Subcommand::Inspect {

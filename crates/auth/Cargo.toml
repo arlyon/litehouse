@@ -16,7 +16,7 @@ hyper-util = { version = "0.1.5", features = ["tokio"] }
 oauth = "0.0.1"
 oauth2 = { version = "4.4.2", features = ["pkce-plain"] }
 open = "5.1.4"
-reqwest = { version = "0.12.4", features = ["json"] }
+reqwest = { version = "0.11.24", features = ["json"] }
 serde = { version = "1.0.203", features = ["derive"] }
 serde_qs = "0.13.0"
 serde_urlencoded = "0.7.1"

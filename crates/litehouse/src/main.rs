@@ -13,6 +13,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 mod cache;
 mod cmd;
 mod runtime;
+mod server;
 mod store;
 mod util;
 

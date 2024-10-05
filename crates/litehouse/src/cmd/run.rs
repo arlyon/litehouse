@@ -1,8 +1,9 @@
-use futures::StreamExt;
+use futures::{future::Either, StreamExt};
 use jsonc_parser::CollectOptions;
 use litehouse_config::{LitehouseConfig, SandboxStrategy};
 use litehouse_plugin::serde_json;
 use miette::{Context, IntoDiagnostic, NamedSource, Result};
+use reqwest::Url;
 use std::{future, path::Path, sync::Arc};
 use tokio::{sync::broadcast::channel, time::interval};
 use tracing::Instrument;
@@ -19,9 +20,23 @@ use crate::{
     store::StoreStrategy,
 };
 
+/// Starts the server and the plugin runners
+///
+/// # Arguments
+
+/// * `wasm_path` - The path to the wasm file
+/// * `cache` - Whether to cache the wasm file
+/// * `server` - The port to run the server on. If this is `None`, webrtc will not be started.
 #[tracing::instrument(skip_all)]
-pub async fn run(wasm_path: &Path, cache: bool) -> Result<()> {
+pub async fn run(wasm_path: &Path, cache: bool, port: Option<Url>) -> Result<()> {
     tracing::info!("booting litehouse");
+
+    let server_fut = if let Some(port) = port {
+        let handle = tokio::spawn(crate::server::facilicate_connections(port));
+        Either::Left(handle)
+    } else {
+        Either::Right(future::pending())
+    };
 
     let config = LitehouseConfig::load().wrap_err("unable to read settings")?;
     let data = Arc::new(
@@ -193,6 +208,7 @@ pub async fn run(wasm_path: &Path, cache: bool) -> Result<()> {
     tracing::info!("running litehouse");
 
     tokio::select! {
+        _ = server_fut => Ok(()),
         d = futures::future::try_join_all(timers) => d.map(|_| ()),
         _ = tokio::signal::ctrl_c() => {
             tracing::info!("interrupt received, exiting");
