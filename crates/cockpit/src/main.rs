@@ -1,19 +1,24 @@
-//! Run with
+//! cockpit
 //!
-//! ```nAppState { field1: connections } -p example-sse
-//! ```
-//! Test with
-//! ```not_rust
-//! cargo test -p example-sse
-//! ```
+//! Cockpit is the webtrc signalling server that powers litehouse. An instance of litehouse
+//! may point to a cockpit broker which facilitates a direct peer-to-peer connection between
+//! the web interface and the instance itself.
+//!
+//! # Architecture
+//!
+//! Cockpit has two fundamental sides to the transaction, the `client` and the `litehouse`.
+//! A litehouse instance, to advertise itself, will open a connection to the cockpit broker
+//! and wait for an answer via SSE. When the server receives a connection from a client, it
+//! will forward the webrtc offer to the broker using an SSE event and close the connection.
+//! The litehouse instance then processes the offer and resubmits their answer back to the
+//! server using a PUT. The server finally sends the answer back to the client and closes
+//! the connection, at which point the two nodes may continue to communicate directly.
 
 #![feature(btree_cursors)]
 
 mod future_on_close_stream;
 
-use ::core::marker::Send;
 use axum::{
-    body::Body,
     extract::{ConnectInfo, FromRequestParts, Path, State},
     http::{request::Parts, StatusCode},
     response::{
@@ -37,7 +42,7 @@ use std::{
     ops::Bound,
     path::PathBuf,
     sync::Arc,
-    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::{oneshot::Sender, Mutex};
 use tokio_stream::StreamExt;
@@ -110,7 +115,7 @@ struct AppState {
 
 enum Auth {
     Unauth,
-    Auth { account: String, token: String },
+    Auth { account: String, node_id: String },
 }
 
 impl<S> FromRequestParts<S> for Auth
@@ -129,7 +134,7 @@ where
         match (a, b) {
             (Ok(a), Ok(b)) => Ok(Auth::Auth {
                 account: b.0 .0.token().to_owned(),
-                token: a.0,
+                node_id: a.0,
             }),
             (Ok(_), Err(_)) => Err((axum::http::StatusCode::UNAUTHORIZED, "Missing token")),
             (Err(_), Ok(_)) => Err((axum::http::StatusCode::BAD_REQUEST, "Missing account")),
@@ -164,17 +169,17 @@ async fn wait_for_connection(
     .fuse();
 
     let completion = match auth {
-        Auth::Auth { account, token } => {
+        Auth::Auth { account, node_id } => {
             {
                 tracing::trace!("adding auth connection from {}", account);
                 let mut connections = known_connections.lock().await;
-                connections.insert((account.clone(), token.clone()), tx);
+                connections.insert((account.clone(), node_id.clone()), tx);
             }
 
             Either::Left(async move {
                 tracing::trace!("removing connection from {}", account);
                 let mut connections = known_connections.lock().await;
-                connections.remove(&(account, token));
+                connections.remove(&(account, node_id));
             })
         }
         _ => {
@@ -259,8 +264,6 @@ async fn list_connections(
                 }
             }
 
-            tracing::info!("{} -> {}", account, next_account);
-
             connections
                 .upper_bound(Bound::Excluded(&(next_account, String::new())))
                 .next()
@@ -268,11 +271,7 @@ async fn list_connections(
 
         loop {
             let next = lb.next();
-            tracing::trace!(
-                "next: {:?} {:?}",
-                next.as_ref().map(|(a, b)| a),
-                ub.as_ref().map(|(a, b)| a)
-            );
+
             match (next, ub) {
                 (Some(((account, token), _)), Some(((next_account, _), _)))
                     if account != next_account =>
@@ -283,7 +282,6 @@ async fn list_connections(
                     });
                 }
                 (Some(((account, token), _)), None) => {
-                    tracing::trace!("adding unknown connection from {}", account);
                     items.push(Connection::Known {
                         account: account.to_owned(),
                         identifier: token.to_owned(),
@@ -326,6 +324,7 @@ async fn client_handler(
     Json(offer): Json<RTCSessionDescription>,
 ) -> impl IntoResponse {
     let mut connections = known_connections.lock().await;
+    tracing::info!("pairing state {:?}", connections);
     let account = account.token().to_owned();
     let Some(selected) = connections.remove(&(account.clone(), node_id.clone())) else {
         return (StatusCode::NOT_FOUND, "account not found".to_string());
@@ -350,6 +349,8 @@ async fn client_handler(
             break rx;
         }
     };
+
+    tracing::info!("waiting for pairing reply");
 
     let x = x.await.unwrap();
     let body = serde_json::to_string(&x).unwrap();

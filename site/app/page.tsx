@@ -130,6 +130,15 @@ export default function HomePage() {
                 GitHub
               </Button>
             </Link>
+            <Link href="/cockpit" className="hidden lg:block">
+              <Button
+                className="inline-flex items-center gap-2"
+                variant="outline"
+              >
+                <CloudLightning className="h-5 w-5" />
+                Cockpit
+              </Button>
+            </Link>
           </div>
           <Star className="absolute -right-2 -bottom-2 z-10 size-4 xl:scale-[200%]" />
         </div>

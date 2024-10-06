@@ -22,6 +22,7 @@ import { Button } from "./ui/button";
 import { Loader } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const messages = [
   "Querying Relay...",
@@ -29,8 +30,24 @@ const messages = [
   "Validating the IP...",
 ];
 
-export const FindServer = ({ className }) => {
+export const FindServer = ({ className }: { className?: string }) => {
   const [message, setMessage] = useState(0);
+
+  const client = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["unknownServers"],
+    queryFn: async () => {
+      const data = await fetch("http://localhost:3001/client", {
+        headers: {
+          Authorization: "Bearer 1234",
+        },
+      });
+      const servers = await data.json();
+      return servers;
+    },
+    select: (data) => data.filter((s) => s.type === "unknown"),
+    refetchInterval: 5000,
+  });
 
   useEffect(() => {
     // every 3 seconds, switch the message
@@ -42,7 +59,7 @@ export const FindServer = ({ className }) => {
   }, []);
 
   return (
-    <Dialog>
+    <Dialog open={data?.length > 0}>
       <DialogTrigger>
         <div
           className={cn(
@@ -69,7 +86,8 @@ export const FindServer = ({ className }) => {
         <DialogHeader>
           <DialogTitle>Server Found</DialogTitle>
           <DialogDescription>
-            We have found a server on your local network. To prove you are the
+            We have found a server near you with ip{" "}
+            <pre className="inline">{data?.[0]?.ip}</pre>. To prove you are the
             owner, please enter the 6 digit code you set up below.
             <div className="flex w-full items-center justify-center py-8">
               <InputOTP maxLength={6}>

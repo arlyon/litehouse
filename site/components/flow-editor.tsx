@@ -47,7 +47,7 @@ const initialEdges = [{ id: "e1-2", source: "1", target: "2" }];
 
 const ctx = createContext({});
 
-export function FlowEditor({ initialNodes, initialEdges, server }) {
+export function FlowEditor({ initialNodes, initialEdges }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selected, setSelected] = useState<string | null>(null);

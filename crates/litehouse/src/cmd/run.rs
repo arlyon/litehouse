@@ -4,7 +4,7 @@ use litehouse_config::{LitehouseConfig, SandboxStrategy};
 use litehouse_plugin::serde_json;
 use miette::{Context, IntoDiagnostic, NamedSource, Result};
 use reqwest::Url;
-use std::{future, path::Path, sync::Arc};
+use std::{future, net::SocketAddr, path::Path, sync::Arc};
 use tokio::{sync::broadcast::channel, time::interval};
 use tracing::Instrument;
 use wasmtime::Trap;
@@ -17,24 +17,33 @@ use crate::{
         instantiate_plugin_host, instantiate_plugin_hosts, set_up_engine, PluginInstance,
         PluginRunnerFactory,
     },
+    server::Credentials,
     store::StoreStrategy,
 };
 
 /// Starts the server and the plugin runners
 ///
 /// # Arguments
-
+///
 /// * `wasm_path` - The path to the wasm file
 /// * `cache` - Whether to cache the wasm file
 /// * `server` - The port to run the server on. If this is `None`, webrtc will not be started.
 #[tracing::instrument(skip_all)]
-pub async fn run(wasm_path: &Path, cache: bool, port: Option<Url>) -> Result<()> {
+pub async fn run(wasm_path: &Path, cache: bool, broker: Option<Url>) -> Result<()> {
     tracing::info!("booting litehouse");
 
-    let server_fut = if let Some(port) = port {
-        let handle = tokio::spawn(crate::server::facilicate_connections(port));
+    let server_fut = if let Some(broker) = broker {
+        tracing::info!("running server");
+        let handle = tokio::spawn(crate::server::facilicate_connections(
+            broker,
+            Some(Credentials {
+                node_id: "vitriolic-jeans".to_string(),
+                account: "1234".to_string(),
+            }),
+        ));
         Either::Left(handle)
     } else {
+        tracing::info!("starting without broker");
         Either::Right(future::pending())
     };
 
