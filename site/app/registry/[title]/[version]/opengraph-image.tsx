@@ -25,77 +25,75 @@ export default async function Image({ params }: { title: string }) {
   ).then((res) => res.arrayBuffer());
 
   return new ImageResponse(
-    (
+    <div
+      style={{
+        background: "black",
+        position: "relative",
+        color: "white",
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        paddingTop: 20,
+        gap: 20,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Star
+        style={{
+          height: 60,
+          width: 60,
+          top: 50,
+          left: 50,
+          text: "white",
+          position: "absolute",
+        }}
+      />
+      <Logo style={{ width: 200, height: 160 }} />
       <div
         style={{
-          background: "black",
-          position: "relative",
-          color: "white",
-          width: "100%",
-          height: "100%",
           display: "flex",
+          fontWeight: 700,
+          fontSize: 80,
           flexDirection: "column",
-          paddingTop: 20,
-          gap: 20,
-          alignItems: "center",
           justifyContent: "center",
+          alignItems: "center",
         }}
       >
-        <Star
-          style={{
-            height: 60,
-            width: 60,
-            top: 50,
-            left: 50,
-            text: "white",
-            position: "absolute",
-          }}
-        />
-        <Logo style={{ width: 200, height: 160 }} />
-        <div
-          style={{
-            display: "flex",
-            fontWeight: 700,
-            fontSize: 80,
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <span>Litehouse</span>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "center",
-            gap: 10,
-            marginTop: 20,
-            alignItems: "center",
-            fontSize: 26,
-            border: "1px solid #22c55e",
-            color: "#22c55e",
-            borderRadius: 9999,
-            paddingTop: 14,
-            paddingBottom: 14,
-            paddingLeft: 24,
-            paddingRight: 24,
-          }}
-        >
-          {params.title} @ {params.version}
-        </div>
-        <Star
-          style={{
-            height: 60,
-            width: 60,
-            bottom: 50,
-            right: 50,
-            text: "white",
-            position: "absolute",
-          }}
-        />
+        <span>Litehouse</span>
       </div>
-    ),
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "center",
+          gap: 10,
+          marginTop: 20,
+          alignItems: "center",
+          fontSize: 26,
+          border: "1px solid #22c55e",
+          color: "#22c55e",
+          borderRadius: 9999,
+          paddingTop: 14,
+          paddingBottom: 14,
+          paddingLeft: 24,
+          paddingRight: 24,
+        }}
+      >
+        {params.title} @ {params.version}
+      </div>
+      <Star
+        style={{
+          height: 60,
+          width: 60,
+          bottom: 50,
+          right: 50,
+          text: "white",
+          position: "absolute",
+        }}
+      />
+    </div>,
     // ImageResponse options
     {
       // For convenience, we can re-use the exported opengraph-image

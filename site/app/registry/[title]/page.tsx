@@ -2,7 +2,7 @@ import { type Plugin, PluginPage } from "@/components/plugin-page";
 import { getPluginData, getPlugins } from "@/lib/registry";
 import type { Metadata } from "next";
 
-export const experimental_ppr = true
+export const experimental_ppr = true;
 
 const Page = async ({ params }: { params: { title: string } }) => {
   const plugin = params.title;
