@@ -417,7 +417,7 @@ impl Subcommand {
                                             Some(PathChunk::Property(p)),
                                             Some(PathChunk::Property(plugin)),
                                         ) if p.as_ref() == "plugins" => {
-                                            format!("invalid plugin definiton for `{}`", plugin)
+                                            format!("invalid plugin definition for `{}`", plugin)
                                         }
                                         _ => "invalid setting".to_string(),
                                     };

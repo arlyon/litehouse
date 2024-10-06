@@ -148,7 +148,7 @@ export const useManifestStore = () => {
 };
 
 /**
- * A syncrhonized generation hook that broadcasts changes to a channel.
+ * A synchronized generation hook that broadcasts changes to a channel.
  */
 const useBroadcastGeneration = (channel: string) => {
   const [generation, setGeneration] = useState(0);

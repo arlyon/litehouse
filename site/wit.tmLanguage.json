@@ -1293,7 +1293,7 @@
     },
     "function": {
       "name": "meta.func-item.wit",
-      "comment": "This is a function item that includes its identifier. This starts with a variable name, succeded by a `func` keyword and ends with `new line`",
+      "comment": "This is a function item that includes its identifier. This starts with a variable name, succeeded by a `func` keyword and ends with `new line`",
       "begin": "\\b%?((?<![\\-\\w])([a-z][0-9a-z]*|[A-Z][0-9A-Z]*)(([\\-])([a-z][0-9a-z]*|[A-Z][0-9A-Z]*))*)\\s*(\\:)",
       "beginCaptures": {
         "1": {

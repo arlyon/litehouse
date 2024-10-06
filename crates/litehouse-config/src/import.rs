@@ -9,7 +9,7 @@ use crate::hash_read::HashRead;
 
 const REGISTRY_SEPARATOR: &str = "::";
 const VERSION_SEPARATOR: &str = "@";
-const SHA_SEPERATOR: &str = "~";
+const SHA_SEPARATOR: &str = "~";
 
 /// A plugin import. Serializes to a string with the format `registry::plugin`
 #[derive(Debug, Clone)]
@@ -268,7 +268,7 @@ impl FromStr for Import {
             .map(|(registry, rest)| (Some(registry), rest))
             .unwrap_or((None, rest));
         let (sha, rest) = rest
-            .rsplit_once(SHA_SEPERATOR)
+            .rsplit_once(SHA_SEPARATOR)
             .map(|(rest, sha)| (Some(sha), rest))
             .unwrap_or((None, rest));
         let (package, version) = rest
@@ -322,7 +322,7 @@ impl Display for Import {
         let sha = self
             .sha
             .as_ref()
-            .map(|v| format!("{}{}", SHA_SEPERATOR, v))
+            .map(|v| format!("{}{}", SHA_SEPARATOR, v))
             .unwrap_or_default();
 
         write!(f, "{}{}{}{}", registry, self.plugin, version, sha)

@@ -80,7 +80,7 @@ The basic protocol is defined in `crates/plugin-macro/wit/plugin.wit`,
 the core of which being the 'runner' interface. This is the interface
 the server uses to run your plugin. For now, it will simply call the
 update function at an interval specified by the plugin in the
-subscribe function. In the future, you will be able to subscibe to
+subscribe function. In the future, you will be able to subscribe to
 events from other plugins, and the server will call your update
 function when those events occur.
 

@@ -191,7 +191,7 @@ mod test {
     #[tokio::test]
     #[test_case("aa", Ok(0))]
     #[test_case("ao", Ok(1))]
-    #[test_case("ba", Ok(2))]
+    #[test_case("be", Ok(2))]
     #[test_case("ma", Ok(24))]
     #[test_case("na", Ok(26))]
     #[test_case("za", Ok(50))]

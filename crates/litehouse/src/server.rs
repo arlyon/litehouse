@@ -107,7 +107,7 @@ async fn do_signaling(offer: RTCSessionDescription) -> RTCSessionDescription {
     peer_connection.local_description().await.unwrap()
 }
 
-/// Attemps to establish direct webrtc connections via the provided
+/// Attempts to establish direct webrtc connections via the provided
 /// `broker`. As soon as a connection is brokered, it starts a new
 /// task to handle it, and then immediately starts polling again.
 pub async fn facilicate_connections(broker: Url) -> Result<()> {

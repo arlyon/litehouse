@@ -1,0 +1,6 @@
+[tools]
+bun = "1.1.29"
+rust = "1.80.0"
+"cargo:ubi-cli" = "0.2.0"
+
+"ubi:crate-ci/typos" = "v1.24.6"
