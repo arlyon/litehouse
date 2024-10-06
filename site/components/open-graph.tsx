@@ -14,7 +14,7 @@ export async function OpenGraph({ href }: { href: string }) {
 
   return (
     <Link href={href} className="not-prose" target="_blank">
-      <div className="shadow-lg flex flex-col lg:h-[200px] lg:flex-row bg-primary-foreground outline outline-1 outline-border">
+      <div className="shadow-lg flex flex-col lg:h-[200px] lg:flex-row bg-primary-foreground outline outline-1 outline-fd-border">
         <div className="relative w-full lg:h-full aspect-[1.91/1]">
           <Image src={data.image} fill={true} className="relative my-0" />
         </div>

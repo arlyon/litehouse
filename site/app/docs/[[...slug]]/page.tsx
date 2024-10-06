@@ -2,9 +2,9 @@ import { getPage, getPages } from "@/app/source";
 import { DocsBody, DocsPage } from "fumadocs-ui/page";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
 import { Edit } from "lucide-react";
+import defaultMdxComponents from 'fumadocs-ui/mdx';
+import { CodeBlock, Pre } from "@/components/code-block";
 
 export default async function Page({
   params,
@@ -31,20 +31,31 @@ export default async function Page({
     </a>
   );
 
-  const MDX = page.data.exports.default;
+  const MDX = page.data.body
+
+  console.log(page)
 
   return (
     <DocsPage
-      toc={page.data.exports.toc}
+      toc={page.data.toc}
       tableOfContent={{
-        enabled: page.data.toc,
+        enabled: !!page.data.toc,
+        style: "clerk",
         footer,
       }}
       tableOfContentPopover={{ footer }}
     >
       <DocsBody>
-        <h1>{page.data.title}</h1>
-        <MDX />
+        <h1 className="mb-0">{page.data.title}</h1>
+        <p className="mt-0 text-purple-600">{page.data.description}</p>
+        <MDX components={{
+            ...defaultMdxComponents,
+            pre: ({ ref: _ref, icon, title, ...props }: any) => (
+              <CodeBlock icon={icon} title={title} allowDL={title?.includes(".")}>
+                <Pre {...props} />
+              </CodeBlock>
+            ),
+        }} />
       </DocsBody>
     </DocsPage>
   );
@@ -60,6 +71,8 @@ export function generateMetadata({ params }: { params: { slug?: string[] } }) {
   const page = getPage(params.slug);
 
   if (page == null) notFound();
+
+  console.log(page)
 
   return {
     title: page.data.title,

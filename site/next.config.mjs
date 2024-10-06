@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import createMDX from "fumadocs-mdx/config";
+import { createMDX } from "fumadocs-mdx/next";
 import { withAxiom } from "next-axiom";
 import { bundledLanguages } from "shiki";
 
@@ -10,17 +10,7 @@ const rootMapPath = ".map.ts";
 
 const wit = JSON.parse(fs.readFileSync("wit.tmLanguage.json", "utf8"));
 
-const withMDX = createMDX({
-  mdxOptions: {
-    providerImportSource: "@/mdx-components",
-    remarkPlugins: [
-      ["remark-code-import", { allowImportingFromOutside: true }],
-    ],
-    rehypeCodeOptions: {
-      langs: [...Object.keys(bundledLanguages), wit],
-    },
-  },
-});
+const withMDX = createMDX();
 
 /** @type {import('next').NextConfig} */
 const config = {
@@ -41,7 +31,7 @@ const config = {
     // serverMinification: true,
     // serverSourceMaps: true,
     ppr: "incremental",
-    mdxRs: true,
+    // mdxRs: true,
   },
   typescript: {
     // !! WARN !!

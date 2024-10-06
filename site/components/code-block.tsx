@@ -105,7 +105,7 @@ export const CodeBlock = forwardRef<HTMLElement, CodeBlockProps>(
       >
         {title ? (
           <div className="flex flex-row items-center gap-2 border-b bg-muted px-4 py-1.5">
-            <div className="text-muted-foreground [&_svg]:size-3.5">{icon}</div>
+            <div className="text-muted-foreground [&_svg]:size-3.5" dangerouslySetInnerHTML={{ __html: icon }} />
             <figcaption className="flex-1 truncate text-muted-foreground">
               {title}
             </figcaption>

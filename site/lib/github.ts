@@ -20,6 +20,8 @@ export const getLatestRelease = async () => {
     published_at: string;
   } = await res.json();
 
+  console.log(data)
+
   return data;
 };
 
