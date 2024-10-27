@@ -10,6 +10,7 @@ import {
   PartyPopper,
   Plug,
   Text,
+  TowerControl,
 } from "lucide-react";
 import { FC } from "react";
 
@@ -109,6 +110,15 @@ export default function HomePage() {
                 Package Registry
               </Button>
             </Link>
+            <Link href="/cockpit" className="hidden lg:block">
+              <Button
+                className="inline-flex items-center gap-2 !bg-green-500"
+                variant="secondary"
+              >
+                <TowerControl className="h-5 w-5" />
+                Cockpit
+              </Button>
+            </Link>
             <Link href="/docs">
               <Button
                 className="inline-flex items-center gap-2"
@@ -128,15 +138,6 @@ export default function HomePage() {
               >
                 <GithubIcon className="h-5 w-5" />
                 GitHub
-              </Button>
-            </Link>
-            <Link href="/cockpit" className="hidden lg:block">
-              <Button
-                className="inline-flex items-center gap-2"
-                variant="outline"
-              >
-                <CloudLightning className="h-5 w-5" />
-                Cockpit
               </Button>
             </Link>
           </div>

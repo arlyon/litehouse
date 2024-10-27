@@ -1,4 +1,3 @@
-use std::net::SocketAddr;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -108,19 +107,42 @@ async fn do_signaling(offer: RTCSessionDescription) -> RTCSessionDescription {
     peer_connection.local_description().await.unwrap()
 }
 
+/// A jwt certificate signed by some authority that can be used to prove
+/// the identity of the instance
+///
+/// Contains the server-assigned node id and account id of the owner
 #[derive(Clone, Debug)]
-pub struct Credentials {
-    pub node_id: String,
-    pub account: String,
+pub struct Authed(pub String);
+
+#[derive(serde::Deserialize)]
+struct AuthedClaims {
+    node_id: String,
+    account: String,
+}
+
+impl Authed {
+    pub fn node_id(&self) -> &str {
+        // parse jwt
+        &self.0
+    }
+
+    pub fn account(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum Credentials {
+    Authed(Authed),
+    Unauthed { password: [u8; 6] },
 }
 
 /// Attempts to establish direct webrtc connections via the provided
 /// `broker`. As soon as a connection is brokered, it starts a new
 /// task to handle it, and then immediately starts polling again.
-pub async fn facilicate_connections(broker: Url, credentials: Option<Credentials>) -> Result<()> {
+pub async fn facilicate_connections(broker: Url, credentials: Credentials) -> Result<()> {
     // let broker = broker.to_string(); // for some reason the url is not cloneable
     let client = reqwest::Client::new();
-    tracing::info!("what!");
     loop {
         let conn = open_connection(&client, broker.clone(), credentials.clone()).await;
         tokio::task::spawn(async move {
@@ -129,13 +151,12 @@ pub async fn facilicate_connections(broker: Url, credentials: Option<Credentials
     }
 }
 
-async fn open_connection(client: &reqwest::Client, broker: Url, credentials: Option<Credentials>) {
-    tracing::info!("STARTED");
-    let post = if let Some(credentials) = &credentials {
+async fn open_connection(client: &reqwest::Client, broker: Url, credentials: Credentials) {
+    let post = if let Credentials::Authed(cert) = &credentials {
         let mut url = broker.clone();
-        url.set_path(&format!("/litehouse/{}", credentials.node_id));
+        url.set_path(&format!("/litehouse/{}", cert.node_id()));
         tracing::debug!("opening broker connection at {}", url);
-        client.post(url).bearer_auth(&credentials.account)
+        client.post(url).bearer_auth(&cert.account())
     } else {
         let mut url = broker.clone();
         url.set_path("/litehouse");
@@ -155,9 +176,9 @@ async fn open_connection(client: &reqwest::Client, broker: Url, credentials: Opt
                 let answer = do_signaling(offer.clone()).await;
                 tracing::info!("{}: {:?} -> {:?}", msg.id, offer, answer);
                 let id = msg.id.parse().unwrap();
-                break Some((id, answer));
+                break (id, answer);
             }
-            Some(Err(reqwest_eventsource::Error::StreamEnded)) | None => break None,
+            Some(Err(reqwest_eventsource::Error::StreamEnded)) | None => return,
             Some(Err(reqwest_eventsource::Error::Transport(e))) if e.is_connect() => {
                 tracing::trace!("could not connect to broker, retrying in 1 minute");
                 tokio::time::sleep(Duration::from_secs(60)).await;
@@ -169,10 +190,6 @@ async fn open_connection(client: &reqwest::Client, broker: Url, credentials: Opt
     };
 
     tracing::info!("answer: {:?}", answer);
-
-    let Some(answer) = answer else {
-        return;
-    };
 
     send_answer(client, broker, credentials, answer).await;
 }
@@ -186,24 +203,39 @@ struct Finalize {
 async fn send_answer(
     client: &reqwest::Client,
     broker: Url,
-    credentials: Option<Credentials>,
+    credentials: Credentials,
     answer: (u64, RTCSessionDescription),
 ) {
-    let post = if let Some(credentials) = credentials {
-        let mut url = broker.clone();
-        url.set_path(&format!("/litehouse/{}", credentials.node_id));
-        tracing::info!("sending answer to {}", url);
-        client
-            .put(url)
-            .bearer_auth(&credentials.account)
-            .json(&Finalize {
-                id: answer.0,
-                offer: answer.1,
-            })
-            .send()
-            .await
-    } else {
-        todo!();
+    let post = match credentials {
+        Credentials::Authed(credentials) => {
+            let mut url = broker.clone();
+            url.set_path(&format!("/litehouse/{}", credentials.node_id()));
+            tracing::info!("sending answer to {}", url);
+            client
+                .put(url)
+                .bearer_auth(&credentials.account())
+                .json(&Finalize {
+                    id: answer.0,
+                    offer: answer.1,
+                })
+                .send()
+                .await
+        }
+        Credentials::Unauthed { password } => {
+            let mut url = broker.clone();
+            url.set_path(&format!("/litehouse"));
+            tracing::info!("sending answer to {}", url);
+            todo!()
+            // client
+            //     .put(url)
+            //     .bearer_auth(&credentials.)
+            //     .json(&Finalize {
+            //         id: answer.0,
+            //         offer: answer.1,
+            //     })
+            //     .send()
+            //     .await
+        }
     };
 
     let response = post.unwrap();

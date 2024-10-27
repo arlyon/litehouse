@@ -16,6 +16,7 @@ pin_project_lite::pin_project! {
         future: ManuallyDrop<Fuse<F>>,
     }
 
+
     impl<S, F: 'static> PinnedDrop for FutureOnCloseStream<S, F>
     where
         F: Future<Output = ()>,

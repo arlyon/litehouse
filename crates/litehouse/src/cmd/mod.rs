@@ -6,7 +6,7 @@ mod packages;
 mod run;
 mod validate;
 
-use std::{net::SocketAddr, path::PathBuf};
+use std::path::PathBuf;
 
 use auth::AuthCommand;
 use jsonc_parser::CollectOptions;
@@ -18,7 +18,6 @@ use litehouse_config::{
 use litehouse_plugin::serde_json;
 use litehouse_registry::Registry;
 use miette::{Context, IntoDiagnostic, NamedSource, Result};
-use reqwest::Url;
 use tokio::sync::broadcast::channel;
 
 use crate::{
@@ -48,10 +47,6 @@ pub enum Subcommand {
         /// Whether to enable the wasm cache
         #[clap(long)]
         no_cache: bool,
-        /// A broker to use to facilitate webrtc connections.
-        #[clap(long, value_parser = no_url_path)]
-        broker: Option<Url>,
-        // #[clap(long)]
     },
     /// Inspect a plugin to see its metadata
     Inspect {
@@ -138,14 +133,6 @@ pub enum Subcommand {
         #[command(subcommand)]
         auth_command: AuthCommand,
     },
-}
-
-fn no_url_path(s: &str) -> Result<Url, String> {
-    Url::parse(s).map_err(|e| e.to_string()).and_then(|val| {
-        (val.path() == "/")
-            .then(|| val)
-            .ok_or_else(|| "must not contain a path".to_string())
-    })
 }
 
 impl Subcommand {
@@ -265,8 +252,7 @@ impl Subcommand {
             Subcommand::Run {
                 wasm_path,
                 no_cache,
-                broker,
-            } => run::run(&wasm_path, !no_cache, broker)
+            } => run::run(&wasm_path, !no_cache)
                 .await
                 .wrap_err("unable to start litehouse"),
             Subcommand::Inspect {

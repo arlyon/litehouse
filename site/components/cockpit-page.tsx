@@ -3,6 +3,7 @@
 import { Timer } from "lucide-react";
 import { FlowEditor } from "./flow-editor";
 import { useEffect, useRef, useState } from "react";
+import { client } from "@/lib/cockpit-client";
 
 export const Cockpit = ({ children, nodeId }) => {
   const [dcOpen, setDcOpen] = useState(false);
@@ -46,14 +47,14 @@ export const Cockpit = ({ children, nodeId }) => {
       try {
         const offer = await pc.createOffer();
         pc.setLocalDescription(offer);
-        res = await fetch(`http://localhost:3001/client/${nodeId}`, {
-          method: "post",
-          headers: {
-            Accept: "application/json, text/plain, */*",
-            "Content-Type": "application/json",
-            Authorization: "Bearer 1234",
+         res = await client["/client/{id}"].post({
+          json: offer as {[key: string]: any},
+          params: {
+            id: nodeId
           },
-          body: JSON.stringify(offer),
+          headers: {
+            authorization: "Bearer 1234",
+          }
         });
       } catch (e) {
         console.log("ERROR");

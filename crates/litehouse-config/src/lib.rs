@@ -53,10 +53,34 @@ pub struct LitehouseConfig {
     /// Advanced engine configuration
     #[serde(default, skip_serializing_if = "is_default")]
     pub engine: Engine,
+    /// Configuration to connect to a litehouse broker
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub broker: Option<Broker>,
 }
 
 fn default_schema() -> String {
     "./schema.json".to_string()
+}
+
+#[derive(JsonSchema, Serialize, Deserialize, Debug, PartialEq)]
+pub struct Broker {
+    /// The url of the broker to facilitate webrtc connections
+    ///
+    /// If not provided, defaults to `https://cockpit.litehouse.arlyon.dev`.
+    pub url: Option<url::Url>,
+    /// A jwt certificate signed by some authority that can be used to prove
+    /// the identity of the instance
+    pub cert: Option<String>,
+    /// A password that local network clients must know to claim the litehouse instance
+    pub password: [u8; 6],
+}
+
+impl Broker {
+    pub fn url(&self) -> url::Url {
+        self.url
+            .clone()
+            .unwrap_or_else(|| "https://cockpit.litehouse.arlyon.dev".parse().unwrap())
+    }
 }
 
 #[derive(JsonSchema, Serialize, Deserialize, Debug, Default, PartialEq)]

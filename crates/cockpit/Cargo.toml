@@ -9,17 +9,27 @@ description.workspace = true
 homepage.workspace = true
 
 [dependencies]
-axum = { version = "0.8.0-alpha.1", features = ["macros"] }
-axum-extra = { version = "0.10.0-alpha.1", features = ["typed-header"] }
+aide = { version = "0.13.4", features = [
+  "axum",
+  "axum-extra",
+  "axum-headers",
+  "scalar",
+] }
+axum = { version = "0.7", features = ["macros"] }
+axum-extra = { version = "0.9", features = ["typed-header"] }
+axum-jsonschema = { version = "0.8.0", features = ["aide"] }
 fjall = "2.0.3"
 futures = "0.3.30"
 headers = "0.4.0"
 pin-project-lite = "0.2.14"
+schemars = "0.8.21"
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
 tokio = { version = "1.40.0", features = ["rt-multi-thread"] }
 tokio-stream = "0.1.16"
+tower = { version = "0.5.1", features = ["buffer", "limit"] }
 tower-http = { version = "0.6.1", features = ["cors", "fs", "trace"] }
+tower_governor = "0.4.3"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 webrtc = "0.11.0"

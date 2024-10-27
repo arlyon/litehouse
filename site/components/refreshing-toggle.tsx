@@ -1,5 +1,6 @@
 "use client";
 
+import { client } from "@/lib/cockpit-client";
 import {
   QueryClient,
   QueryClientProvider,
@@ -9,10 +10,10 @@ import { RootToggle } from "fumadocs-ui/components/layout/root-toggle";
 import { Home, PlusIcon, Unlink } from "lucide-react";
 import { usePathname } from "next/navigation";
 
-const client = new QueryClient();
+const queryClient = new QueryClient();
 
 export const RefreshingToggle = ({ children, initialData }) => (
-  <QueryClientProvider client={client}>
+  <QueryClientProvider client={queryClient}>
     <RefreshingToggleInner children={children} initialData={initialData} />
   </QueryClientProvider>
 );
@@ -23,10 +24,10 @@ export const RefreshingToggleInner = ({ children, initialData }) => {
   const query = useQuery({
     queryKey: ["knownServers"],
     queryFn: async () => {
-      const data = await fetch("http://localhost:3001/client", {
+      const data = await client["/client"].get({
         headers: {
-          Authorization: "Bearer 1234",
-        },
+          authorization: "Bearer 1234",
+        }
       });
       const servers = await data.json();
       return servers;

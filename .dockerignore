@@ -6,3 +6,4 @@ site
 .github
 schema.json
 settings.json
+node_modules

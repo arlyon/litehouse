@@ -49,6 +49,9 @@ impl ModuleCache {
         };
 
         let compressed = lz4_flex::compress_prepend_size(&data);
+        if let Some(parent) = Self::cache_path().parent() {
+            tokio::fs::create_dir_all(parent).await.into_diagnostic()?;
+        }
         tokio::fs::write(Self::cache_path(), compressed)
             .await
             .into_diagnostic()?;

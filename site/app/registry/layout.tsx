@@ -21,6 +21,7 @@ const Suspend = ({ children }) => (
 
 export const Header = ({
   title,
+  link,
   provider: Provider = Fragment,
   suspend = true,
 }) => {
@@ -32,7 +33,7 @@ export const Header = ({
           <Link href="/">
             <Logo className="mr-2 h-6 w-6" />
           </Link>
-          <Link href="/registry" className="w-max">
+          <Link href={link} className="w-max">
             Litehouse <span className="text-green-600">{title}</span>
           </Link>
         </h1>
@@ -74,7 +75,7 @@ export const Header = ({
 const Layout = ({ children }: PropsWithChildren<unknown>) => {
   return (
     <div>
-      <Header title="Registry" provider={ClerkProvider} />
+      <Header title="Registry" link="/registry" provider={ClerkProvider} />
       {/* <div className="flex justify-between mb-6">
         <div>
           <p className="text-muted-foreground">Total Downloads</p>

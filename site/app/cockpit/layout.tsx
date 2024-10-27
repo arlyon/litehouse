@@ -13,11 +13,11 @@ export default async function CockpitPage({ children }) {
 
   // console.log(servers);
   //
-  const servers = []
+  const servers = [];
 
   return (
     <ClerkProvider>
-      <Header title="Cockpit" suspend={false} />
+      <Header title="Cockpit" link="/cockpit" suspend={false} />
       <SignedOut>
         <RedirectToSignIn />
       </SignedOut>

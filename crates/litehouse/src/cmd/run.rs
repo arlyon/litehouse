@@ -3,8 +3,7 @@ use jsonc_parser::CollectOptions;
 use litehouse_config::{LitehouseConfig, SandboxStrategy};
 use litehouse_plugin::serde_json;
 use miette::{Context, IntoDiagnostic, NamedSource, Result};
-use reqwest::Url;
-use std::{future, net::SocketAddr, path::Path, sync::Arc};
+use std::{future, path::Path, sync::Arc};
 use tokio::{sync::broadcast::channel, time::interval};
 use tracing::Instrument;
 use wasmtime::Trap;
@@ -17,7 +16,7 @@ use crate::{
         instantiate_plugin_host, instantiate_plugin_hosts, set_up_engine, PluginInstance,
         PluginRunnerFactory,
     },
-    server::Credentials,
+    server::{Authed, Credentials},
     store::StoreStrategy,
 };
 
@@ -29,17 +28,21 @@ use crate::{
 /// * `cache` - Whether to cache the wasm file
 /// * `server` - The port to run the server on. If this is `None`, webrtc will not be started.
 #[tracing::instrument(skip_all)]
-pub async fn run(wasm_path: &Path, cache: bool, broker: Option<Url>) -> Result<()> {
+pub async fn run(wasm_path: &Path, cache: bool) -> Result<()> {
     tracing::info!("booting litehouse");
+    let config = LitehouseConfig::load().wrap_err("unable to read settings")?;
 
-    let server_fut = if let Some(broker) = broker {
+    let server_fut = if let Some(broker) = config.broker {
         tracing::info!("running server");
         let handle = tokio::spawn(crate::server::facilicate_connections(
-            broker,
-            Some(Credentials {
-                node_id: "vitriolic-jeans".to_string(),
-                account: "1234".to_string(),
-            }),
+            broker.url(),
+            broker
+                .cert
+                .map(Authed)
+                .map(Credentials::Authed)
+                .unwrap_or(Credentials::Unauthed {
+                    password: broker.password,
+                }),
         ));
         Either::Left(handle)
     } else {
@@ -47,7 +50,6 @@ pub async fn run(wasm_path: &Path, cache: bool, broker: Option<Url>) -> Result<(
         Either::Right(future::pending())
     };
 
-    let config = LitehouseConfig::load().wrap_err("unable to read settings")?;
     let data = Arc::new(
         std::fs::read_to_string("settings.json")
             .into_diagnostic()
