@@ -4,16 +4,17 @@ use crate::client::MissingServerError;
 use crate::future_on_close_stream::FutureOnCloseStream;
 use crate::types::{
     AppState, EitherResponse, Finalize, JsonSchemaRTCSessionDescription, NodeId, OpenApiSse,
-    Reject, Resp,
+    Reject, Resp, TransparentOperation,
 };
 use aide::axum::IntoApiResponse;
 use aide::OperationOutput;
 use axum::response::IntoResponse;
 use axum::{
-    extract::{ConnectInfo, Path, State},
+    extract::{Path, State},
     response::sse::{Event, Sse},
     Json,
 };
+use axum_client_ip::SecureClientIp;
 use axum_extra::TypedHeader;
 use futures::stream::{self};
 use headers::{
@@ -35,8 +36,7 @@ pub async fn wait_for_connection_anon(
         unknown_connections,
         ..
     }): State<AppState>,
-    TypedHeader(account): TypedHeader<Authorization<Basic>>,
-    ConnectInfo(remote_addr): ConnectInfo<SocketAddr>,
+    TransparentOperation(SecureClientIp(remote_addr)): TransparentOperation<SecureClientIp>,
 ) -> impl IntoApiResponse {
     tracing::trace!("connection from {}", remote_addr);
     let (tx, rx) = tokio::sync::oneshot::channel();
@@ -66,13 +66,13 @@ pub async fn wait_for_connection_anon(
     {
         tracing::trace!("adding unauth connection from {}", remote_addr);
         let mut unknown_connections = unknown_connections.lock().await;
-        unknown_connections.insert(remote_addr.ip(), tx);
+        unknown_connections.insert(remote_addr, tx);
     }
 
     let completion = async move {
         tracing::trace!("removing connection from {}", remote_addr);
         let mut unknown_connections = unknown_connections.lock().await;
-        unknown_connections.remove(&remote_addr.ip());
+        unknown_connections.remove(&remote_addr);
     };
 
     OpenApiSse(
@@ -92,7 +92,7 @@ pub async fn wait_for_connection(
     }): State<AppState>,
     Path(NodeId { id: node_id }): Path<NodeId>,
     TypedHeader(Authorization(account)): TypedHeader<Authorization<Bearer>>,
-    ConnectInfo(remote_addr): ConnectInfo<SocketAddr>,
+    TransparentOperation(SecureClientIp(remote_addr)): TransparentOperation<SecureClientIp>,
 ) -> impl IntoApiResponse {
     tracing::trace!("connection from {}", remote_addr);
     let (tx, rx) = tokio::sync::oneshot::channel();
@@ -143,10 +143,9 @@ crate::macros::static_error!(
 
 pub async fn finalize_connection(
     State(AppState { broker_pool, .. }): State<AppState>,
-    ConnectInfo(remote_addr): ConnectInfo<SocketAddr>,
     Json(Finalize { id, offer }): Json<Finalize>,
 ) -> impl IntoApiResponse {
-    tracing::trace!("finalize from {} ({})", remote_addr, id);
+    tracing::trace!("finalize from ({})", id);
     let result = {
         let mut broker_pool = broker_pool.lock().await;
         broker_pool.remove(&id)
@@ -161,10 +160,9 @@ pub async fn finalize_connection(
 
 pub async fn reject_connection(
     State(AppState { broker_pool, .. }): State<AppState>,
-    ConnectInfo(remote_addr): ConnectInfo<SocketAddr>,
     Json(Reject { id }): Json<Reject>,
 ) -> impl IntoApiResponse {
-    tracing::trace!("finalize from {} ({})", remote_addr, id);
+    tracing::trace!("finalize from ({})", id);
     let result = {
         let mut broker_pool = broker_pool.lock().await;
         broker_pool.remove(&id)

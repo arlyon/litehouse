@@ -3,9 +3,9 @@ use std::{collections::BTreeMap, net::IpAddr, sync::Arc};
 use aide::{
     axum::IntoApiResponse,
     openapi::{ExternalDocumentation, MediaType, Response},
-    OperationOutput,
+    OperationInput, OperationOutput,
 };
-use axum::response::IntoResponse;
+use axum::{async_trait, extract::FromRequestParts, response::IntoResponse};
 use headers::authorization::Basic;
 use tokio::sync::{oneshot::Sender, Mutex};
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
@@ -184,4 +184,30 @@ pub enum Connection {
         /// The ip address of the node
         ip: IpAddr,
     },
+}
+
+/// A wrapper for extractors that should no appear in the openapi docs
+pub struct TransparentOperation<T>(pub T);
+impl<T> OperationInput for TransparentOperation<T> {
+    fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {}
+
+    fn inferred_early_responses(
+        ctx: &mut aide::gen::GenContext,
+        operation: &mut aide::openapi::Operation,
+    ) -> Vec<(Option<u16>, Response)> {
+        Vec::new()
+    }
+}
+#[async_trait]
+impl<T: FromRequestParts<S>, S: Sync> FromRequestParts<S> for TransparentOperation<T> {
+    type Rejection = T::Rejection;
+
+    async fn from_request_parts(
+        parts: &mut axum::http::request::Parts,
+        state: &S,
+    ) -> Result<Self, Self::Rejection> {
+        T::from_request_parts(parts, state)
+            .await
+            .map(TransparentOperation)
+    }
 }

@@ -20,6 +20,7 @@ use aide::{
     openapi::OpenApi,
 };
 use axum::{Extension, Router};
+use axum_client_ip::SecureClientIpSource;
 use client::{client_handler, client_handler_anon, list_connections};
 use docs::{api_docs, docs_routes};
 use litehouse::{
@@ -42,7 +43,7 @@ async fn main() {
         .unwrap_or_else(|_| 3000u16);
 
     // run it
-    let listener = tokio::net::TcpListener::bind(("127.0.0.1", port))
+    let listener = tokio::net::TcpListener::bind(("0.0.0.0", port))
         .await
         .unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
@@ -128,6 +129,7 @@ fn app() -> Router {
         .nest_api_service("/docs", docs_routes(state.clone()))
         .finish_api_with(&mut api, api_docs)
         .layer(TraceLayer::new_for_http())
+        .layer(SecureClientIpSource::RightmostXForwardedFor.into_extension())
         .layer(CorsLayer::permissive())
         .layer(Extension(Arc::new(api)))
         .with_state(state)

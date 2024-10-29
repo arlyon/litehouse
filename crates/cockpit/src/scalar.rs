@@ -125,7 +125,7 @@ impl Scalar {
                   var apiReference = document.getElementById('api-reference')
                   apiReference.dataset.configuration = JSON.stringify(configuration)
                 </script>
-                <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference">
+                <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.25.50">
                 </script>
               </body>
             </html>

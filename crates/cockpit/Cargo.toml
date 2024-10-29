@@ -16,6 +16,7 @@ aide = { version = "0.13.4", features = [
   "scalar",
 ] }
 axum = { version = "0.7", features = ["macros"] }
+axum-client-ip = "0.6.1"
 axum-extra = { version = "0.9", features = ["typed-header"] }
 axum-jsonschema = { version = "0.8.0", features = ["aide"] }
 fjall = "2.0.3"

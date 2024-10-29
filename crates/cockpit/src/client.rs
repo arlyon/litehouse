@@ -6,6 +6,7 @@ use std::{
 
 use crate::types::{
     AppState, Connection, EitherResponse, JsonSchemaRTCSessionDescription, NodeId, Resp,
+    TransparentOperation,
 };
 use aide::{axum::IntoApiResponse, OperationOutput};
 use axum::{
@@ -13,6 +14,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use axum_client_ip::SecureClientIp;
 use axum_extra::TypedHeader;
 use headers::{
     authorization::{Basic, Bearer},
@@ -26,7 +28,7 @@ pub async fn list_connections(
         ..
     }): State<AppState>,
     TypedHeader(account): TypedHeader<Authorization<Bearer>>,
-    ConnectInfo(remote_addr): ConnectInfo<SocketAddr>,
+    TransparentOperation(SecureClientIp(remote_addr)): TransparentOperation<SecureClientIp>,
 ) -> impl IntoApiResponse {
     let mut items = vec![];
     let account = account.token().to_owned();
@@ -76,12 +78,12 @@ pub async fn list_connections(
 
     {
         let unknown_connections = unknown_connections.lock().await;
-        let mut unknown_lb = unknown_connections.lower_bound(Bound::Included(&remote_addr.ip()));
+        let mut unknown_lb = unknown_connections.lower_bound(Bound::Included(&remote_addr));
 
         loop {
             let next = unknown_lb.next();
             match next {
-                Some((addr, _)) if *addr == remote_addr.ip() => {
+                Some((addr, _)) if *addr == remote_addr => {
                     items.push(Connection::Unknown { ip: *addr });
                 }
                 None | Some(_) => break,
@@ -111,7 +113,7 @@ pub async fn client_handler_anon(
         broker_pool,
         ..
     }): State<AppState>,
-    ConnectInfo(remote_addr): ConnectInfo<SocketAddr>,
+    TransparentOperation(SecureClientIp(remote_addr)): TransparentOperation<SecureClientIp>,
     TypedHeader(account): TypedHeader<Authorization<Basic>>,
     Json(JsonSchemaRTCSessionDescription(offer)): Json<JsonSchemaRTCSessionDescription>,
 ) -> impl IntoResponse + OperationOutput {
@@ -122,7 +124,7 @@ pub async fn client_handler_anon(
     let selected = {
         let mut connections = unknown_connections.lock().await;
         tracing::info!("pairing state {:?}", connections);
-        connections.remove(&remote_addr.ip())
+        connections.remove(&remote_addr)
     }
     .ok_or(EitherResponse::A(MissingServerError))?;
 
@@ -171,7 +173,6 @@ pub async fn client_handler(
         broker_pool,
         ..
     }): State<AppState>,
-    ConnectInfo(remote_addr): ConnectInfo<SocketAddr>,
     Path(NodeId { id: node_id }): Path<NodeId>,
     TypedHeader(Authorization(account)): TypedHeader<Authorization<Bearer>>,
     Json(JsonSchemaRTCSessionDescription(offer)): Json<JsonSchemaRTCSessionDescription>,
