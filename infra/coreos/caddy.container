@@ -1,0 +1,14 @@
+[Unit]
+Requires=caddy.socket
+After=caddy.socket
+
+[Install]
+WantedBy=default.target
+
+[Container]
+Exec=/usr/bin/caddy run --config /etc/caddy/Caddyfile
+Image=ghcr.io/arlyon/cockpit:caddy
+Network=network.network
+Notify=true
+Volume=%h/Caddyfile:/etc/caddy/Caddyfile:Z
+Volume=%h/caddy-data:/data:Z

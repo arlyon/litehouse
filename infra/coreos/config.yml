@@ -1,0 +1,109 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Relativ-IT/Butane-Schemas/Release/Butane-Schema.json
+variant: fcos
+version: 1.5.0
+
+passwd:
+  users:
+    - name: core
+      groups:
+        - docker
+        - wheel
+        - sudo
+      ssh_authorized_keys:
+        # Will be replaced by terraform script
+        - ${ssh_public_key}
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFG4kP3OYIB5vS45kZ+CtzCFckcNUS37ck8cZ+c8uwea
+      password_hash: "$y$j9T$e1aXKFjEHsCofksAXojpx1$T1KDHCcwFENtRW3BN0TKgwVXoASz.YubrFh86.09L1C" # spellchecker:disable-line
+systemd:
+  units:
+    - name: nftables.service
+      enabled: true
+    - name: podman-auto-update.timer
+      enabled: true
+storage:
+  files:
+    # raise console message logging level from DEBUG (7) to WARNING (4)
+    # to hide audit messages from the interactive console
+    - path: /etc/sysctl.d/20-silence-audit.conf
+      mode: 0644
+      contents:
+        inline: |
+          kernel.printk=4
+    # set up nftables rules to allow ssh and caddy
+    - path: /etc/sysconfig/nftables.conf
+      mode: 0644
+      overwrite: true
+      user:
+        name: root
+      group:
+        name: root
+      contents:
+        local: nftables.conf
+    # allow caddy to listen on port 80
+    - path: /etc/sysctl.d/20-allow-port-80.conf
+      mode: 0644
+      contents:
+        inline: |
+          net.ipv4.ip_unprivileged_port_start=80
+    - path: /var/lib/systemd/linger/core
+    - path: /var/home/core/Caddyfile
+      user:
+        name: core
+      group:
+        name: core
+      contents:
+        local: Caddyfile
+    - path: /var/home/core/.config/containers/systemd/caddy.container
+      user:
+        name: core
+      group:
+        name: core
+      contents:
+        local: caddy.container
+    - path: /var/home/core/.config/systemd/user/caddy.socket
+      user:
+        name: core
+      group:
+        name: core
+      contents:
+        local: caddy.socket
+    - path: /var/home/core/.config/containers/systemd/network.network
+      user:
+        name: core
+      group:
+        name: core
+      contents:
+        local: network.network
+    - path: /var/home/core/.config/containers/systemd/cockpit.container
+      user:
+        name: core
+      group:
+        name: core
+      contents:
+        local: cockpit.container
+  directories:
+    - path: /var/home/core/.config
+      user:
+        name: core
+      group:
+        name: core
+    - path: /var/home/core/.config/systemd
+      user:
+        name: core
+      group:
+        name: core
+    - path: /var/home/core/.config/systemd/user
+      user:
+        name: core
+      group:
+        name: core
+    - path: /var/home/core/.config/containers
+      user:
+        name: core
+      group:
+        name: core
+    - path: /var/home/core/.config/containers/systemd
+      user:
+        name: core
+      group:
+        name: core

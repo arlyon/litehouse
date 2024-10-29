@@ -1,0 +1,6 @@
+[Install]
+WantedBy=default.target
+
+[Container]
+Image=ghcr.io/arlyon/cockpit:latest
+Network=network.network
