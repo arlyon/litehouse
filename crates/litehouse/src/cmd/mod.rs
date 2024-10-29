@@ -471,10 +471,7 @@ impl Subcommand {
                 debug,
                 no_package,
                 no_optimise,
-            } => {
-                packages::build(&package, &wasm_path, debug, !no_optimise, no_package).await;
-                Ok(())
-            }
+            } => packages::build(&package, &wasm_path, debug, !no_optimise, no_package).await,
             Subcommand::Search { query } => {
                 let prefix = query.map(|q| Import {
                     plugin: q,
@@ -545,10 +542,7 @@ impl Subcommand {
 
                 Ok(())
             }
-            Subcommand::Auth { auth_command } => {
-                auth::do_auth(auth_command).await;
-                Ok(())
-            }
+            Subcommand::Auth { auth_command } => auth::do_auth(auth_command).await,
         }
     }
 }

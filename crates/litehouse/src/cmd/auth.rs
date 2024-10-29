@@ -1,6 +1,7 @@
 use std::fs::OpenOptions;
 
 use litehouse_auth::{self, AuthUrl, AuthUser, ClientId, TokenResponse, TokenUrl};
+use miette::{Context, IntoDiagnostic};
 
 #[derive(clap::Subcommand)]
 pub enum AuthCommand {
@@ -21,7 +22,7 @@ struct AuthConfig {
     user: AuthUser,
 }
 
-pub async fn do_auth(auth_command: AuthCommand) {
+pub async fn do_auth(auth_command: AuthCommand) -> Result<(), miette::Error> {
     let project_dirs = litehouse_config::directories().unwrap();
     std::fs::create_dir_all(project_dirs.config_dir()).unwrap();
     let auth_path = project_dirs.config_dir().join("auth.json");
@@ -73,7 +74,11 @@ pub async fn do_auth(auth_command: AuthCommand) {
         }
         AuthCommand::Logout => {
             drop(auth_file);
-            std::fs::remove_file(auth_path);
+            std::fs::remove_file(auth_path)
+                .into_diagnostic()
+                .wrap_err("while removing auth file")?;
         }
     }
+
+    Ok(())
 }
