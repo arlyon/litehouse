@@ -12,13 +12,17 @@ import { usePathname } from "next/navigation";
 
 const queryClient = new QueryClient();
 
-export const RefreshingToggle = ({ children, initialData }) => (
+export const RefreshingToggle = ({ children, initialData, userId }) => (
   <QueryClientProvider client={queryClient}>
-    <RefreshingToggleInner children={children} initialData={initialData} />
+    <RefreshingToggleInner
+      children={children}
+      initialData={initialData}
+      userId={userId}
+    />
   </QueryClientProvider>
 );
 
-export const RefreshingToggleInner = ({ children, initialData }) => {
+export const RefreshingToggleInner = ({ children, initialData, userId }) => {
   const currentPath = usePathname();
 
   const query = useQuery({
@@ -26,8 +30,8 @@ export const RefreshingToggleInner = ({ children, initialData }) => {
     queryFn: async () => {
       const data = await client["/client"].get({
         headers: {
-          authorization: "Bearer 1234",
-        }
+          authorization: `Bearer ${userId}`,
+        },
       });
       const servers = await data.json();
       return servers;
@@ -39,9 +43,9 @@ export const RefreshingToggleInner = ({ children, initialData }) => {
 
   const options = [
     ...(query.data?.map((s) => ({
-      title: s.identifier,
+      title: s.node_id,
       description: "A nice server!",
-      url: `/cockpit/${s.identifier}`,
+      url: `/cockpit/${s.node_id}`,
       icon: <Home />,
     })) ?? []),
     {

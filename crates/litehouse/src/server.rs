@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Result;
+use itertools::Itertools;
 use reqwest::Url;
 use reqwest_eventsource::{Event, EventSource};
 use tokio::time::Duration;
@@ -155,7 +156,8 @@ pub async fn facilicate_connections(broker: Url, credentials: Credentials) -> Re
 #[derive(serde::Deserialize)]
 struct UnauthConnection {
     offer: RTCSessionDescription,
-    password: [u8; 6],
+    seed: String,
+    password: String,
 }
 
 async fn open_connection(client: &reqwest::Client, broker: Url, credentials: Credentials) {
@@ -196,17 +198,30 @@ async fn open_connection(client: &reqwest::Client, broker: Url, credentials: Cre
             }
             (Credentials::Unauthed { password }, Some(Ok(Event::Message(msg)))) => {
                 let offer: UnauthConnection = serde_json::from_str(&msg.data).unwrap();
-                if &offer.password != password {
-                    tracing::error!("password mismatch");
-                    return;
-                }
-                let answer = do_signaling(offer.offer.clone()).await;
-                tracing::info!("{}: {:?} -> {:?}", msg.id, offer.offer, answer);
-                let id = msg.id.parse().unwrap();
+                let password_exp = password.iter().map(|c| c.to_string()).join("");
                 let mut url = broker.clone();
                 url.set_path(&format!("/litehouse"));
+                let id = msg.id.parse().unwrap();
+
+                if offer.password != password_exp {
+                    tracing::error!("password mismatch");
+                    client
+                        .delete(url)
+                        .json(&Reject { id })
+                        .send()
+                        .await
+                        .unwrap();
+                    return;
+                }
+
+                let answer = do_signaling(offer.offer.clone()).await;
+                tracing::info!("{}: {:?} -> {:?}", msg.id, offer.offer, answer);
                 tracing::info!("sending answer to {}", url);
-                break client.delete(url).json(&Reject { id }).send().await;
+                break client
+                    .post(url)
+                    .json(&Finalize { id, offer: answer })
+                    .send()
+                    .await;
             }
             (_, Some(Err(reqwest_eventsource::Error::StreamEnded)) | None) => return,
             (_, Some(Err(reqwest_eventsource::Error::Transport(e)))) if e.is_connect() => {

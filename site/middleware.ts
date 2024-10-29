@@ -3,5 +3,10 @@ import { clerkMiddleware } from "@clerk/nextjs/server";
 export default clerkMiddleware();
 
 export const config = {
-  matcher: ["/registry/(.*)?", "/cockpit/(.*)?", "/(api|trpc)(.*)"],
+  matcher: [
+    "/(sign-in|sign-up)/(.*)?",
+    "/registry/(.*)?",
+    "/cockpit/(.*)?",
+    "/(api|trpc)(.*)",
+  ],
 };

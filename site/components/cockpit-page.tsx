@@ -47,14 +47,14 @@ export const Cockpit = ({ children, nodeId }) => {
       try {
         const offer = await pc.createOffer();
         pc.setLocalDescription(offer);
-         res = await client["/client/{id}"].post({
-          json: offer as {[key: string]: any},
+        res = await client["/client/{id}"].post({
+          json: offer as { [key: string]: any },
           params: {
-            id: nodeId
+            id: nodeId,
           },
           headers: {
             authorization: "Bearer 1234",
-          }
+          },
         });
       } catch (e) {
         console.log("ERROR");

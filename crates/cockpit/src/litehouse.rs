@@ -32,7 +32,6 @@ pub struct AnonConnection {
 
 pub async fn wait_for_connection_anon(
     State(AppState {
-        known_connections,
         unknown_connections,
         ..
     }): State<AppState>,
@@ -86,9 +85,7 @@ pub async fn wait_for_connection_anon(
 
 pub async fn wait_for_connection(
     State(AppState {
-        known_connections,
-        unknown_connections,
-        ..
+        known_connections, ..
     }): State<AppState>,
     Path(NodeId { id: node_id }): Path<NodeId>,
     TypedHeader(Authorization(account)): TypedHeader<Authorization<Bearer>>,

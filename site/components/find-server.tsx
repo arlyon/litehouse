@@ -20,11 +20,11 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import { Button } from "./ui/button";
 import { Loader } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-const messages = [
+const loadingMessages = [
   "Querying Relay...",
   "Brokering WebRTC...",
   "Validating the IP...",
@@ -36,14 +36,15 @@ export const FindServer = ({ className }: { className?: string }) => {
   const [messages, setMessages] = useState([]);
   const [iceConnectionState, setIceConnectionState] =
     useState<RTCIceConnectionState>("new");
+  const ref = useRef();
 
   const { data } = useQuery({
     queryKey: ["unknownServers"],
     queryFn: async () => {
       const data = await client["/client"].get({
         headers: {
-          authorization: "Bearer 1234",
-        }
+          authorization: "Bearer honest-flies",
+        },
       });
       const servers = await data.json();
       return servers;
@@ -84,7 +85,7 @@ export const FindServer = ({ className }: { className?: string }) => {
       pc.setLocalDescription(offer);
 
       const res = await client["/client"].post({
-        json: offer as {[key: string]: any},
+        json: offer as { [key: string]: any },
         headers: {
           authorization: `Basic ${btoa(`${data.seed}:${data.password}`)}`,
         },
@@ -93,33 +94,37 @@ export const FindServer = ({ className }: { className?: string }) => {
       if (res.status === 200) {
         const offerResponse = await res.json();
         pc.setRemoteDescription(offerResponse);
-      } else  {
+      } else {
         throw new Error(await res.text());
       }
     },
     onSuccess: (data) => {
-      console.log("success", data);
+      ref.current?.click();
     },
     onError: (err) => {
-      console.log("error", err);
+      toast.error(`Failed to pair with server: ${err.message}`);
     },
   });
 
   useEffect(() => {
     // every 3 seconds, switch the message
     const interval = setInterval(() => {
-      setMessage((m) => (m + 1) % messages.length);
+      setMessage((m) => (m + 1) % loadingMessages.length);
     }, 3000);
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    console.log("messages", messages);
+  }, [messages]);
 
   const [seed, setSeed] = useState(Number(new Date()));
   const [password, setPassword] = useState("");
 
   return (
     <Dialog open={data?.length > 0 ? undefined : false}>
-      <DialogTrigger disabled={!(data?.length > 0)}>
+      <DialogTrigger disabled={!(data?.length > 0)} ref={ref}>
         <button
           type="button"
           key="server-button"
@@ -141,7 +146,7 @@ export const FindServer = ({ className }: { className?: string }) => {
               exit={{ y: 30, opacity: 0 }}
               transition={{ duration: 0.5 }}
             >
-              {data?.length > 0 ? "Begin Pairing" : messages[message]}
+              {data?.length > 0 ? "Begin Pairing" : loadingMessages[message]}
             </motion.div>
           </AnimatePresence>
         </button>
@@ -152,13 +157,20 @@ export const FindServer = ({ className }: { className?: string }) => {
           <DialogDescription>
             <div className="flex flex-col gap-2 w-full items-center justify-center py-8">
               Give it a name!
-              <NamePicker seed={seed} onRefresh={() => setSeed(Number(new Date()))} />
+              <NamePicker
+                seed={seed}
+                onRefresh={() => setSeed(Number(new Date()))}
+              />
             </div>
             We have found a server near you with ip{" "}
             <pre className="inline">{data?.[0]?.ip}</pre>. To prove you are the
             owner, please enter the 6 digit code you set up below.
             <div className="flex w-full items-center justify-center py-8">
-              <InputOTP maxLength={6} value={password} onChange={(value) => setPassword(value)}>
+              <InputOTP
+                maxLength={6}
+                value={password}
+                onChange={(value) => setPassword(value)}
+              >
                 <InputOTPGroup>
                   <InputOTPSlot index={0} />
                   <InputOTPSlot index={1} />
@@ -179,10 +191,16 @@ export const FindServer = ({ className }: { className?: string }) => {
                 Cancel
               </Button>
             </DialogClose>
-            <Button variant="primary" disabled={password.length !== 6} onClick={() => mutate({
-              seed,
-              password
-            })}>
+            <Button
+              variant="primary"
+              disabled={password.length !== 6}
+              onClick={() =>
+                mutate({
+                  seed,
+                  password,
+                })
+              }
+            >
               Submit
             </Button>
           </div>
@@ -218,8 +236,9 @@ class SplitMix32 {
 
 import { adjectives, nouns } from "human-id";
 import { client } from "@/lib/cockpit-client";
+import { toast } from "sonner";
 
-const NamePicker = ({seed, onRefresh}) => {
+const NamePicker = ({ seed, onRefresh }) => {
   const id = useMemo(() => {
     const split = new SplitMix32(seed);
     const idx1 = split.next() % adjectives.length;
