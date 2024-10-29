@@ -2,6 +2,7 @@
 name = "sonoff"
 version = "0.1.0"
 publish = false
+readme = "readme.md"
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
@@ -9,3 +10,6 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
+
+[lib]
+crate-type = ["cdylib"]

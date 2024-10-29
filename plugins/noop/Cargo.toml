@@ -1,6 +1,7 @@
 [package]
 name = "noop"
 version = "0.1.0"
+readme = "readme.md"
 edition.workspace = true
 license.workspace = true
 authors.workspace = true

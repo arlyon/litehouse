@@ -2,6 +2,7 @@
 name = "persistent-task"
 version = "0.1.0"
 publish = false
+readme = "readme.md"
 edition.workspace = true
 license.workspace = true
 authors.workspace = true

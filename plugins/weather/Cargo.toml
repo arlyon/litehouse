@@ -2,6 +2,7 @@
 name = "weather"
 version = "0.1.1"
 publish = false
+readme = "readme.md"
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
