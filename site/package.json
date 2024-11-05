@@ -37,7 +37,7 @@
     "input-otp": "^1.2.4",
     "litehouse-registry-js": "workspace:^",
     "lucide-react": "^0.378.0",
-    "next": "15.0.2-canary.0",
+    "next": "15.0.3-canary.6",
     "next-axiom": "^1.2.0",
     "next-themes": "^0.3.0",
     "query-string": "^9.0.0",
