@@ -25,7 +25,7 @@ export default async function CockpitPage({ children }) {
       <Header title="Cockpit" link="/cockpit" suspend={false} />
       <div className="relative flex-1 flex">
         {children}
-        <div className="absolute top-4 sm:left-4 px-4 py-2 rounded-xl bg-primary-foreground border">
+        <div className="absolute top-4 sm:left-4 px-4 py-2 rounded-xl bg-background border">
           <RefreshingToggle initialData={servers} userId={userData.userId} />
         </div>
       </div>

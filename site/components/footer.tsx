@@ -9,7 +9,7 @@ import { ThemeToggle } from "./theme-toggle";
 
 export function Footer() {
   return (
-    <footer className="w-full bg-primary-foreground py-12 text-sm border-t">
+    <footer className="w-full bg-primary-background py-12 text-sm border-t">
       <div className="container mx-auto grid grid-cols-2 lg:grid-cols-[auto_1fr_1fr_max-content] gap-8 sm:gap-16 px-8">
         <div>
           <h4 className="font-semibold mb-2">Resources</h4>

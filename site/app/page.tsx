@@ -83,7 +83,7 @@ export default function HomePage() {
         <div />
         <div />
         <div className="dark:bg-gradient-to-tl dark:from-black dark:to-green-950 flex relative flex-col gap-6 items-center justify-center bg-background p-4 lg:p-16 outline outline-1 outline-green-500 dark:outline-green-600">
-          <Star className="absolute -right-2 -bottom-2 z-10 size-4 xl:scale-[200%]" />
+          <Star className="absolute -right-2 -bottom-2 z-10 size-4 xl:scale-[200%] text-green-500" />
           <Link
             href="/registry"
             className="border hover:-translate-y-1 transition-transform rounded-full px-4 py-2 text-xs dark:bg-green-950 dark:border-green-800 dark:text-green-500 flex flex-row gap-2 items-center"
@@ -141,7 +141,7 @@ export default function HomePage() {
               </Button>
             </Link>
           </div>
-          <Star className="absolute -right-2 -bottom-2 z-10 size-4 xl:scale-[200%]" />
+          <Star className="absolute -right-2 -bottom-2 z-10 size-4 xl:scale-[200%] text-green-500" />
         </div>
         <div />
         <div />

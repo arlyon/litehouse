@@ -42,7 +42,7 @@ export const Header = ({
             <SearchIcon className="h-5 w-5 text-primary" />
           </div>
           <input
-            className="block w-full rounded-full border-accent bg-secondary border pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent dark:focus:ring-neutral-50"
+            className="block w-full rounded-full border-accent placeholder:text-muted-foreground bg-secondary border pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent dark:focus:ring-neutral-50"
             placeholder="Search packages..."
             type="text"
           />
