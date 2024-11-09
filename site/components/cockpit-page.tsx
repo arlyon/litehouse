@@ -4,16 +4,16 @@ import { Timer } from "lucide-react";
 import { FlowEditor } from "./flow-editor";
 import { useEffect, useRef, useState } from "react";
 import { client } from "@/lib/cockpit-client";
+import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTrigger } from "./ui/dialog";
 
-export const Cockpit = ({ children, nodeId }) => {
+export const Cockpit = ({ nodeId }) => {
   const [dcOpen, setDcOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [iceConnectionState, setIceConnectionState] =
     useState<RTCIceConnectionState>("new");
 
   useEffect(() => {
-    console.log("OMFG");
-
     if (!("window" in globalThis)) {
       return;
     }
@@ -32,7 +32,8 @@ export const Cockpit = ({ children, nodeId }) => {
     };
 
     dc.onmessage = (event) => {
-      setMessages((messages) => [...messages, event.data]);
+      const message = JSON.parse(event.data);
+      setMessages((messages) => [...messages, message]);
     };
 
     pc.oniceconnectionstatechange = () => {
@@ -41,24 +42,21 @@ export const Cockpit = ({ children, nodeId }) => {
     };
 
     (async () => {
-      console.log("creating offer");
-
       let res;
       try {
         const offer = await pc.createOffer();
         pc.setLocalDescription(offer);
         res = await client["/client/{id}"].post({
-          json: offer as { [key: string]: any },
+          json: offer,
           params: {
             id: nodeId,
           },
           headers: {
-            authorization: "Bearer 1234",
+            authorization: `Bearer ${nodeId}`,
           },
         });
       } catch (e) {
-        console.log("ERROR");
-        console.log(e);
+        console.error("COULD NOT CONNECT", e);
         return;
       }
       const answer = await res.json();
@@ -96,16 +94,43 @@ export const Cockpit = ({ children, nodeId }) => {
           target: "2",
           animated: true,
           style: { stroke: "red" },
-          // className: "stroke-green-500",
+          className: iceConnectionState === "connected" ? "stroke-green-500" : "stroke-red-500",
         },
       ],
     },
   };
 
   return (
+    <>
+      <Dialog>
+        <DialogTrigger>
+      <button type="button" className={cn("size-4 absolute top-4 right-4 z-50 rounded-full border animate-pulse", iceConnectionState === "connected" ? "bg-green-500 border-green-800" : "bg-red-500 border-red-800")} />
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <h2 className="text-lg font-semibold">Server Logs</h2>
+          </DialogHeader>
+          <DialogDescription>
+            <div className="h-96 overflow-y-scroll overflow-x-scroll w-full">
+            <table className="min-w-full">
+              <tbody className="divide-y font-mono">
+                {messages.map((msg, index) => (
+                  <tr key={index}>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-500">{msg.source}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-purple-500">{msg.level}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-500">{msg.message}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            </div>
+          </DialogDescription>
+        </DialogContent>
+      </Dialog>
     <FlowEditor
       initialNodes={server.data.nodes}
       initialEdges={server.data.edges}
     />
+    </>
   );
 };

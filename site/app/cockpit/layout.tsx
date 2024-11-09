@@ -13,6 +13,7 @@ export default async function CockpitPage({ children }) {
       headers: {
         authorization: `Bearer ${userData.userId}`,
       },
+      signal: AbortSignal.timeout(1000),
     });
     servers = await data.json();
   } catch (e) {

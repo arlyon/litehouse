@@ -29,20 +29,20 @@
     "date-fns": "^3.6.0",
     "fets": "^0.8.3",
     "framer-motion": "12.0.0-alpha.1",
-    "fumadocs-core": "^13.4.10",
-    "fumadocs-mdx": "^10.0.2",
-    "fumadocs-ui": "^13.4.10",
+    "fumadocs-core": "^14.3.1",
+    "fumadocs-mdx": "^11.1.1",
+    "fumadocs-ui": "^14.3.1",
     "html-entities": "^2.5.2",
     "human-id": "^4.1.1",
     "input-otp": "^1.2.4",
     "litehouse-registry-js": "workspace:^",
     "lucide-react": "^0.378.0",
-    "next": "15.0.3-canary.6",
+    "next": "15.0.4-canary.3",
     "next-axiom": "^1.2.0",
     "next-themes": "^0.3.0",
     "query-string": "^9.0.0",
-    "react": "19.0.0-rc-28668d39-20241023",
-    "react-dom": "19.0.0-rc-28668d39-20241023",
+    "react": "19.0.0-rc-5c56b873-20241107",
+    "react-dom": "19.0.0-rc-5c56b873-20241107",
     "react-error-boundary": "^4.0.13",
     "react-hook-form": "^7.51.4",
     "reactflow": "^11.11.3",
@@ -67,5 +67,8 @@
     "tailwindcss-bg-patterns": "^0.3.0",
     "typescript": "^5.4.5"
   },
-  "trustedDependencies": ["@biomejs/biome", "site"]
+  "trustedDependencies": [
+    "@biomejs/biome",
+    "site"
+  ]
 }

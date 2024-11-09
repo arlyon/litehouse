@@ -1,0 +1,4 @@
+packages:
+  - site
+  - crates/registry-js
+  - crates/registry-js/npm/*

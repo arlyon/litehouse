@@ -7,7 +7,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const client = new QueryClient();
 
 export default function CockpitPage() {
-  console.log("im here");
 
   return (
     <div className="flex flex-col w-full flex-1 relative items-center pt-32 justify-center bg-gradient-to-t from-green-950 to-black">
