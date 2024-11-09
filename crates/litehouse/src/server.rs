@@ -12,6 +12,7 @@ use webrtc::api::media_engine::MediaEngine;
 use webrtc::api::APIBuilder;
 use webrtc::data_channel::RTCDataChannel;
 use webrtc::ice_transport::ice_connection_state::RTCIceConnectionState;
+use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::interceptor::registry::Registry;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
@@ -53,7 +54,35 @@ async fn do_signaling(
             .build();
 
         // Create a new RTCPeerConnection
-        let pc = match api.new_peer_connection(RTCConfiguration::default()).await {
+        let pc = match api
+            .new_peer_connection(RTCConfiguration {
+                ice_servers: vec![
+                    RTCIceServer {
+                        urls: vec!["stun:stun.l.google.com:19302".to_string()],
+                        ..Default::default()
+                    },
+                    RTCIceServer {
+                        urls: vec!["stun:stun1.l.google.com:19302".to_string()],
+                        ..Default::default()
+                    },
+                    RTCIceServer {
+                        urls: vec!["stun:stun2.l.google.com:19302".to_string()],
+                        ..Default::default()
+                    },
+                    RTCIceServer {
+                        urls: vec!["stun:stun3.l.google.com:19302".to_string()],
+                        ..Default::default()
+                    },
+                    RTCIceServer {
+                        urls: vec!["stun:stun4.l.google.com:19302".to_string()],
+                        ..Default::default()
+                    },
+                ],
+
+                ..Default::default()
+            })
+            .await
+        {
             Ok(p) => p,
             Err(err) => panic!("{}", err),
         };

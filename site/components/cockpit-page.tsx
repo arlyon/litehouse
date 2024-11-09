@@ -1,6 +1,6 @@
 "use client";
 
-import { Timer } from "lucide-react";
+import { CogIcon, Timer } from "lucide-react";
 import { FlowEditor } from "./flow-editor";
 import { useEffect, useRef, useState } from "react";
 import { client } from "@/lib/cockpit-client";
@@ -10,8 +10,15 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
+import {
+  AnimatePresence,
+  AnimateSharedLayout,
+  LayoutGroup,
+  motion,
+} from "framer-motion";
 
 export const Cockpit = ({ nodeId }) => {
   const [dcOpen, setDcOpen] = useState(false);
@@ -29,6 +36,10 @@ export const Cockpit = ({ nodeId }) => {
         {
           urls: "stun:stun.l.google.com:19302",
         },
+        { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun2.l.google.com:19302" },
+        { urls: "stun:stun3.l.google.com:19302" },
+        { urls: "stun:stun4.l.google.com:19302" },
       ],
     });
     const dc = pc.createDataChannel("data");
@@ -39,7 +50,7 @@ export const Cockpit = ({ nodeId }) => {
 
     dc.onmessage = (event) => {
       const message = JSON.parse(event.data);
-      setMessages((messages) => [...messages, message]);
+      setMessages((messages) => [message, ...messages]);
     };
 
     pc.oniceconnectionstatechange = () => {
@@ -109,45 +120,72 @@ export const Cockpit = ({ nodeId }) => {
     },
   };
 
+  const TRACE_COLOR = {
+    TRACE: "text-blue-500",
+    DEBUG: "text-blue-500",
+    INFO: "text-green-500",
+    WARN: "text-orange-500",
+    ERROR: "text-red-500",
+  };
+
   return (
     <>
       <Dialog>
-        <DialogTrigger>
-          <button
-            type="button"
-            className={cn(
-              "size-4 absolute top-4 right-4 z-50 rounded-full border animate-pulse",
-              iceConnectionState === "connected"
-                ? "bg-green-500 border-green-800"
-                : "bg-red-500 border-red-800",
-            )}
-          />
+        <DialogTrigger
+          className={cn(
+            "size-4 absolute top-4 right-4 z-50 rounded-full border animate-pulse",
+            iceConnectionState === "connected"
+              ? "bg-green-500 border-green-800"
+              : "bg-red-500 border-red-800",
+          )}
+        >
         </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <h2 className="text-lg font-semibold">Server Logs</h2>
-          </DialogHeader>
-          <DialogDescription>
-            <div className="h-96 overflow-y-scroll overflow-x-scroll w-full">
-              <table className="min-w-full">
-                <tbody className="divide-y font-mono">
-                  {messages.map((msg, index) => (
-                    <tr key={index}>
-                      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-500">
-                        {msg.source}
-                      </td>
-                      <td className="px-2 py-1 whitespace-nowrap text-sm text-purple-500">
-                        {msg.level}
-                      </td>
-                      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-500">
-                        {msg.message}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </DialogDescription>
+        <DialogContent className="max-w-[calc(100%-4em)] h-full max-h-[calc(100%-4em)] flex flex-col">
+          <DialogTitle>Server Logs</DialogTitle>
+          <div className="overflow-x-scroll overflow-y-scroll flex-1">
+            <table className="block w-full min-width-full max-w-full">
+              <LayoutGroup>
+                <motion.tbody className="font-mono w-full table overflow-y-scroll overflow-x-scroll h-full">
+                  <AnimatePresence>
+                    {messages.map((msg, index) => (
+                      <motion.tr
+                        layout
+                        key={msg.timestamp}
+                        variants={{
+                          hidden: { y: -28, opacity: 0 },
+                          show: {
+                            y: 0,
+                            opacity: 1,
+                          },
+                        }}
+                        initial="hidden"
+                        animate="show"
+                        className="overflow-y-hidden border-t"
+                      >
+                        <td className="px-1 py-1 whitespace-nowrap sticky text-sm text-gray-500">
+                          {msg.timestamp}
+                        </td>
+                        <td
+                          className={cn(
+                            "px-1 py-1 whitespace-nowrap text-sm sticky left-0 bg-background",
+                            TRACE_COLOR[msg.level] ?? "text-gray-500",
+                          )}
+                        >
+                          {msg.level}
+                        </td>
+                        <td className="px-1 py-1 whitespace-nowrap text-sm text-gray-500">
+                          {msg.source}
+                        </td>
+                        <td className="px-1 py-1 w-full whitespace-nowrap text-sm">
+                          {msg.message}
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
+                </motion.tbody>
+              </LayoutGroup>
+            </table>
+          </div>
         </DialogContent>
       </Dialog>
       <FlowEditor
