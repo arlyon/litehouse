@@ -159,8 +159,13 @@ pub async fn client_handler_anon(
 
     let body = match rx.await {
         Ok(body) => body,
-        Err(_) => return Err(EitherResponse::B(RejectedRequestError)),
+        Err(_) => {
+            tracing::info!("pairing rejected");
+            return Err(EitherResponse::B(RejectedRequestError));
+        }
     };
+
+    tracing::info!("got pairing reply");
 
     Ok(Resp::<_, 200>::new(Json(JsonSchemaRTCSessionDescription(
         body,
@@ -212,6 +217,12 @@ pub async fn client_handler(
     tracing::info!("waiting for pairing reply");
 
     rx.await
-        .map(|body| Json(JsonSchemaRTCSessionDescription(body)))
-        .map_err(|_| EitherResponse::B(RejectedRequestError))
+        .map(|body| {
+            tracing::info!("got pairing reply");
+            Json(JsonSchemaRTCSessionDescription(body))
+        })
+        .map_err(|_| {
+            tracing::info!("pairing rejected");
+            EitherResponse::B(RejectedRequestError)
+        })
 }
