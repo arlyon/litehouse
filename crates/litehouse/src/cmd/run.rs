@@ -4,7 +4,10 @@ use litehouse_config::{LitehouseConfig, SandboxStrategy};
 use litehouse_plugin::serde_json;
 use miette::{Context, IntoDiagnostic, NamedSource, Result};
 use std::{future, path::Path, sync::Arc};
-use tokio::{sync::broadcast::channel, time::interval};
+use tokio::{
+    sync::{broadcast::channel, broadcast::Receiver},
+    time::interval,
+};
 use tracing::Instrument;
 use wasmtime::Trap;
 
@@ -18,6 +21,7 @@ use crate::{
     },
     server::{Authed, Credentials},
     store::StoreStrategy,
+    LogMessage,
 };
 
 /// Starts the server and the plugin runners
@@ -28,7 +32,7 @@ use crate::{
 /// * `cache` - Whether to cache the wasm file
 /// * `server` - The port to run the server on. If this is `None`, webrtc will not be started.
 #[tracing::instrument(skip_all)]
-pub async fn run(wasm_path: &Path, cache: bool) -> Result<()> {
+pub async fn run(wasm_path: &Path, cache: bool, logs_rx: Receiver<LogMessage>) -> Result<()> {
     tracing::info!("booting litehouse");
     let config = LitehouseConfig::load().wrap_err("unable to read settings")?;
 
@@ -43,6 +47,7 @@ pub async fn run(wasm_path: &Path, cache: bool) -> Result<()> {
                 .unwrap_or(Credentials::Unauthed {
                     password: broker.password,
                 }),
+            logs_rx,
         ));
         Either::Left(handle)
     } else {

@@ -24,6 +24,7 @@ use crate::{
     runtime::{set_up_engine, PluginRunnerFactory},
     store::StoreStrategy,
     util::resolve_span,
+    LogMessage,
 };
 
 use self::validate::{FailedValidation, FailedValidations};
@@ -136,7 +137,7 @@ pub enum Subcommand {
 }
 
 impl Subcommand {
-    pub async fn run(self) -> Result<()> {
+    pub async fn run(self, logs_rx: tokio::sync::broadcast::Receiver<LogMessage>) -> Result<()> {
         let registry = Registry::build("default".to_string());
 
         match self {
@@ -252,7 +253,7 @@ impl Subcommand {
             Subcommand::Run {
                 wasm_path,
                 no_cache,
-            } => run::run(&wasm_path, !no_cache)
+            } => run::run(&wasm_path, !no_cache, logs_rx)
                 .await
                 .wrap_err("unable to start litehouse"),
             Subcommand::Inspect {

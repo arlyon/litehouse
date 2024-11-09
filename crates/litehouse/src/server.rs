@@ -4,6 +4,7 @@ use anyhow::Result;
 use itertools::Itertools;
 use reqwest::Url;
 use reqwest_eventsource::{Event, EventSource};
+use tokio::sync::broadcast::Receiver;
 use tokio::time::Duration;
 use tokio_stream::StreamExt;
 use webrtc::api::interceptor_registry::register_default_interceptors;
@@ -14,10 +15,16 @@ use webrtc::ice_transport::ice_connection_state::RTCIceConnectionState;
 use webrtc::interceptor::registry::Registry;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
+use webrtc::peer_connection::RTCPeerConnection;
+
+use crate::LogMessage;
 
 // do_signaling exchanges all state of the local PeerConnection and is called
 // every time a video is added or removed
-async fn do_signaling(offer: RTCSessionDescription) -> RTCSessionDescription {
+async fn do_signaling(
+    offer: RTCSessionDescription,
+    receiver: Receiver<LogMessage>,
+) -> Arc<RTCPeerConnection> {
     let peer_connection = {
         // Create a MediaEngine object to configure the supported codec
         let mut m = MediaEngine::default();
@@ -61,18 +68,22 @@ async fn do_signaling(offer: RTCSessionDescription) -> RTCSessionDescription {
             },
         ));
 
+        let receiver = Arc::new(receiver);
+
         // Send the current time via a DataChannel to the remote peer every 3 seconds
-        peer_connection.on_data_channel(Box::new(|d: Arc<RTCDataChannel>| {
+        peer_connection.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
+            let mut r_inner = receiver.resubscribe();
             Box::pin(async move {
                 let d2 = Arc::clone(&d);
                 d.on_open(Box::new(move || {
                     Box::pin(async move {
-                        while d2
-                            .send_text(format!("{:?}", tokio::time::Instant::now()))
-                            .await
-                            .is_ok()
-                        {
-                            tokio::time::sleep(Duration::from_secs(3)).await;
+                        loop {
+                            while let Ok(log_message) = r_inner.recv().await {
+                                let log_message = serde_json::to_string(&log_message).unwrap();
+                                if let Err(_) = d2.send_text(log_message).await {
+                                    break;
+                                }
+                            }
                         }
                     })
                 }));
@@ -105,7 +116,7 @@ async fn do_signaling(offer: RTCSessionDescription) -> RTCSessionDescription {
     // in a production application you should exchange ICE Candidates via OnICECandidate
     let _ = gather_complete.recv().await;
 
-    peer_connection.local_description().await.unwrap()
+    peer_connection
 }
 
 /// A jwt certificate signed by some authority that can be used to prove
@@ -141,13 +152,25 @@ pub enum Credentials {
 /// Attempts to establish direct webrtc connections via the provided
 /// `broker`. As soon as a connection is brokered, it starts a new
 /// task to handle it, and then immediately starts polling again.
-pub async fn facilicate_connections(broker: Url, credentials: Credentials) -> Result<()> {
+pub async fn facilicate_connections(
+    broker: Url,
+    credentials: Credentials,
+    mut logs_rx: Receiver<LogMessage>,
+) -> Result<()> {
     // let broker = broker.to_string(); // for some reason the url is not cloneable
     let client = reqwest::Client::new();
     loop {
-        let _conn = open_connection(&client, broker.clone(), credentials.clone()).await;
+        let receiver = logs_rx;
+        logs_rx = receiver.resubscribe();
+
+        let Some(conn) =
+            open_connection(&client, broker.clone(), credentials.clone(), receiver).await
+        else {
+            continue;
+        };
+
         tokio::task::spawn(async move {
-            // do stuff
+            let _conn = conn;
             tokio::time::sleep(Duration::MAX).await;
         });
     }
@@ -160,7 +183,12 @@ struct UnauthConnection {
     password: String,
 }
 
-async fn open_connection(client: &reqwest::Client, broker: Url, credentials: Credentials) {
+async fn open_connection(
+    client: &reqwest::Client,
+    broker: Url,
+    credentials: Credentials,
+    receiver: Receiver<LogMessage>,
+) -> Option<Arc<RTCPeerConnection>> {
     let post = if let Credentials::Authed(cert) = &credentials {
         let mut url = broker.clone();
         url.set_path(&format!("/litehouse/{}", cert.node_id()));
@@ -175,26 +203,32 @@ async fn open_connection(client: &reqwest::Client, broker: Url, credentials: Cre
 
     let mut es = EventSource::new(post).unwrap();
     tracing::trace!("connected to broker, waiting for events");
-    let response = loop {
+    let (response, conn) = loop {
         match (&credentials, es.next().await) {
             (_, Some(Ok(Event::Open))) => {
                 tracing::trace!("connection opened");
             }
             (Credentials::Authed(cert), Some(Ok(Event::Message(msg)))) => {
                 let offer: RTCSessionDescription = serde_json::from_str(&msg.data).unwrap();
-                let answer = do_signaling(offer.clone()).await;
-                tracing::info!("{}: {:?} -> {:?}", msg.id, offer, answer);
+                tracing::info!("building answer {}", cert.node_id());
+                let conn = do_signaling(offer.clone(), receiver).await;
                 let id = msg.id.parse().unwrap();
 
                 let mut url = broker.clone();
-                url.set_path(&format!("/litehouse/{}", cert.node_id()));
+                url.set_path(&format!("/litehouse"));
                 tracing::info!("sending answer to {}", url);
-                break client
-                    .post(url)
-                    .bearer_auth(&cert.account())
-                    .json(&Finalize { id, offer: answer })
-                    .send()
-                    .await;
+                break (
+                    client
+                        .post(url)
+                        .bearer_auth(&cert.account())
+                        .json(&Finalize {
+                            id,
+                            offer: conn.local_description().await.unwrap(),
+                        })
+                        .send()
+                        .await,
+                    conn,
+                );
             }
             (Credentials::Unauthed { password }, Some(Ok(Event::Message(msg)))) => {
                 let offer: UnauthConnection = serde_json::from_str(&msg.data).unwrap();
@@ -211,19 +245,24 @@ async fn open_connection(client: &reqwest::Client, broker: Url, credentials: Cre
                         .send()
                         .await
                         .unwrap();
-                    return;
+                    return None;
                 }
 
-                let answer = do_signaling(offer.offer.clone()).await;
-                tracing::info!("{}: {:?} -> {:?}", msg.id, offer.offer, answer);
+                let conn = do_signaling(offer.offer.clone(), receiver).await;
                 tracing::info!("sending answer to {}", url);
-                break client
-                    .post(url)
-                    .json(&Finalize { id, offer: answer })
-                    .send()
-                    .await;
+                break (
+                    client
+                        .post(url)
+                        .json(&Finalize {
+                            id,
+                            offer: conn.local_description().await.unwrap(),
+                        })
+                        .send()
+                        .await,
+                    conn,
+                );
             }
-            (_, Some(Err(reqwest_eventsource::Error::StreamEnded)) | None) => return,
+            (_, Some(Err(reqwest_eventsource::Error::StreamEnded)) | None) => return None,
             (_, Some(Err(reqwest_eventsource::Error::Transport(e)))) if e.is_connect() => {
                 tracing::trace!("could not connect to broker, retrying in 1 minute");
                 tokio::time::sleep(Duration::from_secs(60)).await;
@@ -234,10 +273,13 @@ async fn open_connection(client: &reqwest::Client, broker: Url, credentials: Cre
         }
     };
 
+    tracing::info!("got response");
+
     let response = response.unwrap();
     let status = response.status();
     let text = response.text().await.unwrap();
-    tracing::info!("response: {:?} {}", status, text);
+    tracing::info!("response: {:?} {}", status, text.trim());
+    Some(conn)
 }
 
 #[derive(serde::Serialize)]

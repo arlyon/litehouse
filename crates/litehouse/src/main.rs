@@ -5,6 +5,9 @@
 
 #![feature(let_chains)]
 
+use std::fmt;
+
+use chrono::{DateTime, Utc};
 use clap::Parser;
 use cmd::Subcommand;
 use miette::Result;
@@ -51,6 +54,8 @@ async fn main_inner() -> Result<()> {
     }))
     .unwrap();
 
+    let (logs_tx, logs_rx) = tokio::sync::broadcast::channel(1000);
+
     {
         #[cfg(feature = "console")]
         let console_layer = console_subscriber::spawn();
@@ -60,6 +65,9 @@ async fn main_inner() -> Result<()> {
 
         #[cfg(feature = "console")]
         let registry = registry.with(console_layer);
+
+        let registry = registry
+            .with(QueueLayer { sender: logs_tx }.with_filter(EnvFilter::from_default_env()));
 
         registry.init();
     }
@@ -72,8 +80,67 @@ async fn main_inner() -> Result<()> {
     }
 
     if let Some(command) = opt.command {
-        return command.run().await;
+        return command.run(logs_rx).await;
     }
 
     Ok(())
+}
+
+#[derive(Clone, serde::Serialize)]
+pub struct LogMessage {
+    source: String,
+    level: String,
+    message: String,
+    timestamp: DateTime<Utc>,
+}
+
+impl LogMessage {
+    fn new(level: tracing::Level, source: String, message: String) -> Self {
+        Self {
+            level: level.to_string(),
+            source,
+            message,
+            timestamp: chrono::Utc::now(),
+        }
+    }
+}
+
+use tracing::{field::Visit, span, subscriber::Interest, Event, Level, Metadata, Subscriber};
+use tracing_subscriber::registry::LookupSpan;
+
+struct QueueLayer {
+    sender: tokio::sync::broadcast::Sender<LogMessage>,
+}
+
+impl<S> Layer<S> for QueueLayer
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+{
+    fn enabled(&self, _: &Metadata<'_>, _: tracing_subscriber::layer::Context<'_, S>) -> bool {
+        true
+    }
+
+    fn on_event(&self, event: &Event<'_>, _: tracing_subscriber::layer::Context<'_, S>) {
+        let mut string_visitor = MessageVisitor(None);
+        event.record(&mut string_visitor);
+
+        if let Some(message) = string_visitor.0 {
+            let log_message = LogMessage::new(
+                *event.metadata().level(),
+                event.metadata().target().to_string(),
+                message,
+            );
+            let _ = self.sender.send(log_message);
+        }
+    }
+}
+
+struct MessageVisitor(Option<String>);
+
+impl Visit for MessageVisitor {
+    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+        if field.name() == "message" {
+            self.0 = Some(format!("{:?}", value));
+        }
+    }
 }
