@@ -1,21 +1,13 @@
 {
   "name": "litehouse-registry-js-linux-x64-gnu",
   "version": "0.0.0",
-  "os": [
-    "linux"
-  ],
-  "cpu": [
-    "x64"
-  ],
+  "os": ["linux"],
+  "cpu": ["x64"],
   "main": "litehouse-registry-js.linux-x64-gnu.node",
-  "files": [
-    "litehouse-registry-js.linux-x64-gnu.node"
-  ],
+  "files": ["litehouse-registry-js.linux-x64-gnu.node"],
   "license": "MIT",
   "engines": {
     "node": ">= 10"
   },
-  "libc": [
-    "glibc"
-  ]
+  "libc": ["glibc"]
 }

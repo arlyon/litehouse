@@ -67,8 +67,5 @@
     "tailwindcss-bg-patterns": "^0.3.0",
     "typescript": "^5.4.5"
   },
-  "trustedDependencies": [
-    "@biomejs/biome",
-    "site"
-  ]
+  "trustedDependencies": ["@biomejs/biome", "site"]
 }

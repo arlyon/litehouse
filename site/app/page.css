@@ -1,3 +1,3 @@
 .main-grid > * {
-    background-color: hsl(var(--background));
+  background-color: hsl(var(--background));
 }

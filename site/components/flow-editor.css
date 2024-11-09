@@ -10,6 +10,6 @@
 .react-flow__node-group.selectable.selected,
 .react-flow__node-group.selectable:focus,
 .react-flow__node-group.selectable:focus-visible {
-    box-shadow: none !important ;
-    border-color: green;
+  box-shadow: none !important;
+  border-color: green;
 }
