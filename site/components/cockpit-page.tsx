@@ -2,7 +2,7 @@
 
 import { CogIcon, Timer } from "lucide-react";
 import { FlowEditor } from "./flow-editor";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { client } from "@/lib/cockpit-client";
 import { cn } from "@/lib/utils";
 import {
@@ -128,6 +128,16 @@ export const Cockpit = ({ nodeId }) => {
     ERROR: "text-red-500",
   };
 
+  const messageTypes = useMemo(() => {
+    const types = new Set();
+    messages.forEach((m) => types.add(m.source));
+    const array = Array.from(types);
+    array.sort();
+    return array;
+  }, [messages]);
+
+  const [filtered, setFiltered] = useState([]);
+
   return (
     <>
       <Dialog>
@@ -138,16 +148,27 @@ export const Cockpit = ({ nodeId }) => {
               ? "bg-green-500 border-green-800"
               : "bg-red-500 border-red-800",
           )}
-        >
-        </DialogTrigger>
+        ></DialogTrigger>
         <DialogContent className="max-w-[calc(100%-4em)] h-full max-h-[calc(100%-4em)] flex flex-col">
-          <DialogTitle>Server Logs</DialogTitle>
+          <DialogHeader>
+            <div className="flex flex-row items-center gap-3">
+              <DialogTitle className="mr-2">Server Logs</DialogTitle>
+              {messageTypes.map((type) => (
+                <button key={type} type="button"
+                  className={cn(filtered.includes(type) ? "text-muted" : null, "text-xs border rounded-full px-3 py-1.5 transition-colors")}
+                  onClick={() => setFiltered((data) => data.includes(type) ? data.filter((t) => t !== type) : [...data, type])}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </DialogHeader>
           <div className="overflow-x-scroll overflow-y-scroll flex-1">
             <table className="block w-full min-width-full max-w-full">
               <LayoutGroup>
                 <motion.tbody className="font-mono w-full table overflow-y-scroll overflow-x-scroll h-full">
                   <AnimatePresence>
-                    {messages.map((msg, index) => (
+                    {messages.filter((m) => !filtered.includes(m.source)).map((msg, index) => (
                       <motion.tr
                         layout
                         key={msg.timestamp}

@@ -148,7 +148,7 @@ impl PluginHostImports for PluginRunner<Sender<(String, bindings::Update)>> {
         nickname: String,
         event: bindings::Update,
     ) -> wasmtime::Result<()> {
-        tracing::trace!("received update {:?}", event);
+        tracing::trace!(target: "litehouse::plugin", plugin = nickname, "{:?}", event);
         self.event_sink.send((nickname, event)).unwrap();
         return Ok(());
     }
