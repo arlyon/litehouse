@@ -1,6 +1,6 @@
 "use client";
 
-import { CogIcon, Timer } from "lucide-react";
+import { CogIcon, FullscreenIcon, Timer } from "lucide-react";
 import { FlowEditor } from "./flow-editor";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { client } from "@/lib/cockpit-client";
@@ -19,12 +19,15 @@ import {
   LayoutGroup,
   motion,
 } from "framer-motion";
+import { Sidebar } from "./ui/sidebar";
+import { Button } from "./ui/button";
 
 export const Cockpit = ({ nodeId }) => {
   const [dcOpen, setDcOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [iceConnectionState, setIceConnectionState] =
     useState<RTCIceConnectionState>("new");
+  const elementRef = useRef();
 
   useEffect(() => {
     if (!("window" in globalThis)) {
@@ -139,7 +142,14 @@ export const Cockpit = ({ nodeId }) => {
   const [filtered, setFiltered] = useState([]);
 
   return (
-    <>
+    <div ref={elementRef} className="relative flex-1 flex">
+      <Button
+        className="absolute bottom-4 right-4 z-10"
+        variant="ghost"
+        onClick={() => elementRef.current?.requestFullscreen()}
+      >
+        <FullscreenIcon className="size-12" />
+      </Button>
       <Dialog>
         <DialogTrigger
           className={cn(
@@ -154,9 +164,20 @@ export const Cockpit = ({ nodeId }) => {
             <div className="flex flex-row items-center gap-3">
               <DialogTitle className="mr-2">Server Logs</DialogTitle>
               {messageTypes.map((type) => (
-                <button key={type} type="button"
-                  className={cn(filtered.includes(type) ? "text-muted" : null, "text-xs border rounded-full px-3 py-1.5 transition-colors")}
-                  onClick={() => setFiltered((data) => data.includes(type) ? data.filter((t) => t !== type) : [...data, type])}
+                <button
+                  key={type}
+                  type="button"
+                  className={cn(
+                    filtered.includes(type) ? "text-muted" : null,
+                    "text-xs border rounded-full px-3 py-1.5 transition-colors",
+                  )}
+                  onClick={() =>
+                    setFiltered((data) =>
+                      data.includes(type)
+                        ? data.filter((t) => t !== type)
+                        : [...data, type],
+                    )
+                  }
                 >
                   {type}
                 </button>
@@ -168,40 +189,42 @@ export const Cockpit = ({ nodeId }) => {
               <LayoutGroup>
                 <motion.tbody className="font-mono w-full table overflow-y-scroll overflow-x-scroll h-full">
                   <AnimatePresence>
-                    {messages.filter((m) => !filtered.includes(m.source)).map((msg, index) => (
-                      <motion.tr
-                        layout
-                        key={msg.timestamp}
-                        variants={{
-                          hidden: { y: -28, opacity: 0 },
-                          show: {
-                            y: 0,
-                            opacity: 1,
-                          },
-                        }}
-                        initial="hidden"
-                        animate="show"
-                        className="overflow-y-hidden border-t"
-                      >
-                        <td className="px-1 py-1 whitespace-nowrap sticky text-sm text-gray-500">
-                          {msg.timestamp}
-                        </td>
-                        <td
-                          className={cn(
-                            "px-1 py-1 whitespace-nowrap text-sm sticky left-0 bg-background",
-                            TRACE_COLOR[msg.level] ?? "text-gray-500",
-                          )}
+                    {messages
+                      .filter((m) => !filtered.includes(m.source))
+                      .map((msg, index) => (
+                        <motion.tr
+                          layout
+                          key={msg.timestamp}
+                          variants={{
+                            hidden: { y: -28, opacity: 0 },
+                            show: {
+                              y: 0,
+                              opacity: 1,
+                            },
+                          }}
+                          initial="hidden"
+                          animate="show"
+                          className="overflow-y-hidden border-t"
                         >
-                          {msg.level}
-                        </td>
-                        <td className="px-1 py-1 whitespace-nowrap text-sm text-gray-500">
-                          {msg.source}
-                        </td>
-                        <td className="px-1 py-1 w-full whitespace-nowrap text-sm">
-                          {msg.message}
-                        </td>
-                      </motion.tr>
-                    ))}
+                          <td className="px-1 py-1 whitespace-nowrap sticky text-sm text-gray-500">
+                            {msg.timestamp}
+                          </td>
+                          <td
+                            className={cn(
+                              "px-1 py-1 whitespace-nowrap text-sm sticky left-0 bg-background",
+                              TRACE_COLOR[msg.level] ?? "text-gray-500",
+                            )}
+                          >
+                            {msg.level}
+                          </td>
+                          <td className="px-1 py-1 whitespace-nowrap text-sm text-gray-500">
+                            {msg.source}
+                          </td>
+                          <td className="px-1 py-1 w-full whitespace-nowrap text-sm">
+                            {msg.message}
+                          </td>
+                        </motion.tr>
+                      ))}
                   </AnimatePresence>
                 </motion.tbody>
               </LayoutGroup>
@@ -213,6 +236,6 @@ export const Cockpit = ({ nodeId }) => {
         initialNodes={server.data.nodes}
         initialEdges={server.data.edges}
       />
-    </>
+    </div>
   );
 };

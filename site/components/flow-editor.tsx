@@ -18,6 +18,7 @@ import {
   useNodesState,
 } from "@xyflow/react";
 import { RootToggle } from "fumadocs-ui/components/layout/root-toggle";
+import { useTheme } from "next-themes";
 
 import Link from "next/link";
 
@@ -52,6 +53,7 @@ export function FlowEditor({ initialNodes, initialEdges }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selected, setSelected] = useState<string | null>(null);
   const lastSelected = useNotNull(selected);
+  const theme = useTheme();
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
@@ -70,7 +72,7 @@ export function FlowEditor({ initialNodes, initialEdges }) {
       <div className="relative flex-1 flex flex-col min-h-[750px]">
         <ReactFlow
           nodeTypes={types}
-          colorMode="dark"
+          colorMode={theme.theme === "dark" ? "dark" : "light"}
           fitView
           selectionOnDrag
           panOnScroll

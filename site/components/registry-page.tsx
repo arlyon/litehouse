@@ -29,7 +29,6 @@ import Link from "next/link";
 import type { SVGProps } from "react";
 import { AddButton } from "./add-button";
 import { ManifestButton } from "./manifest-button";
-import { ManifestEditor } from "./manifest-editor";
 import { ThemeToggle } from "./theme-toggle";
 
 export function RegistryPage(props: {

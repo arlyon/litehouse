@@ -1,5 +1,4 @@
 import { LoginButton } from "@/components/login-button";
-import { ManifestEditor } from "@/components/manifest-editor";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ClerkProvider } from "@clerk/nextjs";
 import { PackageIcon, SearchIcon } from "lucide-react";
@@ -46,8 +45,6 @@ export const Header = ({
             placeholder="Search packages..."
             type="text"
           />
-          <ThemeToggle className="hidden md:inline-flex" />
-          <ManifestEditor className="hidden md:block" />
           <div>
             <div className="size-[28px]">
               <ErrorBoundary

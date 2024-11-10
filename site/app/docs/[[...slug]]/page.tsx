@@ -33,8 +33,6 @@ export default async function Page({
 
   const MDX = page.data.body;
 
-  console.log(page);
-
   return (
     <DocsPage
       toc={page.data.toc}

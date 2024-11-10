@@ -129,7 +129,7 @@ export const FindServer = ({ className }: { className?: string }) => {
           type="button"
           key="server-button"
           className={cn(
-            "transition-all border text-green-400 bg-green-950 w-[225px] rounded-full justify-center  px-3 py-2 border-green-500 flex flex-row gap-2 relative overflow-hidden",
+            "transition-all border text-green-400 bg-white dark:bg-green-950 w-[225px] rounded-full justify-center  px-3 py-2 border-green-500 flex flex-row gap-2 relative overflow-hidden",
             className,
             data?.length > 0
               ? "border-green-300 bg-green-800 text-green-300 hover:-translate-y-1"

@@ -62,12 +62,6 @@ export function PluginPage(
             </div>
           ) : null}
         </div>
-        <AddButton
-          className="mt-1"
-          name={props.title}
-          version={props.version}
-          downloads={props.downloads}
-        />
       </header>
       <div className="space-y-6">
         <GithubBanner url={props.source} />

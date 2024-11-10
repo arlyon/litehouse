@@ -1,5 +1,5 @@
 import { Toaster } from "@/components/ui/sonner";
-import "./global.css";
+import "./globals.css";
 import { Footer } from "@/components/footer";
 import { RootProvider } from "fumadocs-ui/provider";
 import type { Metadata } from "next";

@@ -1,0 +1,39 @@
+---
+title: Cockpit
+description: How to remotely interact with your litehouse instance
+---
+
+Cockpit is a zero-config way to connect to a Litehouse instance from anywhere in the world.
+It works by facilitating direct peer-to-peer connections between you and your Litehouse.
+No more NAT, no more public IPs, and no more port forwarding. Just authenticate your instance
+and you can access it from anywhere via  [Cockpit](https://litehouse.arlyon.dev/cockpit).
+
+All you need to do to get started is to create an account with Litehouse, while is simply
+used to ensure that it is really you that is accessing your server.
+
+## Getting Started
+
+To opt-in to Cockpit, you must first add some settings to your `settings.json` file.
+
+```diff title="settings.json"
+{
++  "broker": {
++    "url": "https://cockpit.litehouse.arlyon.dev",
++    "password": [6, 3, 6, 3, 1, 7]
+                 ------------------ make sure this is random!
++  }
+}
+```
+
+To pair an instance with your account, visit the [Cockpit](https://litehouse.arlyon.dev/cockpit)
+page. It will immediately scan for any running instances that are on your local network.
+As a security measure, we _also_ require a password to be set, which is subject to a relatively
+harsh timeout so that people on your local network are unlikely to be able to clain the server
+before you do!
+
+### Claiming the Server
+
+Once that is set up, visit the [Cockpit](https://litehouse.arlyon.dev/cockpit) page. Your local
+server should immedeately appear, and upon clicking "Begin Pairing", you will be prompted to
+pick a randomly generated name, and enter the password you set up earlier. Once you do, the
+server will store a secure certificate proving ownership and will be available for access.

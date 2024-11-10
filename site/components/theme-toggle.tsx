@@ -1,20 +1,22 @@
 "use client";
-
+import { cn } from "@/lib/utils";
 import { cva } from "class-variance-authority";
-import { MoonIcon, SunIcon } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { type ButtonHTMLAttributes, useCallback } from "react";
-import { twMerge as cn } from "tailwind-merge";
+import { type ButtonHTMLAttributes } from "react";
 
-const buttonVariants = cva("size-7 rounded-full p-1.5 text-muted-foreground", {
-  variants: {
-    dark: {
-      true: "dark:bg-accent dark:text-accent-foreground",
-      false:
-        "bg-accent text-accent-foreground dark:bg-transparent dark:text-muted-foreground",
+const buttonVariants = cva(
+  "size-7 rounded-full p-1.5 text-fd-muted-foreground",
+  {
+    variants: {
+      dark: {
+        true: "dark:bg-fd-accent dark:text-fd-accent-foreground",
+        false:
+          "bg-fd-accent text-fd-accent-foreground dark:bg-transparent dark:text-fd-muted-foreground",
+      },
     },
   },
-});
+);
 
 export function ThemeToggle({
   className,
@@ -22,23 +24,25 @@ export function ThemeToggle({
 }: ButtonHTMLAttributes<HTMLButtonElement>): React.ReactElement {
   const { setTheme, resolvedTheme } = useTheme();
 
-  const onToggle = useCallback(() => {
+  const onToggle = () => {
+    console.log(resolvedTheme);
     setTheme(resolvedTheme === "dark" ? "light" : "dark");
-  }, [setTheme, resolvedTheme]);
+  };
 
   return (
     <button
       type="button"
       className={cn(
-        "inline-flex items-center rounded-full border p-0.5",
+        "inline-flex items-center rounded-full border p-[3px]",
         className,
       )}
+      data-theme-toggle=""
       aria-label="Toggle Theme"
       onClick={onToggle}
       {...props}
     >
-      <SunIcon className={cn(buttonVariants({ dark: false }))} />
-      <MoonIcon className={cn(buttonVariants({ dark: true }))} />
+      <Sun className={cn(buttonVariants({ dark: false }))} />
+      <Moon className={cn(buttonVariants({ dark: true }))} />
     </button>
   );
 }
