@@ -10,10 +10,10 @@ interface plugin {
     variant update {
       time(u64),
 
-      temperature(float64),
-      wind-speed(float64),
+      temperature(f64),
+      wind-speed(f64),
 
-      current(float64),
+      current(f64),
       voltage(u16),
       power(u16),
       on-off(bool),
@@ -63,7 +63,6 @@ interface plugin {
       version: string,
       identifier: string,
       config-schema: option<string>,
-      
       author: option<string>,
       homepage: option<string>,
       source: option<string>,
@@ -109,6 +108,10 @@ world plugin-host {
   import wasi:sockets/tcp-create-socket@0.2.0;
   import wasi:sockets/instance-network@0.2.0;
 
-  import send-update: func(nickname: string, update: update);
+  import host: interface {
+    use plugin.{update};
+    send-update: func(nickname: string, update: update);
+  }
+
   export plugin;
 }

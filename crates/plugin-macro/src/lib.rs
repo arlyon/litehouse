@@ -81,7 +81,19 @@ pub fn generate_host(_input: TokenStream) -> TokenStream {
     quote! {
         wasmtime::component::bindgen!({
             async: true,
-            path: #wit_dir
+            path: #wit_dir,
+            with: {
+                "wasi:http/outgoing-handler": wasmtime_wasi_http::bindings::http::outgoing_handler,
+                "wasi:http/types": wasmtime_wasi_http::bindings::http::types,
+                "wasi:sockets/tcp": wasmtime_wasi::bindings::sockets::tcp,
+                "wasi:clocks/monotonic-clock": wasmtime_wasi::bindings::clocks::monotonic_clock,
+                "wasi:io/streams": wasmtime_wasi::bindings::io::streams,
+                "wasi:io/poll": wasmtime_wasi::bindings::io::poll,
+                "wasi:io/error": wasmtime_wasi::bindings::io::error,
+                "wasi:sockets/network": wasmtime_wasi::bindings::sockets::network,
+                "wasi:sockets/tcp-create-socket": wasmtime_wasi::bindings::sockets::tcp_create_socket,
+                "wasi:sockets/instance-network": wasmtime_wasi::bindings::sockets::instance_network,
+            }
         });
     }
     .into()
@@ -94,6 +106,5 @@ pub fn config(input: TokenStream) -> TokenStream {
         #[derive(litehouse_plugin::JsonSchema)]
         #input
     };
-    println!("{:#?}", out);
     out.into()
 }

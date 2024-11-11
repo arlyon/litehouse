@@ -12,15 +12,13 @@ homepage = "https://litehouse.arlyon.dev"
 
 [profile.release]
 strip = true
-opt-level = "z"
-panic = "abort"
+opt-level = 3
 lto = "thin"
 
 [profile.release-with-debug]
 inherits = "release"
 debug = true
 strip = false
-lto = false
 
 # The profile that 'cargo dist' will build with
 [profile.dist]
@@ -45,11 +43,11 @@ ci = "github"
 installers = ["shell", "powershell", "homebrew", "msi"]
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = [
-  "aarch64-apple-darwin",
-  # "aarch64-unknown-linux-gnu", disabled until flatc is updated
-  "x86_64-apple-darwin",
-  "x86_64-unknown-linux-gnu",
-  # "x86_64-pc-windows-msvc", # disabled until flatc is updated
+    "aarch64-apple-darwin",
+    # "aarch64-unknown-linux-gnu", disabled until flatc is updated
+    "x86_64-apple-darwin",
+    "x86_64-unknown-linux-gnu",
+    # "x86_64-pc-windows-msvc", # disabled until flatc is updated
 ]
 # Publish jobs to run in CI
 pr-run-mode = "plan"

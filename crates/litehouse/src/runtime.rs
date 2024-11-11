@@ -12,7 +12,11 @@ use crate::{
     store::{StoreRef, StoreStrategy},
 };
 
-use bindings::{exports::litehouse::plugin::plugin::GuestRunner, PluginHostImports};
+use bindings::{
+    exports::litehouse::plugin::plugin::GuestRunner,
+    litehouse::plugin::plugin::{Host, HostRunner},
+    wasi::{self, sockets::instance_network},
+};
 
 use futures::{StreamExt, TryStreamExt};
 use itertools::Itertools;
@@ -20,13 +24,18 @@ use jsonc_parser::common::Ranged;
 use litehouse_config::{Capability, PluginConfig};
 use tokio::sync::broadcast::Sender;
 use wasmtime::{
-    component::{Component, Linker, ResourceAny, ResourceTable},
+    component::{Component, Linker, Resource, ResourceAny, ResourceTable},
     Config, Engine,
 };
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiView};
 use wasmtime_wasi_http::{
-    bindings::http::outgoing_handler::ErrorCode, types::default_send_request, WasiHttpCtx,
-    WasiHttpView,
+    bindings::http::{outgoing_handler::ErrorCode, types::Scheme},
+    body::HyperOutgoingBody,
+    types::{
+        default_send_request, HostFutureIncomingResponse, HostOutgoingRequest,
+        OutgoingRequestConfig,
+    },
+    HttpResult, WasiHttpCtx, WasiHttpView,
 };
 
 use crate::cache::ModuleCache;
@@ -36,9 +45,12 @@ use miette::{miette, Context, Diagnostic, NamedSource, Result, SourceSpan};
 pub mod bindings {
     litehouse_plugin::generate_host!();
 
-    impl crate::runtime::bindings::exports::litehouse::plugin::plugin::UpdateSubscription {
-        pub fn matches(&self, event: &Update) -> bool {
-            matches!((self, event), (Self::Temperature, Update::Temperature(_)))
+    impl exports::litehouse::plugin::plugin::UpdateSubscription {
+        pub fn matches(&self, event: &host::Update) -> bool {
+            matches!(
+                (self, event),
+                (Self::Temperature, &host::Update::Temperature(_))
+            )
         }
     }
 }
@@ -74,7 +86,7 @@ impl<T> PluginRunner<T> {
         let mut wasi = WasiCtxBuilder::new();
         wasi.inherit_stdio()
             .env("RUST_LOG", std::env::var("RUST_LOG").unwrap_or_default());
-        let http = WasiHttpCtx;
+        let http = WasiHttpCtx::new();
 
         let allowed_authorities = capabilities
             .iter()
@@ -105,7 +117,7 @@ impl<T: Send> WasiView for PluginRunner<T> {
 }
 
 impl<T: Send> WasiHttpView for PluginRunner<T> {
-    fn ctx(&mut self) -> &mut wasmtime_wasi_http::WasiHttpCtx {
+    fn ctx(&mut self) -> &mut WasiHttpCtx {
         &mut self.http
     }
 
@@ -113,44 +125,36 @@ impl<T: Send> WasiHttpView for PluginRunner<T> {
         &mut self.table
     }
 
+    /// Send an outgoing request.
     fn send_request(
         &mut self,
-        request: wasmtime_wasi_http::types::OutgoingRequest,
-    ) -> wasmtime::Result<
-        wasmtime::component::Resource<wasmtime_wasi_http::types::HostFutureIncomingResponse>,
-    >
-    where
-        Self: Sized,
-    {
-        // try to remove the port if it exists
-        let authority = request
-            .authority
-            .rsplit_once(':')
-            .map(|(authority, _)| authority)
-            .unwrap_or(&request.authority);
-
-        if !self.allowed_authorities.contains(authority) {
-            tracing::error!(
-                "plugin tried to access {} which is not in the list of allowed authorities",
-                authority
-            );
-            return Err(ErrorCode::HttpRequestDenied.into());
+        request: hyper::Request<HyperOutgoingBody>,
+        config: OutgoingRequestConfig,
+    ) -> HttpResult<HostFutureIncomingResponse> {
+        if let Some(authority) = request.uri().authority() {
+            let authority = authority.as_str();
+            let port_stripped_authority = authority
+                .rsplit_once(':')
+                .map(|(authority, _)| authority)
+                .unwrap_or(&authority);
+            if !self.allowed_authorities.contains(port_stripped_authority) {
+                tracing::error!(
+                    "plugin tried to access {} which is not in the list of allowed authorities",
+                    authority
+                );
+                return Err(ErrorCode::HttpRequestDenied.into());
+            }
         }
 
-        default_send_request(self, request)
+        Ok(default_send_request(request, config))
     }
 }
 
 #[async_trait::async_trait]
-impl PluginHostImports for PluginRunner<Sender<(String, bindings::Update)>> {
-    async fn send_update(
-        &mut self,
-        nickname: String,
-        event: bindings::Update,
-    ) -> wasmtime::Result<()> {
+impl bindings::host::Host for PluginRunner<Sender<(String, bindings::host::Update)>> {
+    async fn send_update(&mut self, nickname: String, event: bindings::host::Update) {
         tracing::trace!(target: "litehouse::plugin", plugin = nickname, "{:?}", event);
         self.event_sink.send((nickname, event)).unwrap();
-        return Ok(());
     }
 }
 
@@ -211,10 +215,7 @@ pub async fn set_up_engine(
     tracing::debug!("setting up engine");
     let mut wasm_config = Config::new();
 
-    wasm_config
-        .wasm_component_model(true)
-        .async_support(true)
-        .async_stack_size(1 << 20); // 1MiB
+    wasm_config.wasm_component_model(true).async_support(true);
 
     let cache = if cache {
         let cache = Arc::new(ModuleCache::load().await?.unwrap_or_default());
@@ -229,21 +230,13 @@ pub async fn set_up_engine(
     let engine = Engine::new(&wasm_config).map_err(|_| miette!("invalid wasm config"))?;
     let mut linker = Linker::new(&engine);
 
-    tracing::debug!("linking command");
-    wasmtime_wasi::command::add_to_linker(&mut linker)
-        .map_err(|_| miette!("unable to add command to linker"))?;
+    wasmtime_wasi::add_to_linker_async(&mut linker)
+        .map_err(|e| miette!("unable to add command to linker: {}", e))?;
 
-    tracing::debug!("linking http types");
-    wasmtime_wasi_http::bindings::http::types::add_to_linker(&mut linker, |s| s)
-        .map_err(|_| miette!("unable to add http to linker"))?;
+    wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)
+        .map_err(|e| miette!("unable to add http to linker: {}", e))?;
 
-    tracing::debug!("linking outgoing handler");
-    wasmtime_wasi_http::bindings::http::outgoing_handler::add_to_linker(&mut linker, |s| s)
-        .map_err(|_| miette!("unable to add outgoing handler to linker"))?;
-
-    tracing::debug!("linking plugin host");
-    PluginHost::add_root_to_linker(&mut linker, |c| c)
-        .map_err(|_| miette!("unable to add plugin host to linker"))?;
+    bindings::host::add_to_linker(&mut linker, |c| c);
 
     tracing::debug!("set up engine");
 
@@ -340,7 +333,7 @@ pub async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
                         panic!();
                     }
                 })?;
-                let c = tokio::task::spawn_blocking(move || Component::new(&engine, contents))
+                let c = tokio::task::spawn_blocking(move || Component::new(&engine, contents)) // TODO(MEM): allocates 7MB of RAM here
                     .await
                     .expect("no panic")
                     .map_err(|e| miette!("unable to build {}: {}", &file_name, e))?;
@@ -388,7 +381,7 @@ pub async fn instantiate_plugin_host<T: Send + Clone>(
 ) -> Result<PluginHost> {
     tracing::debug!("instantiating");
     let store_lock = store.enter().await;
-    let (host, _) = PluginHost::instantiate_async(store_lock, component, linker)
+    let host = PluginHost::instantiate_async(store_lock, component, linker)
         .await
         .map_err(|e| miette!("unable to instantiate: {}", e))?;
 
