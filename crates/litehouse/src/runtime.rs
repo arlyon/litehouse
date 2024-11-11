@@ -215,7 +215,10 @@ pub async fn set_up_engine(
     tracing::debug!("setting up engine");
     let mut wasm_config = Config::new();
 
-    wasm_config.wasm_component_model(true).async_support(true);
+    wasm_config
+        .wasm_component_model(true)
+        .async_support(true)
+        .cranelift_opt_level(wasmtime::OptLevel::Speed);
 
     let cache = if cache {
         let cache = Arc::new(ModuleCache::load().await?.unwrap_or_default());
