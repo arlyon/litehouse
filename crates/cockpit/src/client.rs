@@ -8,17 +8,17 @@ use crate::types::{
     AppState, Connection, EitherResponse, JsonSchemaRTCSessionDescription, NodeId, Resp,
     TransparentOperation,
 };
-use aide::{axum::IntoApiResponse, OperationOutput};
+use aide::{OperationOutput, axum::IntoApiResponse};
 use axum::{
+    Json,
     extract::{ConnectInfo, Path, State},
     response::IntoResponse,
-    Json,
 };
 use axum_client_ip::SecureClientIp;
 use axum_extra::TypedHeader;
 use headers::{
-    authorization::{Basic, Bearer},
     Authorization,
+    authorization::{Basic, Bearer},
 };
 
 pub async fn list_connections(

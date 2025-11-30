@@ -14,7 +14,7 @@ type MutexStore<T> = Arc<Mutex<Store<PluginRunner<T>>>>;
 /// different configurations, and this enum allows for
 /// different strategies for handling the stores for each
 /// plugin.
-pub enum StoreStrategy<T> {
+pub enum StoreStrategy<T: 'static> {
     /// All plugins live in the same store. All plugins share the
     /// same memory space, and only one plugin can run at a time.
     Global(MutexStore<T>, PluginRunnerFactory<T>),
@@ -95,7 +95,7 @@ impl<T: Clone> StoreStrategy<T> {
 
 /// A reference to a store, which, depending on whether multiple
 /// plugins need to share it, can be either shared or exclusive.
-pub enum StoreRef<T> {
+pub enum StoreRef<T: 'static> {
     /// The store is shared, so it needs to be locked before use.
     Shared(Arc<Mutex<Store<PluginRunner<T>>>>),
     /// The store is not shared, so no synchronization is needed.
@@ -103,7 +103,7 @@ pub enum StoreRef<T> {
 }
 
 /// A lock on a store, which can be either locked or unlocked.
-pub enum StoreLock<'a, T> {
+pub enum StoreLock<'a, T: 'static> {
     Locked(MutexGuard<'a, Store<PluginRunner<T>>>),
     Unlocked(&'a mut Store<PluginRunner<T>>),
 }

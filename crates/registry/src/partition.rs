@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, ops::Range, path::PathBuf};
 
-use flatbuffers::{FlatBufferBuilder, Follow, Verifiable, WIPOffset, SIZE_SIZEPREFIX};
+use flatbuffers::{FlatBufferBuilder, Follow, SIZE_SIZEPREFIX, Verifiable, WIPOffset};
 
 use memmap2::Mmap;
 use tokio::{
@@ -9,8 +9,8 @@ use tokio::{
 };
 
 use crate::{
+    partitioned_store::Partitionable,
     proto::litehouse::{Entry, EntryArgs, Version},
-    registry::Partitionable,
 };
 
 /// An element in a partitioning scheme.
@@ -266,7 +266,7 @@ impl<'a> IntoBuffer<'a, Entry<'a>> for IntoEntry {
                 description,
                 schema,
                 capabilities,
-                size_: self.size,
+                size: self.size,
                 sha,
             },
         )

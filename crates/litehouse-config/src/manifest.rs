@@ -2,7 +2,7 @@
 
 use base64::Engine;
 
-use crate::{import::ImportParseError, Import};
+use crate::{Import, import::ImportParseError};
 use std::{collections::HashMap, str::FromStr};
 
 #[derive(Clone)]

@@ -4,7 +4,7 @@
 extern crate napi_derive;
 
 use futures::FutureExt;
-use litehouse_registry::{partition::IntoEntry, LitehouseRegistry};
+use litehouse_registry::{LitehouseRegistry, partition::IntoEntry};
 use tokio::sync::OnceCell;
 
 #[napi(object)]

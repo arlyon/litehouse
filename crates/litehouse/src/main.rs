@@ -3,15 +3,11 @@
 //! This application serves as the core of the Litehouse home automation system, orchestrating
 //! the execution of WebAssembly-based plugins for various home automation tasks.
 
-#![feature(let_chains)]
-
-use std::fmt;
-
 use chrono::{DateTime, Utc};
 use clap::Parser;
 use cmd::Subcommand;
 use miette::Result;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
+use tracing_subscriber::{EnvFilter, Layer, layer::SubscriberExt, util::SubscriberInitExt};
 
 mod cache;
 mod cmd;
@@ -105,7 +101,7 @@ impl LogMessage {
     }
 }
 
-use tracing::{field::Visit, span, subscriber::Interest, Event, Level, Metadata, Subscriber};
+use tracing::{Event, Metadata, Subscriber, field::Visit};
 use tracing_subscriber::registry::LookupSpan;
 
 struct QueueLayer {

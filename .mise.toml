@@ -1,7 +1,13 @@
 [tools]
 bun = "1.1.29"
-rust = "1.80.0"
-"cargo:ubi-cli" = "0.2.0"
+rust = "1.88.0"
+"cargo:ubi-cli" = "latest"
 
 "ubi:crate-ci/typos" = "v1.24.6"
 "ubi:WebAssembly/binaryen" = { version = "version_119", exe = "wasm-opt" }
+"ubi:bytecodealliance/wit-deps" = "latest"
+"cargo:litehouse" = { path = "crates/litehouse" }
+
+[env]
+AWS_ACCESS_KEY_ID = "Cn7jc2kpOLSsW9SUeNwv"
+AWS_SECRET_ACCESS_KEY = "uLiicnPwsKLYNTzptlGoiqKnz1xvr2y4U2Toltlh"

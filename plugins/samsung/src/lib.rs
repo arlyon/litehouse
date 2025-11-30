@@ -12,8 +12,8 @@ use crate::{
         tcp_create_socket::create_tcp_socket,
     },
 };
-use base64::{engine::general_purpose::STANDARD, Engine};
-use rustls::{client::danger::ServerCertVerifier, ClientConfig, ClientConnection};
+use base64::{Engine, engine::general_purpose::STANDARD};
+use rustls::{ClientConfig, ClientConnection, client::danger::ServerCertVerifier};
 use serde::Serialize;
 use tungstenite::Message;
 use url::Url;

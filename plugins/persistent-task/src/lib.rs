@@ -17,9 +17,11 @@ impl GuestRunner for PersistentPlugin {
     fn new(nickname: String, _config: Option<String>) -> Self {
         // let (commands_tx, commands_rx) = std::sync::mpsc::channel();
         // let (updates_tx, updates_rx) = std::sync::mpsc::channel();
-        std::thread::spawn(move || loop {
-            std::thread::sleep(Duration::from_secs(1));
-            tracing::info!("sending update");
+        std::thread::spawn(move || {
+            loop {
+                std::thread::sleep(Duration::from_secs(1));
+                tracing::info!("sending update");
+            }
         });
         Self { nickname }
     }

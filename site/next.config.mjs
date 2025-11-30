@@ -23,6 +23,7 @@ const config = {
       },
     ],
   },
+  output: "standalone",
   pageExtensions: ["ts", "tsx"],
   experimental: {
     // useLightningcss: true,

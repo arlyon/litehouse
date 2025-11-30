@@ -115,10 +115,6 @@ export const FindServer = ({ className }: { className?: string }) => {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    console.log("messages", messages);
-  }, [messages]);
-
   const [seed, setSeed] = useState(Number(new Date()));
   const [password, setPassword] = useState("");
 

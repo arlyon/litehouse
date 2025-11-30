@@ -139,8 +139,8 @@ impl Scalar {
 mod axum_impl {
     use super::get_static_str;
     use aide::axum::{
-        routing::{get, ApiMethodRouter},
         AxumOperationHandler,
+        routing::{ApiMethodRouter, get},
     };
     use axum::response::Html;
 

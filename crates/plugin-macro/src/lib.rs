@@ -5,7 +5,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
-use syn::{parse_macro_input, punctuated::Punctuated, Ident, Token};
+use syn::{Ident, Token, parse_macro_input, punctuated::Punctuated};
 
 #[proc_macro]
 pub fn generate(input: TokenStream) -> TokenStream {
@@ -14,7 +14,7 @@ pub fn generate(input: TokenStream) -> TokenStream {
     let plugin_type = list.next().expect("need to specify a plugin type");
 
     let config = list.next();
-    let (struct_def, ident, config) = config
+    let (struct_def, _ident, config) = config
         .map(|ident| {
             (
                 None,
@@ -38,8 +38,10 @@ pub fn generate(input: TokenStream) -> TokenStream {
         #[link_section = "litehouse_metadata"]
         pub static METADATA: [u8; 0] = [];
 
-        impl exports::litehouse::plugin::plugin::Guest for #ident {
+        struct RunnerInterface;
+        impl exports::litehouse::plugin::plugin::Guest for RunnerInterface {
             type Runner = #plugin_type;
+            // type Notify = #plugin_type;
             fn get_metadata() -> exports::litehouse::plugin::plugin::Metadata {
                 exports::litehouse::plugin::plugin::Metadata {
                     identifier: core::env!("CARGO_PKG_NAME").to_string(),
@@ -55,7 +57,7 @@ pub fn generate(input: TokenStream) -> TokenStream {
             }
         }
 
-        export!(#ident);
+        export!(RunnerInterface);
     };
 
     let wit_dir = std::env!("WIT_DIR");
@@ -66,6 +68,7 @@ pub fn generate(input: TokenStream) -> TokenStream {
             world: "plugin-host",
             runtime_path: "litehouse_plugin::wit_bindgen::rt",
             std_feature,
+            generate_all,
         });
 
         #impl_block
@@ -80,19 +83,19 @@ pub fn generate_host(_input: TokenStream) -> TokenStream {
 
     quote! {
         wasmtime::component::bindgen!({
-            async: true,
+            // async: true,
             path: #wit_dir,
             with: {
                 "wasi:http/outgoing-handler": wasmtime_wasi_http::bindings::http::outgoing_handler,
                 "wasi:http/types": wasmtime_wasi_http::bindings::http::types,
-                "wasi:sockets/tcp": wasmtime_wasi::bindings::sockets::tcp,
-                "wasi:clocks/monotonic-clock": wasmtime_wasi::bindings::clocks::monotonic_clock,
-                "wasi:io/streams": wasmtime_wasi::bindings::io::streams,
-                "wasi:io/poll": wasmtime_wasi::bindings::io::poll,
-                "wasi:io/error": wasmtime_wasi::bindings::io::error,
-                "wasi:sockets/network": wasmtime_wasi::bindings::sockets::network,
-                "wasi:sockets/tcp-create-socket": wasmtime_wasi::bindings::sockets::tcp_create_socket,
-                "wasi:sockets/instance-network": wasmtime_wasi::bindings::sockets::instance_network,
+                "wasi:sockets/tcp": wasmtime_wasi::p2::bindings::sockets::tcp,
+                "wasi:clocks/monotonic-clock": wasmtime_wasi::p2::bindings::clocks::monotonic_clock,
+                "wasi:io/streams": wasmtime_wasi::p2::bindings::io::streams,
+                "wasi:io/poll": wasmtime_wasi::p2::bindings::io::poll,
+                "wasi:io/error": wasmtime_wasi::p2::bindings::io::error,
+                "wasi:sockets/network": wasmtime_wasi::p2::bindings::sockets::network,
+                "wasi:sockets/tcp-create-socket": wasmtime_wasi::p2::bindings::sockets::tcp_create_socket,
+                "wasi:sockets/instance-network": wasmtime_wasi::p2::bindings::sockets::instance_network,
             }
         });
     }

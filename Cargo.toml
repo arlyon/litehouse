@@ -5,7 +5,7 @@ resolver = "2"
 [workspace.package]
 repository = "https://github.com/arlyon/litehouse"
 authors = ["Alexander Lyon <arlyon@me.com>"]
-edition = "2021"
+edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "A lightweight home automation server"
 homepage = "https://litehouse.arlyon.dev"
@@ -43,11 +43,11 @@ ci = "github"
 installers = ["shell", "powershell", "homebrew", "msi"]
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = [
-    "aarch64-apple-darwin",
-    # "aarch64-unknown-linux-gnu", disabled until flatc is updated
-    "x86_64-apple-darwin",
-    "x86_64-unknown-linux-gnu",
-    # "x86_64-pc-windows-msvc", # disabled until flatc is updated
+  "aarch64-apple-darwin",
+  # "aarch64-unknown-linux-gnu", disabled until flatc is updated
+  "x86_64-apple-darwin",
+  "x86_64-unknown-linux-gnu",
+  # "x86_64-pc-windows-msvc", # disabled until flatc is updated
 ]
 # Publish jobs to run in CI
 pr-run-mode = "plan"

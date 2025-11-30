@@ -1,8 +1,8 @@
 use std::{future::Future, mem::ManuallyDrop, pin::Pin};
 
 use futures::{
-    future::{Fuse, FusedFuture},
     Stream,
+    future::{Fuse, FusedFuture},
 };
 
 pin_project_lite::pin_project! {

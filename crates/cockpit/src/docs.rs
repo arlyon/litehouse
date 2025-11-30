@@ -6,7 +6,7 @@ use aide::{
     openapi::OpenApi,
     transform::TransformOpenApi,
 };
-use axum::{response::IntoResponse, Extension, Json};
+use axum::{Extension, Json, response::IntoResponse};
 
 use crate::types::AppState;
 

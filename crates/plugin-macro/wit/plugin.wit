@@ -1,22 +1,12 @@
 package litehouse:plugin;
 
 interface plugin {
+    use update.{update};
+
     record event {
         id: u64,
         timestamp: u64,
         inner: update,
-    }
-
-    variant update {
-      time(u64),
-
-      temperature(f64),
-      wind-speed(f64),
-
-      current(f64),
-      voltage(u16),
-      power(u16),
-      on-off(bool),
     }
 
     variant subscription {
@@ -53,10 +43,15 @@ interface plugin {
       year,
     }
 
+    variant output {
+      notify,
+    }
+
     resource runner {
       constructor(nickname: string, config: option<string>);
       subscribe: func() -> result<list<subscription>, u32>;
       update: func(events: list<event>) -> result<bool, u32>;
+      outputs: func() -> result<list<output>, u32>;
     }
 
     record metadata {
@@ -74,42 +69,38 @@ interface plugin {
     get-metadata: func() -> metadata;
 }
 
-interface media {
-  // An additional interface for plugins that can play media
-  resource media {
-    play: func() -> result<bool, u32>;
-    pause: func() -> result<bool, u32>;
-    stop: func() -> result<bool, u32>;
-    next: func() -> result<bool, u32>;
-    previous: func() -> result<bool, u32>;
-  }
-}
-
-interface switch {
-  // An additional interface for plugins that can be turned on and off
-  resource switch {
-    on: func() -> result<bool, u32>;
-    off: func() -> result<bool, u32>;
-    toggle: func() -> result<bool, u32>;
-  }
-}
-
 interface notify {
-  // An additional interface for plugins that can notify the user
-  resource notify {
-    notify: func(message: string) -> result<bool, u32>;
-  }
+    // An additional interface for plugins that can notify the user
+    resource notify {
+        constructor();
+        notify: func(message: string) -> result<bool, u32>;
+    }
+}
+
+// note: we import this so we can't export it (ie. keep it in plugin)
+//       https://github.com/WebAssembly/component-model/issues/272
+interface update {
+    variant update {
+        time(u64),
+
+        temperature(f64),
+        wind-speed(f64),
+
+        current(f64),
+        voltage(u16),
+        power(u16),
+        on-off(bool),
+    }
 }
 
 world plugin-host {
-  use plugin.{event, update, subscription};
-  import wasi:http/outgoing-handler@0.2.0;
-  import wasi:sockets/tcp@0.2.0;
-  import wasi:sockets/tcp-create-socket@0.2.0;
-  import wasi:sockets/instance-network@0.2.0;
+  import wasi:http/outgoing-handler@0.2.8;
+  import wasi:sockets/tcp@0.2.8;
+  import wasi:sockets/tcp-create-socket@0.2.8;
+  import wasi:sockets/instance-network@0.2.8;
 
   import host: interface {
-    use plugin.{update};
+    use update.{update};
     send-update: func(nickname: string, update: update);
   }
 

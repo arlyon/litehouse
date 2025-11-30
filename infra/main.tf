@@ -1,3 +1,13 @@
+# terraform {
+#   backend "s3" {
+#     bucket = "litehouse-tf"
+#     key    = "tfstate"
+#     region = "eu-central-1"
+#     endpoint = "https://u5f5.fra2.idrivee2-11.com"
+#     skip_credentials_validation = true
+#   }
+# }
+
 variable "hcloud_token" {
   description = "Hetzner Cloud API Token"
   type        = string

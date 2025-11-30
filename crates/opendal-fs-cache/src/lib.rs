@@ -1,10 +1,10 @@
 use std::task::Poll;
 
+use opendal::Result;
 use opendal::raw::oio::{Read, Write};
 use opendal::raw::{
-    oio, Accessor, Layer, LayeredAccessor, OpList, OpRead, OpWrite, RpList, RpRead, RpWrite,
+    Accessor, Layer, LayeredAccessor, OpList, OpRead, OpWrite, RpList, RpRead, RpWrite, oio,
 };
-use opendal::Result;
 
 pub struct CacheLayer<A: Accessor>(A);
 

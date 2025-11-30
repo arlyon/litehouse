@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     path::{Path, PathBuf},
     process::Stdio,
     time::Duration,
@@ -10,11 +9,8 @@ use indicatif::{ProgressFinish, ProgressStyle};
 use itertools::Itertools;
 use litehouse_config::{Import, LitehouseConfig};
 use litehouse_plugin::serde_json;
-use miette::{bail, Context, IntoDiagnostic, LabeledSpan, NamedSource};
-use tokio::{
-    io::{AsyncBufReadExt, BufReader},
-    process::Command,
-};
+use miette::{Context, IntoDiagnostic, NamedSource, bail};
+use tokio::process::Command;
 use tokio_stream::StreamExt;
 
 use litehouse_registry::{Download, Registry, Upload};
@@ -37,7 +33,7 @@ pub async fn build_in_temp(
         .unwrap();
     let data: serde_json::Value = serde_json::from_slice(&workspaces_json.stdout).unwrap();
 
-    let (name, version, path, is_cdylib) = data["workspace_members"]
+    let (_name, version, path, is_cdylib) = data["workspace_members"]
         .as_array()
         .unwrap()
         .iter()
@@ -98,7 +94,7 @@ pub async fn build_in_temp(
         .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
 
     let build_output_path = {
-        let mut sp = indicatif::ProgressBar::new_spinner()
+        let sp = indicatif::ProgressBar::new_spinner()
             .with_style(spinner_style.clone())
             .with_message("Building...")
             .with_finish(ProgressFinish::WithMessage("Built!".into()))
@@ -164,7 +160,7 @@ pub async fn build_in_temp(
         .wrap_err("unable to create temp dir")?;
 
     let build_output_path = if optimise {
-        let mut sp = indicatif::ProgressBar::new_spinner()
+        let sp = indicatif::ProgressBar::new_spinner()
             .with_style(spinner_style.clone())
             .with_finish(ProgressFinish::WithMessage("Optimising...".into()))
             .with_prefix("[2/3]");
@@ -211,7 +207,7 @@ pub async fn build_in_temp(
     };
 
     let build_output_path = if !no_package {
-        let mut sp = indicatif::ProgressBar::new_spinner()
+        let sp = indicatif::ProgressBar::new_spinner()
             .with_style(spinner_style.clone())
             .with_finish(ProgressFinish::WithMessage("Packaged!".into()))
             .with_prefix("[3/3]");

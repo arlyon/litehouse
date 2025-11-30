@@ -53,9 +53,9 @@ tokio-stream = { version = "0.1.14", features = ["sync"] }
 tokio-util = "0.7.10"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
-wasmtime = { version = "26.0.1", features = ["incremental-cache"] }
-wasmtime-wasi = { version = "26.0.1" }
-wasmtime-wasi-http = "26.0.1"
+wasmtime = { version = "39.0.1", features = ["incremental-cache"] }
+wasmtime-wasi = { version = "39.0.1" }
+wasmtime-wasi-http = "39.0.1"
 reqwest = { version = "0.11.24", default-features = false, features = [
   "rustls-tls",
 ] }

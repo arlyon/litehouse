@@ -51,7 +51,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::io::{s3::MMapS3IoScheme, PartitionIOScheme as _};
+    use crate::io::{PartitionIOScheme as _, s3::MMapS3IoScheme};
     use crate::naming::NumericalPrefixed;
     use crate::proto::litehouse::Entry;
 

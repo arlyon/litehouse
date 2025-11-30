@@ -14,8 +14,8 @@ use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use aide::{
     axum::{
-        routing::{get_with, post_with},
         ApiRouter,
+        routing::{get_with, post_with},
     },
     openapi::OpenApi,
 };
@@ -28,7 +28,7 @@ use litehouse::{
 };
 use tokio::sync::Mutex;
 use tower::Layer;
-use tower_governor::{governor::GovernorConfig, GovernorLayer};
+use tower_governor::{GovernorLayer, governor::GovernorConfig};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use types::AppState;
 
@@ -57,12 +57,12 @@ async fn main() {
 }
 
 fn app() -> Router {
-    aide::gen::on_error(|error| {
+    aide::r#gen::on_error(|error| {
         tracing::error!("{error}");
     });
 
-    aide::gen::extract_schemas(true);
-    aide::gen::infer_responses(true);
+    aide::r#gen::extract_schemas(true);
+    aide::r#gen::infer_responses(true);
 
     let state = AppState {
         known_connections: Arc::new(Mutex::new(Default::default())),
@@ -79,10 +79,12 @@ fn app() -> Router {
     let governor_limiter = governor_conf.limiter().clone();
     let interval = Duration::from_secs(60);
     // a separate background task to clean up
-    std::thread::spawn(move || loop {
-        std::thread::sleep(interval);
-        tracing::info!("rate limiting storage size: {}", governor_limiter.len());
-        governor_limiter.retain_recent();
+    std::thread::spawn(move || {
+        loop {
+            std::thread::sleep(interval);
+            tracing::info!("rate limiting storage size: {}", governor_limiter.len());
+            governor_limiter.retain_recent();
+        }
     });
 
     ApiRouter::new()
@@ -129,7 +131,7 @@ fn app() -> Router {
         .nest_api_service("/docs", docs_routes(state.clone()))
         .finish_api_with(&mut api, api_docs)
         .layer(TraceLayer::new_for_http())
-        .layer(SecureClientIpSource::RightmostXForwardedFor.into_extension())
+        .layer(SecureClientIpSource::ConnectInfo.into_extension())
         .layer(CorsLayer::permissive())
         .layer(Extension(Arc::new(api)))
         .with_state(state)

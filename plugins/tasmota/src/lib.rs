@@ -46,6 +46,10 @@ impl GuestRunner for TasmotaPlugin {
         }
     }
 
+    fn outputs(&self) -> Result<_rt::Vec<exports::litehouse::plugin::plugin::Output>, u32> {
+        return Ok(vec![]);
+    }
+
     fn subscribe(&self) -> Result<Vec<Subscription>, u32> {
         Ok(vec![Subscription::Time(
             exports::litehouse::plugin::plugin::TimeSubscription::Every(Every {
@@ -95,16 +99,16 @@ impl GuestRunner for TasmotaPlugin {
 
         let status: Status0 = serde_json::from_str(&body).unwrap();
 
-        self.send_update(crate::litehouse::plugin::plugin::Update::OnOff(
+        self.send_update(crate::litehouse::plugin::update::Update::OnOff(
             status.status_sts.power == "ON",
         ));
-        self.send_update(crate::litehouse::plugin::plugin::Update::Current(
+        self.send_update(crate::litehouse::plugin::update::Update::Current(
             status.status_sns.energy.current,
         ));
-        self.send_update(crate::litehouse::plugin::plugin::Update::Voltage(
+        self.send_update(crate::litehouse::plugin::update::Update::Voltage(
             status.status_sns.energy.voltage,
         ));
-        self.send_update(crate::litehouse::plugin::plugin::Update::Power(
+        self.send_update(crate::litehouse::plugin::update::Update::Power(
             status.status_sns.energy.power,
         ));
 
@@ -117,8 +121,8 @@ impl GuestRunner for TasmotaPlugin {
 }
 
 impl TasmotaPlugin {
-    fn send_update(&self, update: crate::litehouse::plugin::plugin::Update) {
-        send_update(&self.nickname, update);
+    fn send_update(&self, update: crate::litehouse::plugin::update::Update) {
+        host::send_update(&self.nickname, update);
     }
 }
 

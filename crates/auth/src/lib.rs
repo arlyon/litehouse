@@ -2,9 +2,9 @@ use std::convert::Infallible;
 
 use bytes::Bytes;
 use http_body_util::Empty;
+use hyper::StatusCode;
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
-use hyper::StatusCode;
 use hyper_util::rt::TokioIo;
 use oauth2::basic::{BasicClient, BasicTokenType};
 use oauth2::reqwest::async_http_client;
@@ -20,6 +20,7 @@ pub type TokenResponse = StandardTokenResponse<EmptyExtraTokenFields, BasicToken
 #[derive(Deserialize)]
 struct QsData {
     code: String,
+    #[allow(dead_code)]
     state: String,
 }
 
@@ -55,7 +56,7 @@ pub async fn get_token(
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
     // Generate the full authorization URL.
-    let (auth_url, csrf_token) = client
+    let (auth_url, _csrf_token) = client
         .authorize_url(CsrfToken::new_random)
         // Set the desired scopes.
         .add_scope(Scope::new("profile".to_string()))

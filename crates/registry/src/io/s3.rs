@@ -1,8 +1,7 @@
 use std::{collections::HashMap, io::ErrorKind, path::Path, sync::Arc};
 
 use flatbuffers::{Follow, Verifiable};
-use futures::Future;
-use opendal::{services::S3, Builder, Operator};
+use opendal::{Builder, Operator, services::S3};
 use opendal_fs_cache::CacheLayer;
 use stable_deref_trait::StableDeref;
 use tokio::{
@@ -33,7 +32,7 @@ where
 /// Ensure that the data being extended is not dropped before the lifetime of the returned reference.
 /// In our case, these lifetimes are stored in the map above, with a guarantee that no keys are removed.
 pub unsafe fn extend_lifetime<'a, T: StableDeref>(ptr: &T) -> &'a T::Target {
-    &*(&**ptr as *const T::Target)
+    unsafe { &*(&**ptr as *const T::Target) }
 }
 
 impl<'a, T, N> PartitionIOScheme<'a, T> for MMapS3IoScheme<'a, T, N>

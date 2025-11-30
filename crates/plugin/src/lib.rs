@@ -2,12 +2,12 @@
 //!
 //! This crate provides utilities and macros to facilitate the creation of plugins for the Litehouse home automation system. It includes functionality for schema generation, serialization, and integration with the Litehouse plugin host.
 
-pub use litehouse_plugin_macro::{generate, generate_host, Config};
+pub use litehouse_plugin_macro::{Config, generate, generate_host};
 // pub use wasmtime_wasi_http;
-pub use schemars::{self, schema_for, JsonSchema};
+pub use schemars::{self, JsonSchema, schema_for};
 pub use serde_json;
 use tracing::dispatcher::set_global_default;
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt};
 pub use wit_bindgen;
 
 // pub mod http;

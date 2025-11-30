@@ -8,14 +8,8 @@ use std::{
 };
 
 use crate::{
-    runtime::bindings::PluginHost,
+    runtime::bindings::litehouse::plugin::update,
     store::{StoreRef, StoreStrategy},
-};
-
-use bindings::{
-    exports::litehouse::plugin::plugin::GuestRunner,
-    litehouse::plugin::plugin::{Host, HostRunner},
-    wasi::{self, sockets::instance_network},
 };
 
 use futures::{StreamExt, TryStreamExt};
@@ -24,23 +18,20 @@ use jsonc_parser::common::Ranged;
 use litehouse_config::{Capability, PluginConfig};
 use tokio::sync::broadcast::Sender;
 use wasmtime::{
-    component::{Component, Linker, Resource, ResourceAny, ResourceTable},
     Config, Engine,
+    component::{Component, Linker, ResourceAny, ResourceTable},
 };
-use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiView};
+use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView};
 use wasmtime_wasi_http::{
-    bindings::http::{outgoing_handler::ErrorCode, types::Scheme},
-    body::HyperOutgoingBody,
-    types::{
-        default_send_request, HostFutureIncomingResponse, HostOutgoingRequest,
-        OutgoingRequestConfig,
-    },
     HttpResult, WasiHttpCtx, WasiHttpView,
+    bindings::http::outgoing_handler::ErrorCode,
+    body::HyperOutgoingBody,
+    types::{HostFutureIncomingResponse, OutgoingRequestConfig, default_send_request},
 };
 
 use crate::cache::ModuleCache;
 
-use miette::{miette, Context, Diagnostic, NamedSource, Result, SourceSpan};
+use miette::{Context, Diagnostic, NamedSource, Result, SourceSpan, miette};
 
 pub mod bindings {
     litehouse_plugin::generate_host!();
@@ -107,12 +98,11 @@ impl<T> PluginRunner<T> {
 }
 
 impl<T: Send> WasiView for PluginRunner<T> {
-    fn table(&mut self) -> &mut ResourceTable {
-        &mut self.table
-    }
-
-    fn ctx(&mut self) -> &mut WasiCtx {
-        &mut self.wasi
+    fn ctx(&mut self) -> WasiCtxView<'_> {
+        WasiCtxView {
+            ctx: &mut self.wasi,
+            table: &mut self.table,
+        }
     }
 }
 
@@ -121,7 +111,7 @@ impl<T: Send> WasiHttpView for PluginRunner<T> {
         &mut self.http
     }
 
-    fn table(&mut self) -> &mut ResourceTable {
+    fn table(&mut self) -> &mut wasmtime_wasi::ResourceTable {
         &mut self.table
     }
 
@@ -150,9 +140,8 @@ impl<T: Send> WasiHttpView for PluginRunner<T> {
     }
 }
 
-#[async_trait::async_trait]
 impl bindings::host::Host for PluginRunner<Sender<(String, bindings::host::Update)>> {
-    async fn send_update(&mut self, nickname: String, event: bindings::host::Update) {
+    fn send_update(&mut self, nickname: String, event: bindings::host::Update) {
         tracing::trace!(target: "litehouse::plugin", plugin = nickname, "{:?}", event);
         self.event_sink.send((nickname, event)).unwrap();
     }
@@ -173,7 +162,7 @@ impl Deref for PluginInstance {
 impl PluginInstance {
     pub async fn new<T: Send>(
         store: &mut StoreRef<T>,
-        runner: &GuestRunner<'_>,
+        host: &wasmtime::component::Instance,
         nickname: &str,
         config: &str,
     ) -> Result<(
@@ -181,16 +170,30 @@ impl PluginInstance {
         Vec<crate::runtime::bindings::exports::litehouse::plugin::plugin::Subscription>,
     )> {
         let mut store = store.enter().await;
+
+        let indices =
+            crate::runtime::bindings::exports::litehouse::plugin::plugin::GuestIndices::new(
+                &host.instance_pre(&mut store),
+            )
+            .unwrap();
+
+        let guest = indices.load(&mut store, &host).unwrap();
+        let runner = guest.runner();
+
         let instance = runner
             .call_constructor(&mut store, nickname, Some(config))
-            .await
             .map_err(|e| miette!("failed to construct plugin: {:?}", e))?;
-        let subs = runner
+        let res = runner
             .call_subscribe(&mut store, instance)
-            .await
             .map_err(|e| miette!("plugin {} failed to subscribe: {:?}", nickname, e))?
             .map_err(|e| miette!("plugin {} failed to subscribe: {}", nickname, e))?;
-        Ok((Self { inner: instance }, subs))
+        let outputs = runner
+            .call_outputs(&mut store, instance)
+            .map_err(|e| miette!("plugin {} failed to subscribe: {:?}", nickname, e))?;
+
+        tracing::info!("got outputs: {:?}", outputs);
+
+        Ok((Self { inner: instance }, res))
     }
 }
 
@@ -204,7 +207,7 @@ pub async fn set_up_engine(
             PluginRunner<
                 Sender<(
                     String,
-                    crate::runtime::bindings::litehouse::plugin::plugin::Update,
+                    crate::runtime::bindings::litehouse::plugin::update::Update,
                 )>,
             >,
         >,
@@ -233,13 +236,19 @@ pub async fn set_up_engine(
     let engine = Engine::new(&wasm_config).map_err(|_| miette!("invalid wasm config"))?;
     let mut linker = Linker::new(&engine);
 
-    wasmtime_wasi::add_to_linker_async(&mut linker)
+    wasmtime_wasi::p2::add_to_linker_async(&mut linker)
         .map_err(|e| miette!("unable to add command to linker: {}", e))?;
 
     wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)
         .map_err(|e| miette!("unable to add http to linker: {}", e))?;
 
-    bindings::host::add_to_linker(&mut linker, |c| c);
+    bindings::host::add_to_linker::<_, ()>(&mut linker, |c| c)
+        .map_err(|e| miette!("unable to add http to linker: {}", e))?;
+
+    // bindings::litehouse::plugin::notify::add_to_linker(&mut linker, |c| c)
+    //     .map_err(|e| miette!("unable to add http to linker: {}", e))?;
+
+    // bindings::litehouse::plugin::notify::add_to_linker(&mut linker, |c| c);
 
     tracing::debug!("set up engine");
 
@@ -281,7 +290,7 @@ pub async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
     Vec<(
         &'a String,
         &'a PluginConfig,
-        PluginHost,
+        wasmtime::component::Instance,
         StoreRef<T>,
         Component,
     )>,
@@ -355,7 +364,7 @@ pub async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
             async move {
                 let (nick, instance, component) = res?;
                 let mut store = store_builder.get(&instance.plugin.file_name());
-                let host = instantiate_plugin_host(&mut store, linker, &component)
+                let host = instantiate_instance(&mut store, linker, &component)
                     .await
                     .wrap_err_with(|| {
                         format!(
@@ -377,16 +386,18 @@ pub async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
 }
 
 #[tracing::instrument(skip(store, linker, component))]
-pub async fn instantiate_plugin_host<T: Send + Clone>(
+pub async fn instantiate_instance<T: Send + Clone>(
     store: &mut StoreRef<T>,
     linker: &Linker<PluginRunner<T>>,
     component: &Component,
-) -> Result<PluginHost> {
+) -> Result<wasmtime::component::Instance> {
     tracing::debug!("instantiating");
     let store_lock = store.enter().await;
-    let host = PluginHost::instantiate_async(store_lock, component, linker)
-        .await
-        .map_err(|e| miette!("unable to instantiate: {}", e))?;
 
-    Ok(host)
+    let instance = linker
+        .instantiate_async(store_lock, component)
+        .await
+        .unwrap();
+
+    Ok(instance)
 }

@@ -56,8 +56,12 @@ impl<'b> flatbuffers::Push for Version {
     type Output = Version;
     #[inline]
     unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
-        let src = ::core::slice::from_raw_parts(self as *const Version as *const u8, Self::size());
+        let src = ::core::slice::from_raw_parts(self as *const Version as *const u8, <Self as flatbuffers::Push>::size());
         dst.copy_from_slice(src);
+    }
+    #[inline]
+    fn alignment() -> flatbuffers::PushAlignment {
+        flatbuffers::PushAlignment::new(2)
     }
 }
 
@@ -197,8 +201,8 @@ impl<'a> Summaries<'a> {
     Summaries { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
     args: &'args SummariesArgs<'args>
   ) -> flatbuffers::WIPOffset<Summaries<'bldr>> {
     let mut builder = SummariesBuilder::new(_fbb);
@@ -240,17 +244,17 @@ impl<'a> Default for SummariesArgs<'a> {
   }
 }
 
-pub struct SummariesBuilder<'a: 'b, 'b> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+pub struct SummariesBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b> SummariesBuilder<'a, 'b> {
+impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> SummariesBuilder<'a, 'b, A> {
   #[inline]
   pub fn add_summaries(&mut self, summaries: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<Summary<'b >>>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Summaries::VT_SUMMARIES, summaries);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> SummariesBuilder<'a, 'b> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> SummariesBuilder<'a, 'b, A> {
     let start = _fbb.start_table();
     SummariesBuilder {
       fbb_: _fbb,
@@ -289,7 +293,7 @@ impl<'a> flatbuffers::Follow<'a> for Summary<'a> {
 impl<'a> Summary<'a> {
   pub const VT_TITLE: flatbuffers::VOffsetT = 4;
   pub const VT_VERSIONS: flatbuffers::VOffsetT = 6;
-  pub const VT_SIZE_: flatbuffers::VOffsetT = 8;
+  pub const VT_SIZE: flatbuffers::VOffsetT = 8;
   pub const VT_DESCRIPTION: flatbuffers::VOffsetT = 10;
 
   #[inline]
@@ -297,13 +301,13 @@ impl<'a> Summary<'a> {
     Summary { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
     args: &'args SummaryArgs<'args>
   ) -> flatbuffers::WIPOffset<Summary<'bldr>> {
     let mut builder = SummaryBuilder::new(_fbb);
     if let Some(x) = args.description { builder.add_description(x); }
-    builder.add_size_(args.size_);
+    builder.add_size(args.size);
     if let Some(x) = args.versions { builder.add_versions(x); }
     if let Some(x) = args.title { builder.add_title(x); }
     builder.finish()
@@ -325,11 +329,11 @@ impl<'a> Summary<'a> {
     unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, Version>>>(Summary::VT_VERSIONS, None)}
   }
   #[inline]
-  pub fn size_(&self) -> u32 {
+  pub fn size(&self) -> u32 {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<u32>(Summary::VT_SIZE_, Some(0)).unwrap()}
+    unsafe { self._tab.get::<u32>(Summary::VT_SIZE, Some(0)).unwrap()}
   }
   #[inline]
   pub fn description(&self) -> Option<&'a str> {
@@ -349,7 +353,7 @@ impl flatbuffers::Verifiable for Summary<'_> {
     v.visit_table(pos)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("title", Self::VT_TITLE, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, Version>>>("versions", Self::VT_VERSIONS, false)?
-     .visit_field::<u32>("size_", Self::VT_SIZE_, false)?
+     .visit_field::<u32>("size", Self::VT_SIZE, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("description", Self::VT_DESCRIPTION, false)?
      .finish();
     Ok(())
@@ -358,7 +362,7 @@ impl flatbuffers::Verifiable for Summary<'_> {
 pub struct SummaryArgs<'a> {
     pub title: Option<flatbuffers::WIPOffset<&'a str>>,
     pub versions: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Version>>>,
-    pub size_: u32,
+    pub size: u32,
     pub description: Option<flatbuffers::WIPOffset<&'a str>>,
 }
 impl<'a> Default for SummaryArgs<'a> {
@@ -367,17 +371,17 @@ impl<'a> Default for SummaryArgs<'a> {
     SummaryArgs {
       title: None,
       versions: None,
-      size_: 0,
+      size: 0,
       description: None,
     }
   }
 }
 
-pub struct SummaryBuilder<'a: 'b, 'b> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+pub struct SummaryBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b> SummaryBuilder<'a, 'b> {
+impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> SummaryBuilder<'a, 'b, A> {
   #[inline]
   pub fn add_title(&mut self, title: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Summary::VT_TITLE, title);
@@ -387,15 +391,15 @@ impl<'a: 'b, 'b> SummaryBuilder<'a, 'b> {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Summary::VT_VERSIONS, versions);
   }
   #[inline]
-  pub fn add_size_(&mut self, size_: u32) {
-    self.fbb_.push_slot::<u32>(Summary::VT_SIZE_, size_, 0);
+  pub fn add_size(&mut self, size: u32) {
+    self.fbb_.push_slot::<u32>(Summary::VT_SIZE, size, 0);
   }
   #[inline]
   pub fn add_description(&mut self, description: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Summary::VT_DESCRIPTION, description);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> SummaryBuilder<'a, 'b> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> SummaryBuilder<'a, 'b, A> {
     let start = _fbb.start_table();
     SummaryBuilder {
       fbb_: _fbb,
@@ -414,7 +418,7 @@ impl core::fmt::Debug for Summary<'_> {
     let mut ds = f.debug_struct("Summary");
       ds.field("title", &self.title());
       ds.field("versions", &self.versions());
-      ds.field("size_", &self.size_());
+      ds.field("size", &self.size());
       ds.field("description", &self.description());
       ds.finish()
   }
@@ -440,7 +444,7 @@ impl<'a> Entry<'a> {
   pub const VT_DESCRIPTION: flatbuffers::VOffsetT = 8;
   pub const VT_CAPABILITIES: flatbuffers::VOffsetT = 10;
   pub const VT_SCHEMA: flatbuffers::VOffsetT = 12;
-  pub const VT_SIZE_: flatbuffers::VOffsetT = 14;
+  pub const VT_SIZE: flatbuffers::VOffsetT = 14;
   pub const VT_SHA: flatbuffers::VOffsetT = 16;
 
   #[inline]
@@ -448,13 +452,13 @@ impl<'a> Entry<'a> {
     Entry { _tab: table }
   }
   #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
     args: &'args EntryArgs<'args>
   ) -> flatbuffers::WIPOffset<Entry<'bldr>> {
     let mut builder = EntryBuilder::new(_fbb);
     if let Some(x) = args.sha { builder.add_sha(x); }
-    builder.add_size_(args.size_);
+    builder.add_size(args.size);
     if let Some(x) = args.schema { builder.add_schema(x); }
     if let Some(x) = args.capabilities { builder.add_capabilities(x); }
     if let Some(x) = args.description { builder.add_description(x); }
@@ -500,11 +504,11 @@ impl<'a> Entry<'a> {
     unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(Entry::VT_SCHEMA, None)}
   }
   #[inline]
-  pub fn size_(&self) -> u32 {
+  pub fn size(&self) -> u32 {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<u32>(Entry::VT_SIZE_, Some(0)).unwrap()}
+    unsafe { self._tab.get::<u32>(Entry::VT_SIZE, Some(0)).unwrap()}
   }
   #[inline]
   pub fn sha(&self) -> Option<&'a str> {
@@ -527,7 +531,7 @@ impl flatbuffers::Verifiable for Entry<'_> {
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("description", Self::VT_DESCRIPTION, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<&'_ str>>>>("capabilities", Self::VT_CAPABILITIES, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("schema", Self::VT_SCHEMA, false)?
-     .visit_field::<u32>("size_", Self::VT_SIZE_, false)?
+     .visit_field::<u32>("size", Self::VT_SIZE, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("sha", Self::VT_SHA, false)?
      .finish();
     Ok(())
@@ -539,7 +543,7 @@ pub struct EntryArgs<'a> {
     pub description: Option<flatbuffers::WIPOffset<&'a str>>,
     pub capabilities: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>>,
     pub schema: Option<flatbuffers::WIPOffset<&'a str>>,
-    pub size_: u32,
+    pub size: u32,
     pub sha: Option<flatbuffers::WIPOffset<&'a str>>,
 }
 impl<'a> Default for EntryArgs<'a> {
@@ -551,17 +555,17 @@ impl<'a> Default for EntryArgs<'a> {
       description: None,
       capabilities: None,
       schema: None,
-      size_: 0,
+      size: 0,
       sha: None,
     }
   }
 }
 
-pub struct EntryBuilder<'a: 'b, 'b> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+pub struct EntryBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b> EntryBuilder<'a, 'b> {
+impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> EntryBuilder<'a, 'b, A> {
   #[inline]
   pub fn add_title(&mut self, title: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Entry::VT_TITLE, title);
@@ -583,15 +587,15 @@ impl<'a: 'b, 'b> EntryBuilder<'a, 'b> {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Entry::VT_SCHEMA, schema);
   }
   #[inline]
-  pub fn add_size_(&mut self, size_: u32) {
-    self.fbb_.push_slot::<u32>(Entry::VT_SIZE_, size_, 0);
+  pub fn add_size(&mut self, size: u32) {
+    self.fbb_.push_slot::<u32>(Entry::VT_SIZE, size, 0);
   }
   #[inline]
   pub fn add_sha(&mut self, sha: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Entry::VT_SHA, sha);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> EntryBuilder<'a, 'b> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> EntryBuilder<'a, 'b, A> {
     let start = _fbb.start_table();
     EntryBuilder {
       fbb_: _fbb,
@@ -613,7 +617,7 @@ impl core::fmt::Debug for Entry<'_> {
       ds.field("description", &self.description());
       ds.field("capabilities", &self.capabilities());
       ds.field("schema", &self.schema());
-      ds.field("size_", &self.size_());
+      ds.field("size", &self.size());
       ds.field("sha", &self.sha());
       ds.finish()
   }

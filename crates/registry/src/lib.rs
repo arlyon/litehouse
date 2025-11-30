@@ -1,6 +1,13 @@
 //! Plugin registry
+//!
+//! This module provides a general purpose memory-mapped datastructure for storing flatbuffers
+//! with some arbitrary partitioning scheme, fetched over some arbitrary IO scheme.
+//!
+//! A given implementation must define a predefined partitioning scheme through which the one
+//! can resolve a path to a partition which contains the data for a given plugin. The IO scheme
+//! is used to fetch the data from the underlying storage, whether that be disk, or, in the case
+//! of the registry, an S3-compatible object store.
 
-#![feature(let_chains)]
 #![feature(map_try_insert)]
 
 use futures::Future;
@@ -17,7 +24,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use opendal::{services::S3, Builder, Entry, Operator};
+use opendal::{Builder, Entry, Operator, services::S3};
 
 pub mod io;
 pub mod naming;
@@ -28,10 +35,10 @@ pub mod partition_scheme;
 #[rustfmt::skip]
 #[path = "../target/flatbuffers/registry_generated.rs"]
 pub mod proto;
-pub mod registry;
+pub mod partitioned_store;
 
 pub struct LitehouseRegistry<'a> {
-    reg: registry::Registry<
+    reg: partitioned_store::Registry<
         'a,
         proto::litehouse::Entry<'a>,
         Alphabetical<
@@ -48,7 +55,7 @@ impl<'a> LitehouseRegistry<'a> {
         let naming = NumericalPrefixed::new("registry");
         let partitioning = Alphabetical::new([Split::Seven], MMapS3IoScheme::new(naming, None));
         LitehouseRegistry {
-            reg: registry::Registry::new(partitioning),
+            reg: partitioned_store::Registry::new(partitioning),
         }
     }
 
@@ -58,7 +65,7 @@ impl<'a> LitehouseRegistry<'a> {
     }
 
     /// Get all the versions for the given plugin.
-    pub async fn get(&'a self, title: String) -> Vec<proto::litehouse::Entry<'_>> {
+    pub async fn get(&'a self, title: String) -> Vec<proto::litehouse::Entry<'a>> {
         let mut out = vec![];
         let x = self.reg.range(&title, &title).await;
         for x in x {

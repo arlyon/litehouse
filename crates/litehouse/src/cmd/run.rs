@@ -1,27 +1,27 @@
-use futures::{future::Either, StreamExt};
+use futures::{StreamExt, future::Either};
 use jsonc_parser::CollectOptions;
 use litehouse_config::{LitehouseConfig, SandboxStrategy};
 use litehouse_plugin::serde_json;
 use miette::{Context, IntoDiagnostic, NamedSource, Result};
 use std::{future, path::Path, sync::Arc};
 use tokio::{
-    sync::{broadcast::channel, broadcast::Receiver},
+    sync::{broadcast::Receiver, broadcast::channel},
     time::interval,
 };
 use tracing::Instrument;
 use wasmtime::Trap;
 
 use crate::{
+    LogMessage,
     runtime::{
+        PluginInstance, PluginRunnerFactory,
         bindings::exports::litehouse::plugin::plugin::{
             Event, Every, Subscription, TimeSubscription, TimeUnit, Update,
         },
-        instantiate_plugin_host, instantiate_plugin_hosts, set_up_engine, PluginInstance,
-        PluginRunnerFactory,
+        instantiate_instance, instantiate_plugin_hosts, set_up_engine,
     },
     server::{Authed, Credentials},
     store::StoreStrategy,
-    LogMessage,
 };
 
 /// Starts the server and the plugin runners
@@ -119,12 +119,10 @@ pub async fn run(wasm_path: &Path, cache: bool, logs_rx: Receiver<LogMessage>) -
             let component = component.clone();
 
             async move {
-                let mut runner = host.litehouse_plugin_plugin().runner();
-
                 let config = serde_json::to_string(&instance.config).expect("can't fail");
 
                 let (mut plugin, subs) =
-                    PluginInstance::new(&mut store, &runner, nickname, &config).await?;
+                    PluginInstance::new(&mut store, &host, nickname, &config).await?;
 
                 let mut listen_types = vec![];
 
@@ -166,7 +164,7 @@ pub async fn run(wasm_path: &Path, cache: bool, logs_rx: Receiver<LogMessage>) -
 
                 let mut merged_stream = tokio_stream::StreamExt::merge(
                     streams.map(|_| {
-                        crate::runtime::bindings::litehouse::plugin::plugin::Update::Time(0)
+                        crate::runtime::bindings::litehouse::plugin::update::Update::Time(0)
                     }),
                     event_stream
                         .filter_map(|u| future::ready(u.ok()))
@@ -179,7 +177,10 @@ pub async fn run(wasm_path: &Path, cache: bool, logs_rx: Receiver<LogMessage>) -
                 );
 
                 while let Some(_update) = merged_stream.next().await {
-                    let store_lock = store.enter().await;
+                    let mut store_lock = store.enter().await;
+                    let indices = crate::runtime::bindings::exports::litehouse::plugin::plugin::GuestIndices::new(&host.instance_pre(&mut store_lock)).unwrap();
+                    let guest = indices.load(&mut store_lock, &host).unwrap();
+                    let runner = guest.runner();
                     match runner
                         .call_update(
                             store_lock,
@@ -190,7 +191,6 @@ pub async fn run(wasm_path: &Path, cache: bool, logs_rx: Receiver<LogMessage>) -
                                 inner: Update::Time(0),
                             }],
                         )
-                        .await
                     {
                         Ok(Ok(_)) => {}
                         Ok(Err(e)) => {
@@ -201,11 +201,11 @@ pub async fn run(wasm_path: &Path, cache: bool, logs_rx: Receiver<LogMessage>) -
                             if let Some(trap) = e.downcast_ref::<Trap>() {
                                 tracing::error!("plugin has crashed, restarting {}", trap);
                                 store = store_strategy.reset(nickname).await;
-                                host = instantiate_plugin_host(&mut store, &linker, &component)
-                                    .await?;
-                                runner = host.litehouse_plugin_plugin().runner();
+                                host =
+                                    instantiate_instance(&mut store, &linker, &component).await?;
+
                                 (plugin, _) =
-                                    PluginInstance::new(&mut store, &runner, nickname, &config)
+                                    PluginInstance::new(&mut store, &host, nickname, &config)
                                         .await
                                         .expect("can't fail");
                                 tracing::debug!("plugin {} restarted", nickname);

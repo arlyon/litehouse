@@ -3,6 +3,9 @@
 //! This crate provides functionality for fetching and displaying weather information
 //! from various sources, allowing for weather-based automation within the Litehouse system.
 
+use exports::litehouse::plugin::plugin::Output;
+use host::Update;
+
 use crate::{
     exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit},
     wasi::http::{
@@ -30,6 +33,18 @@ pub struct WeatherConfig {
     pub lon: f64,
 }
 
+struct MyNotify;
+// impl GuestNotify for MyNotify {
+//     fn notify(&self, message: String) -> Result<bool, u32> {
+//         tracing::info!("got message: {}", message);
+//         Ok(true)
+//     }
+
+//     fn new() -> Self {
+//         MyNotify
+//     }
+// }
+
 impl GuestRunner for WeatherPlugin {
     fn new(nickname: String, config: Option<String>) -> Self {
         let WeatherConfig { lat, lon } = serde_json::from_str(&config.unwrap_or_default()).unwrap();
@@ -46,11 +61,16 @@ impl GuestRunner for WeatherPlugin {
         }
     }
 
+    fn outputs(&self) -> Result<Vec<Output>, u32> {
+        // let not = MyNotify::new();
+        Ok(vec![])
+    }
+
     fn subscribe(&self) -> Result<Vec<Subscription>, u32> {
         Ok(vec![Subscription::Time(
             exports::litehouse::plugin::plugin::TimeSubscription::Every(Every {
-                amount: 1,
-                unit: TimeUnit::Minute,
+                amount: 5,
+                unit: TimeUnit::Second,
             }),
         )])
     }
@@ -81,15 +101,13 @@ impl GuestRunner for WeatherPlugin {
                     let data = stream.blocking_read(1024).unwrap();
                     let parsed = serde_json::from_slice::<WeatherResponse>(&data).unwrap();
 
-                    send_update(
+                    host::send_update(
                         &self.nickname,
-                        litehouse::plugin::plugin::Update::Temperature(
-                            parsed.current.temperature_2m,
-                        ),
+                        Update::Temperature(parsed.current.temperature_2m),
                     );
-                    send_update(
+                    host::send_update(
                         &self.nickname,
-                        litehouse::plugin::plugin::Update::WindSpeed(parsed.current.wind_speed_10m),
+                        Update::WindSpeed(parsed.current.wind_speed_10m),
                     );
                 }
             }

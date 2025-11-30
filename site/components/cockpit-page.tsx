@@ -84,10 +84,6 @@ export const Cockpit = ({ nodeId }) => {
     })();
   }, [nodeId]);
 
-  useEffect(() => {
-    console.log(messages);
-  }, [messages]);
-
   const server = {
     data: {
       nodes: [

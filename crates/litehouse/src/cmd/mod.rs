@@ -21,10 +21,10 @@ use miette::{Context, IntoDiagnostic, NamedSource, Result};
 use tokio::sync::broadcast::channel;
 
 use crate::{
-    runtime::{set_up_engine, PluginRunnerFactory},
+    LogMessage,
+    runtime::{PluginRunnerFactory, set_up_engine},
     store::StoreStrategy,
     util::resolve_span,
-    LogMessage,
 };
 
 use self::validate::{FailedValidation, FailedValidations};
@@ -290,28 +290,15 @@ impl Subcommand {
                 let jobs = hosts
                     .into_iter()
                     .map(|(a, _, host, mut store, _)| async move {
-                        let store = store.enter().await;
-                        let metadata = host
-                            .litehouse_plugin_plugin()
-                            .call_get_metadata(store)
-                            .await;
+                        let mut store = store.enter().await;
+
+                        let indices = crate::runtime::bindings::exports::litehouse::plugin::plugin::GuestIndices::new( &host.instance_pre(&mut store)).unwrap();
+                        let guest = indices.load(&mut store, &host).unwrap();
+                        let metadata = guest.call_get_metadata(&mut store);
 
                         match metadata {
                             Ok(meta) => {
                                 println!("metadata for {}:\n", a);
-                                // print fields based on schema
-                                //     record metadata {
-                                //   version: string,
-                                //   identifier: string,
-                                //   config-schema: option<string>,
-
-                                //   author: option<string>,
-                                //   homepage: option<string>,
-                                //   source: option<string>,
-                                //   description: option<string>,
-                                //   readme: option<string>,
-                                //   capabilities: list<string>,
-                                // }
                                 println!(" - version: {}", meta.version);
                                 if let Some(author) = meta.author
                                     && !author.is_empty()

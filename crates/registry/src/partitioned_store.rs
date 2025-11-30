@@ -9,7 +9,7 @@
 //! - Registry: the top-level struct that manages the index and entries
 
 use flatbuffers::{Follow, Verifiable};
-use futures::{stream::StreamExt, Future};
+use futures::{Future, stream::StreamExt};
 use memmap2::Mmap;
 use std::{marker::PhantomData, mem::transmute, sync::Mutex};
 use tokio::sync::RwLock;
@@ -76,7 +76,7 @@ where
         &'a self,
         prefix_start: &str,
         prefix_end: &str,
-    ) -> Vec<&RwLock<Partition<T>>> {
+    ) -> Vec<&'a RwLock<Partition<'a, T>>> {
         let partitions = self.partitioning.range(prefix_start, prefix_end).unwrap();
         let mut out = vec![];
         for p in partitions {
@@ -130,7 +130,7 @@ where
     }
 
     /// Get the number of partitions that are in use
-    pub fn partition_count(&'a self) -> impl Future<Output = usize> + '_ {
+    pub fn partition_count(&'a self) -> impl Future<Output = usize> + 'a {
         self.partitions().count()
     }
 
@@ -149,6 +149,7 @@ where
 }
 
 pub struct Index<'a, IO: IndexIOScheme<'a, T>, T: Follow<'a> + Verifiable> {
+    #[allow(dead_code)]
     io: IO,
     mmap: Mutex<Option<Mmap>>,
     _phantom: PhantomData<&'a T>,
@@ -163,28 +164,30 @@ impl<'a, IO: IndexIOScheme<'a, T>, T: Follow<'a> + Verifiable> Index<'a, IO, T> 
         }
     }
 
-    pub async fn insert(&self, title: &str) {
-        let partition = self.mmap.lock();
+    pub async fn insert(&self, _title: &str) {
+        let _partition = self.mmap.lock();
 
         todo!()
     }
 
     /// Get all items in the index whose keys start with the given prefix.
-    pub async fn find(&self, prefix: &str) -> impl Iterator<Item = T> {
-        let partition = self.mmap.lock();
+    pub async fn find(&self, _prefix: &str) -> impl Iterator<Item = T> {
+        let _partition = self.mmap.lock();
         std::iter::empty()
     }
 }
 
 #[cfg(test)]
 mod test {
-    use std::collections::hash_map::Entry as MapEntry;
     use std::collections::HashMap;
+    use std::collections::hash_map::Entry as MapEntry;
     use std::path::PathBuf;
     use std::sync::Arc;
 
     use flatbuffers::{Follow, Verifiable};
 
+    use futures::stream::iter;
+    use futures::{Stream, StreamExt};
     use stable_deref_trait::StableDeref;
 
     use tokio::sync::{Mutex, RwLock};
@@ -267,8 +270,8 @@ mod test {
         }
     }
 
-    fn make_test_registry<'a, T>(
-    ) -> Registry<'a, T, Alphabetical<'a, 1, T, Arc<FakeIOScheme<'a, T>>>>
+    fn make_test_registry<'a, T>()
+    -> Registry<'a, T, Alphabetical<'a, 1, T, Arc<FakeIOScheme<'a, T>>>>
     where
         T: Follow<'a, Inner = T> + Verifiable,
     {

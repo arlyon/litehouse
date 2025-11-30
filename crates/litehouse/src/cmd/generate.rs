@@ -3,13 +3,13 @@ use std::{collections::HashMap, path::Path, sync::Arc};
 use futures::{StreamExt, TryStreamExt};
 use litehouse_config::{Import, LitehouseConfig, PluginConfig};
 use litehouse_plugin::serde_json::{self, Value};
-use miette::{miette, Context, IntoDiagnostic, Result, SourceSpan};
+use miette::{Context, IntoDiagnostic, Result, SourceSpan, miette};
 use tokio::sync::broadcast::channel;
 use tokio_stream::wrappers::ReadDirStream;
 
 use crate::{
     runtime::{
-        bindings::exports::litehouse::plugin::plugin::Metadata, set_up_engine, PluginRunnerFactory,
+        PluginRunnerFactory, bindings::exports::litehouse::plugin::plugin::Metadata, set_up_engine,
     },
     store::StoreStrategy,
 };
@@ -67,11 +67,15 @@ pub async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value
 
     let jobs = hosts.into_iter().map(|(a, instance, host, mut store, _)| {
         async move {
-            let store = store.enter().await;
-            let metadata = host
-                .litehouse_plugin_plugin()
-                .call_get_metadata(store)
-                .await;
+            let mut store = store.enter().await;
+
+            let indices =
+                crate::runtime::bindings::exports::litehouse::plugin::plugin::GuestIndices::new(
+                    &host.instance_pre(&mut store),
+                )
+                .unwrap();
+            let guest = indices.load(&mut store, &host).unwrap();
+            let metadata = guest.call_get_metadata(&mut store);
 
             match metadata {
                 Ok(Metadata {

@@ -4,8 +4,6 @@
 //! of the Litehouse system, including plugin management, registry settings, and system
 //! capabilities.
 
-#![feature(let_chains)]
-
 mod capabilities;
 mod hash_read;
 mod import;
@@ -14,7 +12,7 @@ mod parallelism;
 
 use std::{
     cmp::Ordering,
-    collections::{hash_map::Entry, HashMap},
+    collections::{HashMap, hash_map::Entry},
     num::NonZeroU8,
 };
 
@@ -146,7 +144,7 @@ impl LitehouseConfig {
     ///   kept
     /// - if the target is equally specific as the existing plugin, and they are not equal, the
     ///   existing definition is kept, and the new one is ignored
-    pub fn add_import(&mut self, import: Import) -> ImportAddResult {
+    pub fn add_import(&mut self, import: Import) -> ImportAddResult<'_> {
         // this is awkward but the borrow checker does not understand
         // returning in the match statement
         let mut ret_replace = None;

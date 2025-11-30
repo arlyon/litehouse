@@ -7,16 +7,16 @@ use reqwest_eventsource::{Event, EventSource};
 use tokio::sync::broadcast::Receiver;
 use tokio::time::Duration;
 use tokio_stream::StreamExt;
+use webrtc::api::APIBuilder;
 use webrtc::api::interceptor_registry::register_default_interceptors;
 use webrtc::api::media_engine::MediaEngine;
-use webrtc::api::APIBuilder;
 use webrtc::data_channel::RTCDataChannel;
 use webrtc::ice_transport::ice_connection_state::RTCIceConnectionState;
 use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::interceptor::registry::Registry;
+use webrtc::peer_connection::RTCPeerConnection;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
-use webrtc::peer_connection::RTCPeerConnection;
 
 use crate::LogMessage;
 
@@ -140,10 +140,14 @@ async fn do_signaling(
         panic!("{}", err);
     }
 
+    tracing::info!("gathering ICe");
+
     // Block until ICE Gathering is complete, disabling trickle ICE
     // we do this because we only can exchange one signaling message
     // in a production application you should exchange ICE Candidates via OnICECandidate
     let _ = gather_complete.recv().await;
+
+    tracing::info!("gathered");
 
     peer_connection
 }
@@ -186,12 +190,12 @@ pub async fn facilicate_connections(
     credentials: Credentials,
     mut logs_rx: Receiver<LogMessage>,
 ) -> Result<()> {
-    // let broker = broker.to_string(); // for some reason the url is not cloneable
     let client = reqwest::Client::new();
     loop {
         let receiver = logs_rx;
         logs_rx = receiver.resubscribe();
 
+        // TODO(MEM): allocates 6MB of RAM here
         let Some(conn) =
             open_connection(&client, broker.clone(), credentials.clone(), receiver).await
         else {

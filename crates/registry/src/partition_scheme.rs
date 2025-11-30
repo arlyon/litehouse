@@ -39,11 +39,11 @@ where
         Ok(self.open(id))
     }
 
-    fn open(&'a self, id: usize) -> impl futures::Future<Output = &RwLock<Partition<T>>> {
+    fn open(&'a self, id: usize) -> impl futures::Future<Output = &'a RwLock<Partition<'a, T>>> {
         self.io_scheme().open(id)
     }
 
-    fn all(&'a self) -> impl futures::Stream<Item = &RwLock<Partition<T>>> {
+    fn all(&'a self) -> impl futures::Stream<Item = &'a RwLock<Partition<'a, T>>> {
         futures::stream::iter(0..self.count()).then(move |c| self.open(c))
     }
 }

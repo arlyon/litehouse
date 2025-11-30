@@ -1,13 +1,13 @@
 use std::{collections::BTreeMap, net::IpAddr, sync::Arc};
 
 use aide::{
+    OperationInput, OperationOutput,
     axum::IntoApiResponse,
     openapi::{ExternalDocumentation, MediaType, Response},
-    OperationInput, OperationOutput,
 };
 use axum::{async_trait, extract::FromRequestParts, response::IntoResponse};
 use headers::authorization::Basic;
-use tokio::sync::{oneshot::Sender, Mutex};
+use tokio::sync::{Mutex, oneshot::Sender};
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 
 pub struct Resp<T: IntoApiResponse, const S: u16 = 200>(T);
@@ -19,7 +19,7 @@ impl<T: IntoApiResponse, const S: u16> IntoResponse for Resp<T, S> {
 impl<T: IntoApiResponse, const S: u16> OperationOutput for Resp<T, S> {
     type Inner = T;
     fn inferred_responses(
-        ctx: &mut aide::gen::GenContext,
+        ctx: &mut aide::r#gen::GenContext,
         operation: &mut aide::openapi::Operation,
     ) -> Vec<(Option<u16>, aide::openapi::Response)> {
         T::inferred_responses(ctx, operation)
@@ -50,7 +50,7 @@ impl<A: OperationOutput, B: OperationOutput> OperationOutput for EitherResponse<
     type Inner = A::Inner;
 
     fn inferred_responses(
-        ctx: &mut aide::gen::GenContext,
+        ctx: &mut aide::r#gen::GenContext,
         operation: &mut aide::openapi::Operation,
     ) -> Vec<(Option<u16>, aide::openapi::Response)> {
         let mut a = A::inferred_responses(ctx, operation);
@@ -90,7 +90,7 @@ impl schemars::JsonSchema for JsonSchemaRTCSessionDescription {
         "RTCSessionDescription".to_string()
     }
 
-    fn json_schema(_gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+    fn json_schema(_abc: &mut schemars::r#gen::SchemaGenerator) -> schemars::schema::Schema {
         ExampleRtcSessionDescription::json_schema(_gen)
     }
 }
@@ -138,7 +138,7 @@ impl<SSE> OperationOutput for OpenApiSse<SSE> {
     type Inner = ();
 
     fn inferred_responses(
-        ctx: &mut aide::gen::GenContext,
+        ctx: &mut aide::r#gen::GenContext,
         operation: &mut aide::openapi::Operation,
     ) -> Vec<(Option<u16>, Response)> {
         let schema = ctx
@@ -189,10 +189,14 @@ pub enum Connection {
 /// A wrapper for extractors that should no appear in the openapi docs
 pub struct TransparentOperation<T>(pub T);
 impl<T> OperationInput for TransparentOperation<T> {
-    fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {}
+    fn operation_input(
+        ctx: &mut aide::r#gen::GenContext,
+        operation: &mut aide::openapi::Operation,
+    ) {
+    }
 
     fn inferred_early_responses(
-        ctx: &mut aide::gen::GenContext,
+        ctx: &mut aide::r#gen::GenContext,
         operation: &mut aide::openapi::Operation,
     ) -> Vec<(Option<u16>, Response)> {
         Vec::new()

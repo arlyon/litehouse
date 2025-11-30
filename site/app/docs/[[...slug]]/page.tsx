@@ -76,8 +76,6 @@ export function generateMetadata({ params }: { params: { slug?: string[] } }) {
 
   if (page == null) notFound();
 
-  console.log(page);
-
   return {
     title: page.data.title,
     description: page.data.description,
