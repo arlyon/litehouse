@@ -83,8 +83,10 @@ pub fn generate_host(_input: TokenStream) -> TokenStream {
 
     quote! {
         wasmtime::component::bindgen!({
-            // async: true,
             path: #wit_dir,
+            imports: {
+                default: async
+            },
             with: {
                 "wasi:http/outgoing-handler": wasmtime_wasi_http::bindings::http::outgoing_handler,
                 "wasi:http/types": wasmtime_wasi_http::bindings::http::types,

@@ -110,7 +110,7 @@ pub enum StoreLock<'a, T: 'static> {
 
 impl<T> StoreRef<T> {
     /// Enter the store, returning a handle that can be used to access it.
-    pub async fn enter(&mut self) -> StoreLock<T> {
+    pub async fn enter(&mut self) -> StoreLock<'_, T> {
         match self {
             Self::Shared(store) => StoreLock::Locked(store.lock().await),
             Self::Exclusive(store) => StoreLock::Unlocked(store),

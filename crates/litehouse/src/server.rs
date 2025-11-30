@@ -160,6 +160,7 @@ async fn do_signaling(
 pub struct Authed(pub String);
 
 #[derive(serde::Deserialize)]
+#[allow(dead_code)]
 struct AuthedClaims {
     node_id: String,
     account: String,
@@ -212,6 +213,7 @@ pub async fn facilicate_connections(
 #[derive(serde::Deserialize)]
 struct UnauthConnection {
     offer: RTCSessionDescription,
+    #[allow(dead_code)]
     seed: String,
     password: String,
 }

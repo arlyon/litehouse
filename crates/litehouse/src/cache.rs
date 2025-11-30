@@ -63,7 +63,7 @@ impl ModuleCache {
 struct ModuleCacheInner(HashMap<Vec<u8>, Vec<u8>>);
 
 impl CacheStore for ModuleCache {
-    fn get(&self, key: &[u8]) -> Option<Cow<[u8]>> {
+    fn get(&self, key: &[u8]) -> Option<Cow<'_, [u8]>> {
         let map = self.0.lock().unwrap();
         let found = map.0.get(key).map(|v| Cow::Owned(v.clone()));
         tracing::trace!(found = found.is_some(), "cache lookup {:x?}", key);

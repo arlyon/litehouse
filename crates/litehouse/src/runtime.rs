@@ -7,10 +7,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::{
-    runtime::bindings::litehouse::plugin::update,
-    store::{StoreRef, StoreStrategy},
-};
+use crate::store::{StoreRef, StoreStrategy};
 
 use futures::{StreamExt, TryStreamExt};
 use itertools::Itertools;
@@ -141,7 +138,7 @@ impl<T: Send> WasiHttpView for PluginRunner<T> {
 }
 
 impl bindings::host::Host for PluginRunner<Sender<(String, bindings::host::Update)>> {
-    fn send_update(&mut self, nickname: String, event: bindings::host::Update) {
+    async fn send_update(&mut self, nickname: String, event: bindings::host::Update) {
         tracing::trace!(target: "litehouse::plugin", plugin = nickname, "{:?}", event);
         self.event_sink.send((nickname, event)).unwrap();
     }
@@ -242,7 +239,7 @@ pub async fn set_up_engine(
     wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)
         .map_err(|e| miette!("unable to add http to linker: {}", e))?;
 
-    bindings::host::add_to_linker::<_, ()>(&mut linker, |c| c)
+    bindings::host::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |c| c)
         .map_err(|e| miette!("unable to add http to linker: {}", e))?;
 
     // bindings::litehouse::plugin::notify::add_to_linker(&mut linker, |c| c)
