@@ -138,30 +138,10 @@ impl Scalar {
 
 mod axum_impl {
     use super::get_static_str;
-    use aide::axum::{
-        AxumOperationHandler,
-        routing::{ApiMethodRouter, get},
-    };
+    use aide::axum::AxumOperationHandler;
     use axum::response::Html;
 
     impl super::Scalar {
-        /// Returns an [`ApiMethodRouter`] to expose the Scalar API References.
-        ///
-        /// # Examples
-        ///
-        /// ```
-        /// # use aide::axum::{ApiRouter, routing::get};
-        /// # use aide::scalar::Scalar;
-        /// ApiRouter::<()>::new()
-        ///     .route("/docs", Scalar::new("/openapi.json").axum_route());
-        /// ```
-        pub fn axum_route<S>(&self) -> ApiMethodRouter<S>
-        where
-            S: Clone + Send + Sync + 'static,
-        {
-            get(self.axum_handler())
-        }
-
         /// Returns an axum [`Handler`](axum::handler::Handler) that can be used
         /// with API routes.
         ///
@@ -197,6 +177,5 @@ mod axum_impl {
 }
 
 fn get_static_str(string: String) -> &'static str {
-    let static_str = Box::leak(string.into_boxed_str());
-    static_str
+    Box::leak(string.into_boxed_str())
 }

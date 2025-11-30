@@ -123,7 +123,7 @@ impl<T: Send> WasiHttpView for PluginRunner<T> {
             let port_stripped_authority = authority
                 .rsplit_once(':')
                 .map(|(authority, _)| authority)
-                .unwrap_or(&authority);
+                .unwrap_or(authority);
             if !self.allowed_authorities.contains(port_stripped_authority) {
                 tracing::error!(
                     "plugin tried to access {} which is not in the list of allowed authorities",
@@ -174,7 +174,7 @@ impl PluginInstance {
             )
             .unwrap();
 
-        let guest = indices.load(&mut store, &host).unwrap();
+        let guest = indices.load(&mut store, host).unwrap();
         let runner = guest.runner();
 
         let instance = runner

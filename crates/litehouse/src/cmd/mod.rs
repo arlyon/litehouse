@@ -281,10 +281,10 @@ impl Subcommand {
                     None, &engine, &store, &linker, &dirs, &wasm_path, 10, 10,
                 )
                 .await?;
-                if let Some(cache) = cache {
-                    if let Err(e) = cache.drain().await {
-                        tracing::warn!("unable to save cache: {}", e)
-                    }
+                if let Some(cache) = cache
+                    && let Err(e) = cache.drain().await
+                {
+                    tracing::warn!("unable to save cache: {}", e)
                 }
 
                 let jobs = hosts

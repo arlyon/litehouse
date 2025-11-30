@@ -1,5 +1,4 @@
 use std::{
-    net::SocketAddr,
     ops::Bound,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -11,7 +10,7 @@ use crate::types::{
 use aide::{OperationOutput, axum::IntoApiResponse};
 use axum::{
     Json,
-    extract::{ConnectInfo, Path, State},
+    extract::{Path, State},
     response::IntoResponse,
 };
 use axum_client_ip::SecureClientIp;
@@ -142,10 +141,10 @@ pub async fn client_handler_anon(
 
             let (tx, rx) = tokio::sync::oneshot::channel();
             let existing = broker_pool.get(&timestamp);
-            if let Some(existing) = existing {
-                if !existing.is_closed() {
-                    continue;
-                }
+            if let Some(existing) = existing
+                && !existing.is_closed()
+            {
+                continue;
             }
             broker_pool.insert(timestamp, tx);
             selected
@@ -203,10 +202,10 @@ pub async fn client_handler(
 
             let (tx, rx) = tokio::sync::oneshot::channel();
             let existing = broker_pool.get(&timestamp);
-            if let Some(existing) = existing {
-                if !existing.is_closed() {
-                    continue;
-                }
+            if let Some(existing) = existing
+                && !existing.is_closed()
+            {
+                continue;
             }
             broker_pool.insert(timestamp, tx);
             selected.send((timestamp, offer)).unwrap();

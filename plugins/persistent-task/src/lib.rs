@@ -5,7 +5,9 @@
 
 use std::time::Duration;
 
-use crate::exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit};
+use crate::exports::litehouse::plugin::plugin::{
+    Every, GuestRunner, Output, Subscription, TimeUnit,
+};
 
 litehouse_plugin::generate!(PersistentPlugin);
 
@@ -37,5 +39,10 @@ impl GuestRunner for PersistentPlugin {
 
     fn update(&self, _events: Vec<exports::litehouse::plugin::plugin::Event>) -> Result<bool, u32> {
         Ok(true)
+    }
+
+    #[allow(async_fn_in_trait)]
+    fn outputs(&self) -> Result<_rt::Vec<Output>, u32> {
+        todo!()
     }
 }

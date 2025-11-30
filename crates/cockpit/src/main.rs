@@ -27,7 +27,6 @@ use litehouse::{
     finalize_connection, reject_connection, wait_for_connection, wait_for_connection_anon,
 };
 use tokio::sync::Mutex;
-use tower::Layer;
 use tower_governor::{GovernorLayer, governor::GovernorConfig};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use types::AppState;

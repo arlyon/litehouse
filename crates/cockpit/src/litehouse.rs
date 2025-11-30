@@ -1,4 +1,4 @@
-use std::{convert::Infallible, net::SocketAddr, time::Duration};
+use std::{convert::Infallible, time::Duration};
 
 use crate::client::MissingServerError;
 use crate::future_on_close_stream::FutureOnCloseStream;
@@ -17,10 +17,7 @@ use axum::{
 use axum_client_ip::SecureClientIp;
 use axum_extra::TypedHeader;
 use futures::stream::{self};
-use headers::{
-    Authorization,
-    authorization::{Basic, Bearer},
-};
+use headers::{Authorization, authorization::Bearer};
 use tokio_stream::StreamExt;
 
 #[derive(serde::Serialize, schemars::JsonSchema)]

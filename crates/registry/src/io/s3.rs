@@ -60,7 +60,7 @@ where
 
             // if this fails, leave the original value in the map
             _ = mmaps.try_insert(id, Box::new(RwLock::new(data)));
-            return unsafe { extend_lifetime(mmaps.get(&id).unwrap()) };
+            unsafe { extend_lifetime(mmaps.get(&id).unwrap()) }
         }
     }
 }

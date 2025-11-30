@@ -276,10 +276,10 @@ impl<U, D> Registry<U, D> {
 
 impl<U> Registry<U, Download> {
     pub async fn download_package(&self, import: &Import) -> bool {
-        if let Some(registry) = &import.registry {
-            if self.name.ne(registry) {
-                return false;
-            }
+        if let Some(registry) = &import.registry
+            && self.name.ne(registry)
+        {
+            return false;
         }
 
         // if we have the version, just try to nab it

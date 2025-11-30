@@ -45,8 +45,8 @@ where
         }
     }
 
-    /// converts between two partitioning schemes by iterating over all the keys and
-    /// reinserting them according to the new scheme
+    // /// converts between two partitioning schemes by iterating over all the keys and
+    // /// reinserting them according to the new scheme
     // async fn repartition<
     //     'b,
     //     T2: Follow<'b, Inner = T2> + Verifiable + 'b + Partitionable,

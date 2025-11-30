@@ -176,14 +176,12 @@ impl LitehouseConfig {
         match (ret_replace, ret_existing) {
             (Some(i), None) => {
                 let old = std::mem::replace(&mut self.imports[i], import);
-                return ImportAddResult::Replaced(old);
+                ImportAddResult::Replaced(old)
             }
-            (None, Some(i)) => {
-                return ImportAddResult::Ignored(&self.imports[i]);
-            }
+            (None, Some(i)) => ImportAddResult::Ignored(&self.imports[i]),
             (None, None) => {
                 self.imports.push(import);
-                return ImportAddResult::Added(self.imports.last_mut().unwrap());
+                ImportAddResult::Added(self.imports.last_mut().unwrap())
             }
             _ => unreachable!(),
         }

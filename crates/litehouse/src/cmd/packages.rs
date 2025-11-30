@@ -266,8 +266,8 @@ pub async fn build(
     let dest_file = wasm_path.join(import.file_name());
     tokio::fs::copy(&path, &dest_file).await.unwrap();
 
-    println!("");
-    println!("");
+    println!();
+    println!();
     println!("Built {} in {}", import.file_name(), wasm_path.display());
 
     Ok(())

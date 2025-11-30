@@ -55,10 +55,10 @@ pub async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value
         None, &engine, &store, &linker, &dirs, wasm_path, 10, 10,
     )
     .await?;
-    if let Some(cache) = cache {
-        if let Err(e) = cache.drain().await {
-            tracing::warn!("unable to save cache: {}", e)
-        }
+    if let Some(cache) = cache
+        && let Err(e) = cache.drain().await
+    {
+        tracing::warn!("unable to save cache: {}", e)
     }
 
     if hosts.is_empty() {
@@ -96,22 +96,19 @@ pub async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value
                     };
 
                     let version = version.parse().into_diagnostic()?;
-                    if let Some(version_exp) = &instance.plugin.version {
-                        if version_exp != &version {
-                            return Err(VersionMismatch {
-                                file_exp: format!("{}@{}.wasm", identifier, version),
-                                file_path: wasm_path.join(a).to_string_lossy().to_string(),
-                                plugin: identifier,
-                                source_code: format!("{} != {}", version, version_exp),
-                                expected: (0, version.to_string().len()).into(),
-                                actual: (
-                                    version.to_string().len() + 4,
-                                    version_exp.to_string().len(),
-                                )
-                                    .into(),
-                            }
-                            .into());
+                    if let Some(version_exp) = &instance.plugin.version
+                        && version_exp != &version
+                    {
+                        return Err(VersionMismatch {
+                            file_exp: format!("{}@{}.wasm", identifier, version),
+                            file_path: wasm_path.join(a).to_string_lossy().to_string(),
+                            plugin: identifier,
+                            source_code: format!("{} != {}", version, version_exp),
+                            expected: (0, version.to_string().len()).into(),
+                            actual: (version.to_string().len() + 4, version_exp.to_string().len())
+                                .into(),
                         }
+                        .into());
                     }
 
                     Ok((

@@ -12,8 +12,8 @@ macro_rules! static_error {
             type Inner = &'static str;
 
             fn inferred_responses(
-                ctx: &mut aide::r#gen::GenContext,
-                operation: &mut aide::openapi::Operation,
+                _ctx: &mut aide::r#gen::GenContext,
+                _operation: &mut aide::openapi::Operation,
             ) -> Vec<(Option<u16>, aide::openapi::Response)> {
                 vec![(
                     Some($code),

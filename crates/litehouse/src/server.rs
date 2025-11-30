@@ -109,7 +109,7 @@ async fn do_signaling(
                         loop {
                             while let Ok(log_message) = r_inner.recv().await {
                                 let log_message = serde_json::to_string(&log_message).unwrap();
-                                if let Err(_) = d2.send_text(log_message).await {
+                                if d2.send_text(log_message).await.is_err() {
                                     break;
                                 }
                             }
@@ -228,7 +228,7 @@ async fn open_connection(
         let mut url = broker.clone();
         url.set_path(&format!("/litehouse/{}", cert.node_id()));
         tracing::debug!("opening broker connection at {}", url);
-        client.get(url).bearer_auth(&cert.account())
+        client.get(url).bearer_auth(cert.account())
     } else {
         let mut url = broker.clone();
         url.set_path("/litehouse");
@@ -250,12 +250,12 @@ async fn open_connection(
                 let id = msg.id.parse().unwrap();
 
                 let mut url = broker.clone();
-                url.set_path(&format!("/litehouse"));
+                url.set_path("/litehouse");
                 tracing::info!("sending answer to {}", url);
                 break (
                     client
                         .post(url)
-                        .bearer_auth(&cert.account())
+                        .bearer_auth(cert.account())
                         .json(&Finalize {
                             id,
                             offer: conn.local_description().await.unwrap(),
@@ -269,7 +269,7 @@ async fn open_connection(
                 let offer: UnauthConnection = serde_json::from_str(&msg.data).unwrap();
                 let password_exp = password.iter().map(|c| c.to_string()).join("");
                 let mut url = broker.clone();
-                url.set_path(&format!("/litehouse"));
+                url.set_path("/litehouse");
                 let id = msg.id.parse().unwrap();
 
                 if offer.password != password_exp {

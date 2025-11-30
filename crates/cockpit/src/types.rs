@@ -24,7 +24,7 @@ impl<T: IntoApiResponse, const S: u16> OperationOutput for Resp<T, S> {
     ) -> Vec<(Option<u16>, aide::openapi::Response)> {
         T::inferred_responses(ctx, operation)
             .into_iter()
-            .map(|(status, resp)| (Some(S), resp))
+            .map(|(_status, resp)| (Some(S), resp))
             .collect()
     }
 }
@@ -90,8 +90,8 @@ impl schemars::JsonSchema for JsonSchemaRTCSessionDescription {
         "RTCSessionDescription".to_string()
     }
 
-    fn json_schema(_abc: &mut schemars::r#gen::SchemaGenerator) -> schemars::schema::Schema {
-        ExampleRtcSessionDescription::json_schema(_gen)
+    fn json_schema(schema: &mut schemars::r#gen::SchemaGenerator) -> schemars::schema::Schema {
+        ExampleRtcSessionDescription::json_schema(schema)
     }
 }
 
@@ -103,6 +103,7 @@ pub struct NodeId {
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[allow(dead_code)]
 pub struct Offer {
     pub offer: String,
     pub account: String,
@@ -123,6 +124,7 @@ pub struct AppState {
     pub broker_pool: Arc<Mutex<BTreeMap<u64, Sender<RTCSessionDescription>>>>,
 }
 
+#[allow(dead_code)]
 pub enum Auth {
     Unauth(Option<Basic>),
     Auth { account: String, node_id: String },
@@ -139,7 +141,7 @@ impl<SSE> OperationOutput for OpenApiSse<SSE> {
 
     fn inferred_responses(
         ctx: &mut aide::r#gen::GenContext,
-        operation: &mut aide::openapi::Operation,
+        _operation: &mut aide::openapi::Operation,
     ) -> Vec<(Option<u16>, Response)> {
         let schema = ctx
             .schema
@@ -190,14 +192,14 @@ pub enum Connection {
 pub struct TransparentOperation<T>(pub T);
 impl<T> OperationInput for TransparentOperation<T> {
     fn operation_input(
-        ctx: &mut aide::r#gen::GenContext,
-        operation: &mut aide::openapi::Operation,
+        _ctx: &mut aide::r#gen::GenContext,
+        _operation: &mut aide::openapi::Operation,
     ) {
     }
 
     fn inferred_early_responses(
-        ctx: &mut aide::r#gen::GenContext,
-        operation: &mut aide::openapi::Operation,
+        _ctx: &mut aide::r#gen::GenContext,
+        _operation: &mut aide::openapi::Operation,
     ) -> Vec<(Option<u16>, Response)> {
         Vec::new()
     }

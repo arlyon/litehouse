@@ -5,7 +5,7 @@
 use std::{sync::Arc, time::Duration};
 
 use crate::{
-    exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit},
+    exports::litehouse::plugin::plugin::{Every, GuestRunner, Output, Subscription, TimeUnit},
     wasi::sockets::{
         instance_network::instance_network,
         network::{self, IpSocketAddress},
@@ -208,6 +208,10 @@ impl GuestRunner for SamsungPlugin {
         }
 
         Ok(true)
+    }
+
+    fn outputs(&self) -> Result<_rt::Vec<Output>, u32> {
+        todo!()
     }
 }
 

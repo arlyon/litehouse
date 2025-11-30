@@ -43,7 +43,7 @@ impl<'a> From<litehouse_registry::proto::litehouse::Entry<'a>> for Entry {
             description: val.description().map(|s| s.to_string()).unwrap_or_default(),
             capabilities: vec![],
             schema: val.schema().map(|s| s.to_string()).unwrap_or_default(),
-            size: val.size_(),
+            size: val.size(),
             sha: val.sha().map(|s| s.to_string()).unwrap_or_default(),
         }
     }

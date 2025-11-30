@@ -217,7 +217,7 @@ pub struct IntoEntry {
     pub sha: String,
 }
 
-impl<'a, 'b> PartialEq<&'b Entry<'a>> for IntoEntry {
+impl<'a> PartialEq<&Entry<'a>> for IntoEntry {
     // check only title then version
     fn eq(&self, other: &&Entry<'a>) -> bool {
         Some(self.title.as_str()).eq(&other.title())
@@ -227,7 +227,7 @@ impl<'a, 'b> PartialEq<&'b Entry<'a>> for IntoEntry {
     }
 }
 
-impl<'a, 'b> PartialOrd<&'b Entry<'a>> for IntoEntry {
+impl<'a> PartialOrd<&Entry<'a>> for IntoEntry {
     // check title then version
     fn partial_cmp(&self, other: &&Entry<'a>) -> Option<std::cmp::Ordering> {
         Some(self.title.as_str()).partial_cmp(&other.title())

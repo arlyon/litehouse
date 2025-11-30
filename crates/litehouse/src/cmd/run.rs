@@ -103,10 +103,10 @@ pub async fn run(wasm_path: &Path, cache: bool, logs_rx: Receiver<LogMessage>) -
     .await
     .wrap_err("unable to instantiate plugins")?;
 
-    if let Some(cache) = cache {
-        if let Err(e) = cache.drain().await {
-            tracing::warn!("unable to save cache: {}", e)
-        }
+    if let Some(cache) = cache
+        && let Err(e) = cache.drain().await
+    {
+        tracing::warn!("unable to save cache: {}", e)
     }
 
     let store_strategy = Arc::new(store_strategy);
