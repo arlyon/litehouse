@@ -294,7 +294,7 @@ impl Subcommand {
 
                         let indices = crate::runtime::bindings::exports::litehouse::plugin::plugin::GuestIndices::new( &host.instance_pre(&mut store)).unwrap();
                         let guest = indices.load(&mut store, &host).unwrap();
-                        let metadata = guest.call_get_metadata(&mut store);
+                        let metadata = guest.call_get_metadata(&mut store).await;
 
                         match metadata {
                             Ok(meta) => {

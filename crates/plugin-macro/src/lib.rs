@@ -87,6 +87,9 @@ pub fn generate_host(_input: TokenStream) -> TokenStream {
             imports: {
                 default: async
             },
+            exports: {
+                default: async,
+            },
             with: {
                 "wasi:http/outgoing-handler": wasmtime_wasi_http::bindings::http::outgoing_handler,
                 "wasi:http/types": wasmtime_wasi_http::bindings::http::types,

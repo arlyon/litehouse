@@ -75,7 +75,7 @@ pub async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value
                 )
                 .unwrap();
             let guest = indices.load(&mut store, &host).unwrap();
-            let metadata = guest.call_get_metadata(&mut store);
+            let metadata = guest.call_get_metadata(&mut store).await;
 
             match metadata {
                 Ok(Metadata {

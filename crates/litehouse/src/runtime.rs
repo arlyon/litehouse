@@ -179,13 +179,16 @@ impl PluginInstance {
 
         let instance = runner
             .call_constructor(&mut store, nickname, Some(config))
+            .await
             .map_err(|e| miette!("failed to construct plugin: {:?}", e))?;
         let res = runner
             .call_subscribe(&mut store, instance)
+            .await
             .map_err(|e| miette!("plugin {} failed to subscribe: {:?}", nickname, e))?
             .map_err(|e| miette!("plugin {} failed to subscribe: {}", nickname, e))?;
         let outputs = runner
             .call_outputs(&mut store, instance)
+            .await
             .map_err(|e| miette!("plugin {} failed to subscribe: {:?}", nickname, e))?;
 
         tracing::info!("got outputs: {:?}", outputs);

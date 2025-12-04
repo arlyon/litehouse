@@ -191,6 +191,7 @@ pub async fn run(wasm_path: &Path, cache: bool, logs_rx: Receiver<LogMessage>) -
                                 inner: Update::Time(0),
                             }],
                         )
+                        .await
                     {
                         Ok(Ok(_)) => {}
                         Ok(Err(e)) => {
