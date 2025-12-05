@@ -1,6 +1,5 @@
 import { LoginButton } from "@/components/login-button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ClerkProvider } from "@clerk/nextjs";
 import { PackageIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense, type PropsWithChildren, Error, Fragment } from "react";
@@ -72,22 +71,8 @@ export const Header = ({
 const Layout = ({ children }: PropsWithChildren<unknown>) => {
   return (
     <div>
-      <Header title="Registry" link="/registry" provider={ClerkProvider} />
-      {/* <div className="flex justify-between mb-6">
-        <div>
-          <p className="text-muted-foreground">Total Downloads</p>
-          <p className="font-bold">{props.totalDownloads}</p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">Plugin Count</p>
-          <p className="font-bold">{props.pluginCount}</p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">Users</p>
-          <p className="font-bold">{props.users}</p>
-        </div>
-      </div> */}
-      <div className="container">{children}</div>
+      <Header title="Registry" link="/registry" provider={Fragment} />
+      <div className="container mx-auto">{children}</div>
     </div>
   );
 };

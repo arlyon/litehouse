@@ -17,7 +17,6 @@ import {
   useEdgesState,
   useNodesState,
 } from "@xyflow/react";
-import { RootToggle } from "fumadocs-ui/components/layout/root-toggle";
 import { useTheme } from "next-themes";
 
 import Link from "next/link";

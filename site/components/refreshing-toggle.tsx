@@ -6,7 +6,6 @@ import {
   QueryClientProvider,
   useQuery,
 } from "@tanstack/react-query";
-import { RootToggle } from "fumadocs-ui/components/layout/root-toggle";
 import { Home, PlusIcon, Unlink } from "lucide-react";
 import { usePathname } from "next/navigation";
 
@@ -65,5 +64,7 @@ export const RefreshingToggleInner = ({ children, initialData, userId }) => {
     });
   }
 
-  return <RootToggle options={options} />;
+  return null;
+
+  // return <RootToggle options={options} />;
 };

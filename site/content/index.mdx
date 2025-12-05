@@ -132,7 +132,7 @@ For more information on the Litehouse Docker image, have a look at image in the 
 In fact, to make it a little easier, you can also take advantage of the docker-compose file
 in the repo.
 
-```yaml title="docker-compose.yaml" file=../../../examples/docker-compose.yaml
+```yaml title="docker-compose.yaml" file=../../examples/docker-compose.yaml
 ```
 
 ### Podman
@@ -152,7 +152,7 @@ podman run -d \
 
 An alternative to docker-compose is to use a kubernetes definition file.
 
-```yaml title="kube.yaml" file=../../../examples/kube.yaml
+```yaml title="kube.yaml" file=../../examples/kube.yaml
 ```
 
 #### Podman quadlet
@@ -164,7 +164,7 @@ place a kube systemd service file in `~/.config/containers/systemd`. This also
 has the benefit of integrating with podman's auto-update system which will
 automatically check for updates at a fixed interval and restart the service.
 
-```systemd title="litehouse.kube" file=../../../examples/litehouse.kube
+```systemd title="litehouse.kube" file=../../examples/litehouse.kube
 ```
 
 #### Flatcar Linux / coreOS
@@ -174,7 +174,7 @@ CoreOS or similar systems, using Butane to generate an Ignition configuration
 file. Here's an example Butane configuration that creates a user, configures
 ssh access, and uploads all the required files onto the system.
 
-```yaml title="litehouse.bu" file=../../../examples/litehouse.bu
+```yaml title="litehouse.bu" file=../../examples/litehouse.bu
 ```
 
 To generate the Ignition file, run butane, mounting the folder that the three

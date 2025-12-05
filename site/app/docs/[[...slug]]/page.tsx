@@ -6,18 +6,16 @@ import { Edit } from "lucide-react";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { CodeBlock, Pre } from "@/components/code-block";
 
-export default async function Page({
-  params,
-}: {
-  params: { slug?: string[] };
-}) {
+export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
+  const params = await props.params;
+  console.log(params)
   const page = getPage(params.slug);
 
   if (page == null) {
     notFound();
   }
 
-  const path = `site/content/docs/${page.file.path}`;
+  const path = `site/content/docs/${page.path}`;
 
   const footer = (
     <a
@@ -38,7 +36,7 @@ export default async function Page({
       toc={page.data.toc}
       tableOfContent={{
         enabled: !!page.data.toc,
-        style: "clerk",
+        style: "default",
         footer,
       }}
       tableOfContentPopover={{ footer }}
@@ -71,7 +69,8 @@ export async function generateStaticParams() {
   }));
 }
 
-export function generateMetadata({ params }: { params: { slug?: string[] } }) {
+export async function generateMetadata(props: PageProps<"/docs/[[...slug]]">) {
+  const params = await props.params;
   const page = getPage(params.slug);
 
   if (page == null) notFound();

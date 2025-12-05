@@ -5,13 +5,5 @@
     "site",
     "crates/registry-js",
     "crates/registry-js/npm/*"
-  ],
-  "pnpm": {
-    "overrides": {
-      "next": "file:/home/arlyon/Programming/next.js/tarballs/next.tar",
-      "@next/mdx": "file:/home/arlyon/Programming/next.js/tarballs/next-mdx.tar",
-      "@next/env": "file:/home/arlyon/Programming/next.js/tarballs/next-env.tar",
-      "@next/bundle-analyzer": "file:/home/arlyon/Programming/next.js/tarballs/next-bundle-analyzer.tar"
-    }
-  }
+  ]
 }

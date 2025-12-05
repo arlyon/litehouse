@@ -23,17 +23,11 @@ const config = {
       },
     ],
   },
+  experimental: {
+    // turbopackFileSystemCacheForDev: true
+  },
   output: "standalone",
   pageExtensions: ["ts", "tsx"],
-  experimental: {
-    // useLightningcss: true,
-    reactCompiler: true,
-    // typedRoutes: true,
-    // serverMinification: true,
-    // serverSourceMaps: true,
-    ppr: "incremental",
-    // mdxRs: true,
-  },
   typescript: {
     // !! WARN !!
     // Dangerously allow production builds to successfully complete even if

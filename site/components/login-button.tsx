@@ -1,30 +1,73 @@
-import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+"use client";
+
+import { useSession, signOut } from "@/lib/auth-client";
 import { Button } from "./ui/button";
 import { CircleUserRound } from "lucide-react";
+import Link from "next/link";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const LoginButton = () => {
-  return (
-    <>
-      <SignedIn>
-        <UserButton
-          userProfileMode="navigation"
-          userProfileUrl="/profile"
-          afterSignOutUrl="/registry"
-        />
-      </SignedIn>
-      <SignedOut>
-        <SignInButton
-          fallbackRedirectUrl="/registry"
-          signUpFallbackRedirectUrl="/registry"
-        >
+  const { data: session, isPending } = useSession();
+
+  if (isPending) {
+    return (
+      <div className="animate-pulse bg-muted rounded-full size-[28px]" />
+    );
+  }
+
+  if (session?.user) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
             className="p-0 rounded-full size-[28px] text-muted-foreground bg-muted"
           >
             <CircleUserRound />
           </Button>
-        </SignInButton>
-      </SignedOut>
-    </>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>
+            {session.user.email}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/profile">Profile</Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={async () => {
+              await signOut({
+                fetchOptions: {
+                  onSuccess: () => {
+                    window.location.href = "/registry";
+                  },
+                },
+              });
+            }}
+          >
+            Sign Out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  return (
+    <Link href="/sign-in">
+      <Button
+        variant="ghost"
+        className="p-0 rounded-full size-[28px] text-muted-foreground bg-muted"
+      >
+        <CircleUserRound />
+      </Button>
+    </Link>
   );
 };

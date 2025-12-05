@@ -54,7 +54,7 @@ set to `cdylib`. This is important for wasm modules as it signifies to cargo
 that we intend on loading this plugin dynamically.
 
 <div id="cargo">
-```toml title="Cargo.toml" file=../../../../plugins/noop/Cargo.toml
+```toml title="Cargo.toml" file=../../../plugins/noop/Cargo.toml
 ```
 </div>
 
@@ -64,7 +64,7 @@ may store any local state you like in here. The `generate` macro also generates
 for you some trait and types from the plugin schema.
 
 <div id="lib">
-```rust title="src/lib.rs" file=../../../../plugins/noop/src/lib.rs
+```rust title="src/lib.rs" file=../../../plugins/noop/src/lib.rs
 //! A basic no-op plugin intended to be used as a starting point for writing
 //! your own plugin.
 

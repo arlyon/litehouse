@@ -1,12 +1,11 @@
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 import { Footer } from "@/components/footer";
-import { RootProvider } from "fumadocs-ui/provider";
+import { RootProvider } from "fumadocs-ui/provider/next";
 import type { Metadata } from "next";
 import { AxiomWebVitals } from "next-axiom";
 import { Inter } from "next/font/google";
 import { Suspense, type ReactNode } from "react";
-import { ClerkProvider } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 
 const inter = Inter({
@@ -32,7 +31,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <link rel="icon" href="/favicon.svg" />
       </head>
       <AxiomWebVitals />
-      <body className="!pointer-events-auto">
+      <body>
         <Toaster />
         <RootProvider>
           <main className="min-h-screen flex flex-col">

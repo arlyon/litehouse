@@ -13,10 +13,10 @@ const Page = async ({
   const slugVersion = params.version;
   const pluginData = await getPluginData(plugin, slugVersion);
   const pageVersion =
-    pluginData.versions.find((v) => v.version === slugVersion) ??
-    pluginData.versions[0];
+    pluginData.versions?.find((v) => v.version === slugVersion) ??
+    pluginData.versions?.[0];
 
-  const versions = pluginData.versions.map((version) => ({
+  const versions = pluginData.versions?.map((version) => ({
     ...version,
     current: version === pageVersion,
   }));
@@ -44,13 +44,13 @@ export async function generateMetadata({
   const slugVersion = params.version;
   const pluginData = await getPluginData(plugin, slugVersion);
   const pageVersion =
-    pluginData.versions.find((v) => v.version === params.version) ??
-    pluginData.versions[0];
+    pluginData.versions?.find((v) => v.version === params.version) ??
+    pluginData.versions?.[0];
 
   // if (page == null) notFound();
 
   return {
-    title: `Litehouse - ${pluginData.title}@${pageVersion.version}`,
+    title: `Litehouse - ${pluginData.title}@${pageVersion?.version}`,
     description: pluginData.description,
     authors: pluginData.author ? [{ name: pluginData.author }] : undefined,
   } satisfies Metadata;

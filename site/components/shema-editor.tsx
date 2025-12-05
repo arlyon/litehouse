@@ -26,7 +26,7 @@ const configSchema = (name: string) =>
     }),
   });
 
-export const SchemaEditor = ({ id, schema: schemaString }) => {
+export const SchemaEditor = ({ id, schema: schemaString }: { id: string; schema?: string }) => {
   const page = useRouter();
   const [hash, setHash] = useHashState({});
 
@@ -79,7 +79,7 @@ export const SchemaEditor = ({ id, schema: schemaString }) => {
     }
   }, [hash]);
 
-  const schemaData = JSON.parse(schemaString);
+  const schemaData = schemaString ? JSON.parse(schemaString) : {};
   const schema = configSchema(id).safeParse(schemaData);
   if (!schema.success) {
     return <div>Invalid schema</div>;
@@ -118,7 +118,7 @@ export const SchemaEditor = ({ id, schema: schemaString }) => {
       </div>
       <form
         className="border border-accent bg-secondary p-4 flex flex-col gap-4"
-        onSubmit={form.handleSubmit((data) => {})}
+        onSubmit={form.handleSubmit((data) => { })}
       >
         {Object.entries(nonConstFields).map(([key, value]) => (
           <div key={key} className="flex flex-col gap-2">
