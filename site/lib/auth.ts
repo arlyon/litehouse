@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db";
-import { magicLink } from "better-auth/plugins";
+import { deviceAuthorization, magicLink } from "better-auth/plugins";
 import { createTransport } from "nodemailer";
 
 const transporter = createTransport({
@@ -33,6 +33,9 @@ export const auth = betterAuth({
         });
       },
     }),
+    deviceAuthorization({
+       verificationUri: "/device",
+     }),
   ],
   trustedOrigins: [
     process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
