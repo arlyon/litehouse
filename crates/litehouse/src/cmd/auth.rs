@@ -60,9 +60,10 @@ pub async fn do_auth(auth_command: AuthCommand) -> Result<(), miette::Error> {
                 .await
                 .map_err(|e| miette::miette!("Failed to get token: {}", e))?;
 
-            let user = litehouse_auth::get_user(&token, "http://localhost:3000/api/auth/get-session")
-                .await
-                .map_err(|e| miette::miette!("Failed to get user info: {}", e))?;
+            let user =
+                litehouse_auth::get_user(&token, "http://localhost:3000/api/auth/get-session")
+                    .await
+                    .map_err(|e| miette::miette!("Failed to get user info: {}", e))?;
 
             let data = AuthConfig { token, user };
 
