@@ -15,6 +15,13 @@
       "when": 1765041384250,
       "tag": "0001_stiff_firebrand",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1765042914765,
+      "tag": "0002_tan_phil_sheldon",
+      "breakpoints": true
     }
   ]
 }
