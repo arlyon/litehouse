@@ -20,10 +20,14 @@ use wasmtime::{
 };
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView};
 use wasmtime_wasi_http::{
-    HttpResult, WasiHttpCtx, WasiHttpView,
-    bindings::http::outgoing_handler::ErrorCode,
-    body::HyperOutgoingBody,
-    types::{HostFutureIncomingResponse, OutgoingRequestConfig, default_send_request},
+    WasiHttpCtx,
+    p2::{
+        HttpResult, WasiHttpCtxView, WasiHttpHooks, WasiHttpView,
+        bindings::http::outgoing_handler::ErrorCode,
+        body::HyperOutgoingBody,
+        default_send_request,
+        types::{HostFutureIncomingResponse, OutgoingRequestConfig},
+    },
 };
 
 use crate::cache::ModuleCache;
@@ -47,7 +51,11 @@ pub struct PluginRunner<T> {
     table: ResourceTable,
     wasi: WasiCtx,
     http: WasiHttpCtx,
+    http_hooks: HttpHooks,
     event_sink: T,
+}
+
+struct HttpHooks {
     allowed_authorities: HashSet<String>,
 }
 
@@ -88,8 +96,10 @@ impl<T> PluginRunner<T> {
             table: ResourceTable::new(),
             wasi: wasi.build(),
             http,
+            http_hooks: HttpHooks {
+                allowed_authorities,
+            },
             event_sink,
-            allowed_authorities,
         }
     }
 }
@@ -104,15 +114,16 @@ impl<T: Send> WasiView for PluginRunner<T> {
 }
 
 impl<T: Send> WasiHttpView for PluginRunner<T> {
-    fn ctx(&mut self) -> &mut WasiHttpCtx {
-        &mut self.http
+    fn http(&mut self) -> WasiHttpCtxView<'_> {
+        WasiHttpCtxView {
+            ctx: &mut self.http,
+            table: &mut self.table,
+            hooks: &mut self.http_hooks,
+        }
     }
+}
 
-    fn table(&mut self) -> &mut wasmtime_wasi::ResourceTable {
-        &mut self.table
-    }
-
-    /// Send an outgoing request.
+impl WasiHttpHooks for HttpHooks {
     fn send_request(
         &mut self,
         request: hyper::Request<HyperOutgoingBody>,
@@ -220,7 +231,6 @@ pub async fn set_up_engine(
 
     wasm_config
         .wasm_component_model(true)
-        .async_support(true)
         .cranelift_opt_level(wasmtime::OptLevel::Speed);
 
     let cache = if cache {
@@ -239,7 +249,7 @@ pub async fn set_up_engine(
     wasmtime_wasi::p2::add_to_linker_async(&mut linker)
         .map_err(|e| miette!("unable to add command to linker: {}", e))?;
 
-    wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)
+    wasmtime_wasi_http::p2::add_only_http_to_linker_async(&mut linker)
         .map_err(|e| miette!("unable to add http to linker: {}", e))?;
 
     bindings::host::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |c| c)

@@ -91,8 +91,8 @@ pub fn generate_host(_input: TokenStream) -> TokenStream {
                 default: async,
             },
             with: {
-                "wasi:http/outgoing-handler": wasmtime_wasi_http::bindings::http::outgoing_handler,
-                "wasi:http/types": wasmtime_wasi_http::bindings::http::types,
+                "wasi:http/outgoing-handler": wasmtime_wasi_http::p2::bindings::http::outgoing_handler,
+                "wasi:http/types": wasmtime_wasi_http::p2::bindings::http::types,
                 "wasi:sockets/tcp": wasmtime_wasi::p2::bindings::sockets::tcp,
                 "wasi:clocks/monotonic-clock": wasmtime_wasi::p2::bindings::clocks::monotonic_clock,
                 "wasi:io/streams": wasmtime_wasi::p2::bindings::io::streams,
