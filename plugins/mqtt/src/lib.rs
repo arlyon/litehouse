@@ -1,19 +1,28 @@
-//! MQTT plugin for the Litehouse home automation system.
+//! MQTT plugin skeleton for the Litehouse home automation system.
 //!
-//! This crate provides MQTT client functionality, allowing Litehouse to communicate
-//! with devices and services using the MQTT protocol.
+//! The component implements the Litehouse runner contract but does not yet connect
+//! to an MQTT broker.
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+use crate::exports::litehouse::plugin::plugin::{Event, GuestRunner, Output, Subscription};
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+litehouse_plugin::generate!(MqttPlugin);
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+pub struct MqttPlugin;
+
+impl GuestRunner for MqttPlugin {
+    fn new(_nickname: String, _config: Option<String>) -> Self {
+        Self
+    }
+
+    fn subscribe(&self) -> Result<Vec<Subscription>, u32> {
+        Ok(vec![])
+    }
+
+    async fn update(&self, _events: Vec<Event>) -> Result<bool, u32> {
+        Ok(true)
+    }
+
+    async fn outputs(&self) -> Result<Vec<Output>, u32> {
+        Ok(vec![])
     }
 }

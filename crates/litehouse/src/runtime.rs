@@ -2,6 +2,8 @@
 
 use std::{
     collections::{HashMap, HashSet},
+    future::Future,
+    net::SocketAddr,
     ops::Deref,
     path::Path,
     sync::Arc,
@@ -9,24 +11,25 @@ use std::{
 
 use crate::store::{StoreRef, StoreStrategy};
 
+use bytes::Bytes;
 use futures::{StreamExt, TryStreamExt};
+use http_body_util::{BodyExt, combinators::UnsyncBoxBody};
 use itertools::Itertools;
 use jsonc_parser::common::Ranged;
 use litehouse_config::{Capability, PluginConfig};
 use tokio::sync::broadcast::Sender;
 use wasmtime::{
-    Config, Engine,
+    AsContextMut, Config, Engine,
     component::{Component, Linker, ResourceAny, ResourceTable},
 };
-use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView};
+use wasmtime_wasi::{
+    TrappableError, WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView, sockets::SocketAddrUse,
+};
 use wasmtime_wasi_http::{
     WasiHttpCtx,
-    p2::{
-        HttpResult, WasiHttpCtxView, WasiHttpHooks, WasiHttpView,
-        bindings::http::outgoing_handler::ErrorCode,
-        body::HyperOutgoingBody,
-        default_send_request,
-        types::{HostFutureIncomingResponse, OutgoingRequestConfig},
+    p3::{
+        RequestOptions, WasiHttpCtxView, WasiHttpHooks, WasiHttpView,
+        bindings::http::types::ErrorCode, default_send_request,
     },
 };
 
@@ -59,6 +62,11 @@ struct HttpHooks {
     allowed_authorities: HashSet<String>,
 }
 
+type HttpBody = UnsyncBoxBody<Bytes, ErrorCode>;
+type HttpIo = Box<dyn Future<Output = Result<(), ErrorCode>> + Send>;
+type HttpResponse = (hyper::Response<HttpBody>, HttpIo);
+type HttpFuture = Box<dyn Future<Output = Result<HttpResponse, TrappableError<ErrorCode>>> + Send>;
+
 pub struct PluginRunnerFactory<T> {
     event_sink: T,
     capabilities: Vec<Capability>,
@@ -77,11 +85,31 @@ impl<T: Clone> PluginRunnerFactory<T> {
     }
 }
 
+fn socket_address_allowed(
+    allowed_tcp_addresses: &HashSet<SocketAddr>,
+    address: SocketAddr,
+    usage: SocketAddrUse,
+) -> bool {
+    matches!(usage, SocketAddrUse::TcpConnect) && allowed_tcp_addresses.contains(&address)
+}
+
 impl<T> PluginRunner<T> {
     pub fn new(event_sink: T, capabilities: Vec<Capability>) -> Self {
         let mut wasi = WasiCtxBuilder::new();
         wasi.inherit_stdio()
             .env("RUST_LOG", std::env::var("RUST_LOG").unwrap_or_default());
+        let allowed_tcp_addresses: HashSet<_> = capabilities
+            .iter()
+            .filter_map(|capability| match capability {
+                Capability::TcpClient(address) => Some(*address),
+                _ => None,
+            })
+            .collect();
+        wasi.socket_addr_check(move |address, usage| {
+            let allowed = socket_address_allowed(&allowed_tcp_addresses, address, usage);
+            Box::pin(async move { allowed })
+        });
+
         let http = WasiHttpCtx::new();
 
         let allowed_authorities = capabilities
@@ -126,9 +154,10 @@ impl<T: Send> WasiHttpView for PluginRunner<T> {
 impl WasiHttpHooks for HttpHooks {
     fn send_request(
         &mut self,
-        request: hyper::Request<HyperOutgoingBody>,
-        config: OutgoingRequestConfig,
-    ) -> HttpResult<HostFutureIncomingResponse> {
+        request: hyper::Request<HttpBody>,
+        options: Option<RequestOptions>,
+        response_io: HttpIo,
+    ) -> HttpFuture {
         if let Some(authority) = request.uri().authority() {
             let authority = authority.as_str();
             let port_stripped_authority = authority
@@ -140,16 +169,25 @@ impl WasiHttpHooks for HttpHooks {
                     "plugin tried to access {} which is not in the list of allowed authorities",
                     authority
                 );
-                return Err(ErrorCode::HttpRequestDenied.into());
+                return Box::new(async { Err(ErrorCode::HttpRequestDenied.into()) });
             }
         }
 
-        Ok(default_send_request(request, config))
+        // Match Wasmtime's default hook: this future reports how the guest
+        // consumes the response and is optional for this stateless client.
+        drop(response_io);
+        Box::new(async move {
+            let (response, response_io) = default_send_request(request, options).await?;
+            Ok((
+                response.map(BodyExt::boxed_unsync),
+                Box::new(response_io) as HttpIo,
+            ))
+        })
     }
 }
 
 impl bindings::host::Host for PluginRunner<Sender<(String, bindings::host::Update)>> {
-    async fn send_update(&mut self, nickname: String, event: bindings::host::Update) {
+    fn send_update(&mut self, nickname: String, event: bindings::host::Update) {
         tracing::trace!(target: "litehouse::plugin", plugin = nickname, "{:?}", event);
         self.event_sink.send((nickname, event)).unwrap();
     }
@@ -197,10 +235,13 @@ impl PluginInstance {
             .await
             .map_err(|e| miette!("plugin {} failed to subscribe: {:?}", nickname, e))?
             .map_err(|e| miette!("plugin {} failed to subscribe: {}", nickname, e))?;
-        let outputs = runner
-            .call_outputs(&mut store, instance)
+        let outputs = store
+            .as_context_mut()
+            .run_concurrent(async |accessor| runner.call_outputs(accessor, instance).await)
             .await
-            .map_err(|e| miette!("plugin {} failed to subscribe: {:?}", nickname, e))?;
+            .and_then(|result| result)
+            .map_err(|e| miette!("plugin {} failed to report outputs: {:?}", nickname, e))?
+            .map_err(|e| miette!("plugin {} rejected output discovery: {}", nickname, e))?;
 
         tracing::info!("got outputs: {:?}", outputs);
 
@@ -231,6 +272,8 @@ pub async fn set_up_engine(
 
     wasm_config
         .wasm_component_model(true)
+        .wasm_component_model_async(true)
+        .concurrency_support(true)
         .cranelift_opt_level(wasmtime::OptLevel::Speed);
 
     let cache = if cache {
@@ -246,11 +289,17 @@ pub async fn set_up_engine(
     let engine = Engine::new(&wasm_config).map_err(|_| miette!("invalid wasm config"))?;
     let mut linker = Linker::new(&engine);
 
+    // Rust's standard library still targets WASI 0.2 while the wasm32-wasip3
+    // target is incomplete. Keep Preview 2 linked for the standard-library
+    // adapter until plugins can be built directly for wasm32-wasip3.
     wasmtime_wasi::p2::add_to_linker_async(&mut linker)
-        .map_err(|e| miette!("unable to add command to linker: {}", e))?;
+        .map_err(|e| miette!("unable to add WASI 0.2 compatibility interfaces: {}", e))?;
 
-    wasmtime_wasi_http::p2::add_only_http_to_linker_async(&mut linker)
-        .map_err(|e| miette!("unable to add http to linker: {}", e))?;
+    wasmtime_wasi::p3::add_to_linker(&mut linker)
+        .map_err(|e| miette!("unable to add WASI 0.3 interfaces to linker: {}", e))?;
+
+    wasmtime_wasi_http::p3::add_to_linker(&mut linker)
+        .map_err(|e| miette!("unable to add WASI HTTP 0.3 to linker: {}", e))?;
 
     bindings::host::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |c| c)
         .map_err(|e| miette!("unable to add http to linker: {}", e))?;
@@ -305,7 +354,7 @@ pub async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
         Component,
     )>,
 > {
-    tracing::debug!("instantiating plugin hosts {:?}", plugins);
+    tracing::debug!(plugin_count = plugins.len(), "instantiating plugin hosts");
 
     let map = plugins
         .iter()
@@ -410,4 +459,36 @@ pub async fn instantiate_instance<T: Send + Clone>(
         .unwrap();
 
     Ok(instance)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{collections::HashSet, net::SocketAddr};
+
+    use wasmtime_wasi::sockets::SocketAddrUse;
+
+    use super::socket_address_allowed;
+
+    #[test]
+    fn tcp_capability_allows_only_the_declared_connect_destination() {
+        let television = SocketAddr::from(([192, 168, 1, 50], 8002));
+        let other_port = SocketAddr::from(([192, 168, 1, 50], 8001));
+        let allowed = HashSet::from([television]);
+
+        assert!(socket_address_allowed(
+            &allowed,
+            television,
+            SocketAddrUse::TcpConnect
+        ));
+        assert!(!socket_address_allowed(
+            &allowed,
+            other_port,
+            SocketAddrUse::TcpConnect
+        ));
+        assert!(!socket_address_allowed(
+            &allowed,
+            television,
+            SocketAddrUse::TcpBind
+        ));
+    }
 }

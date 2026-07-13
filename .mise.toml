@@ -6,7 +6,6 @@ rust = "nightly"
 "ubi:crate-ci/typos" = "v1.24.6"
 "ubi:WebAssembly/binaryen" = { version = "version_119", exe = "wasm-opt" }
 "ubi:bytecodealliance/wit-deps" = "latest"
-"cargo:litehouse" = { path = "crates/litehouse" }
 "cargo:taplo-cli" = "latest"
 
 [env]

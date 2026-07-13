@@ -1,19 +1,28 @@
-//! Sonoff plugin for the Litehouse home automation system.
+//! Sonoff plugin skeleton for the Litehouse home automation system.
 //!
-//! This crate provides integration with Sonoff devices, allowing for control and monitoring
-//! within the Litehouse system.
+//! The component implements the Litehouse runner contract but does not yet connect
+//! to Sonoff devices.
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+use crate::exports::litehouse::plugin::plugin::{Event, GuestRunner, Output, Subscription};
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+litehouse_plugin::generate!(SonoffPlugin);
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+pub struct SonoffPlugin;
+
+impl GuestRunner for SonoffPlugin {
+    fn new(_nickname: String, _config: Option<String>) -> Self {
+        Self
+    }
+
+    fn subscribe(&self) -> Result<Vec<Subscription>, u32> {
+        Ok(vec![])
+    }
+
+    async fn update(&self, _events: Vec<Event>) -> Result<bool, u32> {
+        Ok(true)
+    }
+
+    async fn outputs(&self) -> Result<Vec<Output>, u32> {
+        Ok(vec![])
     }
 }

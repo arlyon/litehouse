@@ -45,6 +45,8 @@ pub struct LitehouseConfig {
     /// Can be one of the following:
     /// - `http-server:<port>`: Start an HTTP server on the given port
     /// - `http-client:<url>`: Make HTTP requests to the given URL
+    /// - `tcp-client:<ip>:<port>`: Open TCP connections to one IPv4 address and port
+    /// - `tcp-client:[<ipv6>]:<port>`: Open TCP connections to one IPv6 address and port
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[schemars(with = "Vec<String>")]
     pub capabilities: Vec<Capability>,

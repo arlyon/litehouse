@@ -44,14 +44,23 @@ interface plugin {
     }
 
     variant output {
-      notify,
+      switch(own<a>),
+      switch-b(own<b>),
     }
 
     resource runner {
       constructor(nickname: string, config: option<string>);
       subscribe: func() -> result<list<subscription>, u32>;
-      update: func(events: list<event>) -> result<bool, u32>;
-      outputs: func() -> result<list<output>, u32>;
+      update: async func(events: list<event>) -> result<bool, u32>;
+      outputs: async func() -> result<list<output>, u32>;
+    }
+
+    resource a {
+        constructor();
+    }
+
+    resource b {
+        constructor();
     }
 
     record metadata {
@@ -67,14 +76,6 @@ interface plugin {
     }
 
     get-metadata: func() -> metadata;
-}
-
-interface notify {
-    // An additional interface for plugins that can notify the user
-    resource notify {
-        constructor();
-        notify: func(message: string) -> result<bool, u32>;
-    }
 }
 
 // note: we import this so we can't export it (ie. keep it in plugin)
@@ -94,10 +95,8 @@ interface update {
 }
 
 world plugin-host {
-  import wasi:http/outgoing-handler@0.2.8;
-  import wasi:sockets/tcp@0.2.8;
-  import wasi:sockets/tcp-create-socket@0.2.8;
-  import wasi:sockets/instance-network@0.2.8;
+  import wasi:http/client@0.3.0;
+  import wasi:sockets/types@0.3.0;
 
   import host: interface {
     use update.{update};

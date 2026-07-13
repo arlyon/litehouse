@@ -12,11 +12,9 @@ use litehouse_plugin::serde_json;
 use miette::{Context, IntoDiagnostic, NamedSource, bail};
 use tokio::process::Command;
 use tokio_stream::StreamExt;
+use wasi_preview1_component_adapter_provider::WASI_SNAPSHOT_PREVIEW1_REACTOR_ADAPTER;
 
 use litehouse_registry::{Download, Registry, Upload};
-
-const WASM_PROCESS_FILE: &[u8] =
-    include_bytes!("../../../litehouse/wasi_snapshot_preview1.reactor.wasm");
 
 const TARGET: &str = "wasm32-wasip1";
 
@@ -217,7 +215,7 @@ pub async fn build_in_temp(
         // write the wasm file to a temp dir
         let wasi_path = tmp.join("wasi_snapshot_preview1.wasm");
         let component_path = tmp.join(import.file_name());
-        std::fs::write(&wasi_path, WASM_PROCESS_FILE).unwrap();
+        std::fs::write(&wasi_path, WASI_SNAPSHOT_PREVIEW1_REACTOR_ADAPTER).unwrap();
 
         tracing::info!("wrote process file to {}", wasi_path.display());
 

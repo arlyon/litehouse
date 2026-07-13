@@ -16,11 +16,11 @@ impl GuestRunner for NoopPlugin {
         Ok(vec![])
     }
 
-    fn update(&self, _events: Vec<Event>) -> Result<bool, u32> {
+    async fn update(&self, _events: Vec<Event>) -> Result<bool, u32> {
         Ok(true)
     }
 
-    fn outputs(&self) -> Result<_rt::Vec<Output>, u32> {
-        todo!()
+    async fn outputs(&self) -> Result<_rt::Vec<Output>, u32> {
+        Ok(vec![])
     }
 }

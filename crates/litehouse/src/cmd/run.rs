@@ -9,14 +9,14 @@ use tokio::{
     time::interval,
 };
 use tracing::Instrument;
-use wasmtime::Trap;
+use wasmtime::{AsContextMut, Trap};
 
 use crate::{
     LogMessage,
     runtime::{
         PluginInstance, PluginRunnerFactory,
         bindings::exports::litehouse::plugin::plugin::{
-            Event, Every, Subscription, TimeSubscription, TimeUnit, Update,
+            Event, Every, Subscription, TimeSubscription, TimeUnit,
         },
         instantiate_instance, instantiate_plugin_hosts, set_up_engine,
     },
@@ -160,7 +160,17 @@ pub async fn run(wasm_path: &Path, cache: bool, logs_rx: Receiver<LogMessage>) -
                     );
                 }
 
-                let event_stream = tokio_stream::wrappers::BroadcastStream::new(rx);
+                let event_stream = tokio_stream::wrappers::BroadcastStream::new(rx).inspect(
+                    |result| {
+                        if let Err(error) = result {
+                            tracing::warn!(
+                                plugin = nickname,
+                                ?error,
+                                "plugin update stream lagged"
+                            );
+                        }
+                    },
+                );
 
                 let mut merged_stream = tokio_stream::StreamExt::merge(
                     streams.map(|_| {
@@ -176,26 +186,33 @@ pub async fn run(wasm_path: &Path, cache: bool, logs_rx: Receiver<LogMessage>) -
                         .map(|(_, update)| update),
                 );
 
-                while let Some(_update) = merged_stream.next().await {
+                while let Some(event) = merged_stream.next().await {
                     let mut store_lock = store.enter().await;
                     let indices = crate::runtime::bindings::exports::litehouse::plugin::plugin::GuestIndices::new(&host.instance_pre(&mut store_lock)).unwrap();
                     let guest = indices.load(&mut store_lock, &host).unwrap();
                     let runner = guest.runner();
-                    match runner
-                        .call_update(
-                            store_lock,
-                            *plugin,
-                            &[Event {
-                                id: 0,
-                                timestamp: 0,
-                                inner: Update::Time(0),
-                            }],
-                        )
+                    let update = store_lock
+                        .as_context_mut()
+                        .run_concurrent(async |accessor| {
+                            runner
+                                .call_update(
+                                    accessor,
+                                    *plugin,
+                                    vec![Event {
+                                        id: 0,
+                                        timestamp: 0,
+                                        inner: event,
+                                    }],
+                                )
+                                .await
+                        })
                         .await
-                    {
+                        .and_then(|result| result);
+                    drop(store_lock);
+                    match update {
                         Ok(Ok(_)) => {}
                         Ok(Err(e)) => {
-                            tracing::error!("plugin {} failed to subscribe: {}", nickname, e)
+                            tracing::error!("plugin {} failed to update: {}", nickname, e)
                         }
                         Err(e) => {
                             // if we have trapped we should restart the plugin

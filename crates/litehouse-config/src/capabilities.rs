@@ -3,8 +3,7 @@
 //! This module defines the capabilities that can be granted to plugins, allowing them to interact with the system and external resources in a controlled manner.
 
 use serde::{Deserialize, Serialize};
-use std::fmt;
-use std::str::FromStr;
+use std::{fmt, net::SocketAddr, str::FromStr};
 use thiserror::Error;
 
 /// Represents the different capabilities that can be granted to plugins.
@@ -14,6 +13,8 @@ pub enum Capability {
     HttpServer(u16),
     /// Allows the plugin to make HTTP requests to the specified URL.
     HttpClient(String),
+    /// Allows the plugin to open a TCP connection to one socket address.
+    TcpClient(SocketAddr),
 }
 
 impl Serialize for Capability {
@@ -41,6 +42,7 @@ impl fmt::Display for Capability {
         match self {
             Capability::HttpServer(port) => write!(f, "http-server:{}", port),
             Capability::HttpClient(url) => write!(f, "http-client:{}", url),
+            Capability::TcpClient(address) => write!(f, "tcp-client:{}", address),
         }
     }
 }
@@ -56,6 +58,10 @@ impl FromStr for Capability {
                 .map(Capability::HttpServer)
                 .map_err(|_| CapabilityParseError::InvalidPort),
             ["http-client", url] => Ok(Capability::HttpClient(url.to_string())),
+            ["tcp-client", address] => address
+                .parse()
+                .map(Capability::TcpClient)
+                .map_err(|_| CapabilityParseError::InvalidSocketAddress),
             _ => Err(CapabilityParseError::InvalidFormat),
         }
     }
@@ -68,4 +74,37 @@ pub enum CapabilityParseError {
     InvalidFormat,
     #[error("invalid port number")]
     InvalidPort,
+    #[error("invalid socket address; expected IP:port or [IPv6]:port")]
+    InvalidSocketAddress,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Capability, CapabilityParseError};
+
+    #[test]
+    fn tcp_client_ipv4_roundtrips() -> Result<(), CapabilityParseError> {
+        let capability: Capability = "tcp-client:192.168.1.50:8002".parse()?;
+
+        assert_eq!(capability.to_string(), "tcp-client:192.168.1.50:8002");
+        Ok(())
+    }
+
+    #[test]
+    fn tcp_client_ipv6_roundtrips() -> Result<(), CapabilityParseError> {
+        let capability: Capability = "tcp-client:[::1]:8002".parse()?;
+
+        assert_eq!(capability.to_string(), "tcp-client:[::1]:8002");
+        Ok(())
+    }
+
+    #[test]
+    fn tcp_client_requires_a_port() {
+        let error = "tcp-client:192.168.1.50".parse::<Capability>();
+
+        assert!(matches!(
+            error,
+            Err(CapabilityParseError::InvalidSocketAddress)
+        ));
+    }
 }

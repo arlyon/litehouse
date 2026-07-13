@@ -9,8 +9,8 @@ use host::Update;
 use crate::{
     exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit},
     wasi::http::{
-        outgoing_handler,
-        types::{Fields, OutgoingRequest, Scheme},
+        client,
+        types::{Fields, Request, Response, Scheme},
     },
 };
 use core::fmt::Write;
@@ -33,18 +33,6 @@ pub struct WeatherConfig {
     pub lon: f64,
 }
 
-struct MyNotify;
-// impl GuestNotify for MyNotify {
-//     fn notify(&self, message: String) -> Result<bool, u32> {
-//         tracing::info!("got message: {}", message);
-//         Ok(true)
-//     }
-
-//     fn new() -> Self {
-//         MyNotify
-//     }
-// }
-
 impl GuestRunner for WeatherPlugin {
     fn new(nickname: String, config: Option<String>) -> Self {
         let WeatherConfig { lat, lon } = serde_json::from_str(&config.unwrap_or_default()).unwrap();
@@ -61,8 +49,7 @@ impl GuestRunner for WeatherPlugin {
         }
     }
 
-    fn outputs(&self) -> Result<Vec<Output>, u32> {
-        // let not = MyNotify::new();
+    async fn outputs(&self) -> Result<Vec<Output>, u32> {
         Ok(vec![])
     }
 
@@ -75,41 +62,65 @@ impl GuestRunner for WeatherPlugin {
         )])
     }
 
-    fn update(&self, events: Vec<exports::litehouse::plugin::plugin::Event>) -> Result<bool, u32> {
+    async fn update(
+        &self,
+        events: Vec<exports::litehouse::plugin::plugin::Event>,
+    ) -> Result<bool, u32> {
         tracing::info!("weather update");
         for event in events {
             if let exports::litehouse::plugin::plugin::Update::Time(_) = event.inner {
                 let headers = Fields::new();
+                let (request_trailers, request_trailers_reader) = wit_future::new(|| Ok(None));
+                let (req, request_result) =
+                    Request::new(headers, None, request_trailers_reader, None);
+                if req.set_path_with_query(Some(&self.request_path)).is_err() {
+                    tracing::error!("unable to set weather request path");
+                    continue;
+                }
+                if req.set_authority(Some("api.open-meteo.com")).is_err() {
+                    tracing::error!("unable to set weather request authority");
+                    continue;
+                }
+                if req.set_scheme(Some(&Scheme::Https)).is_err() {
+                    tracing::error!("unable to set weather request scheme");
+                    continue;
+                }
+                drop(request_trailers);
 
-                let req = OutgoingRequest::new(headers);
-                req.set_path_with_query(Some(&self.request_path))
-                    .expect("ok");
-                req.set_authority(Some("api.open-meteo.com")).unwrap();
-                req.set_scheme(Some(&Scheme::Https)).unwrap();
-
-                let Ok(result) = outgoing_handler::handle(req, None) else {
-                    tracing::error!("unable to send request");
+                let Ok(resp) = client::send(req).await else {
+                    tracing::error!("unable to send weather request");
                     continue;
                 };
-
-                result.subscribe().block();
-                let resp = result.get().expect("this is called only once");
-
-                if let Ok(Ok(resp)) = resp {
-                    let body = resp.consume().unwrap();
-                    let stream = body.stream().unwrap();
-                    let data = stream.blocking_read(1024).unwrap();
-                    let parsed = serde_json::from_slice::<WeatherResponse>(&data).unwrap();
-
-                    host::send_update(
-                        &self.nickname,
-                        Update::Temperature(parsed.current.temperature_2m),
-                    );
-                    host::send_update(
-                        &self.nickname,
-                        Update::WindSpeed(parsed.current.wind_speed_10m),
-                    );
+                if let Err(error) = request_result.await {
+                    tracing::error!(?error, "unable to stream weather request");
+                    continue;
                 }
+
+                let (body_result, body_result_reader) = wit_future::new(|| Ok(()));
+                let (stream, trailers) = Response::consume_body(resp, body_result_reader);
+                let data = stream.collect().await;
+                if let Err(error) = trailers.await {
+                    tracing::error!(?error, "unable to read weather response");
+                    continue;
+                }
+                drop(body_result);
+
+                let parsed = match serde_json::from_slice::<WeatherResponse>(&data) {
+                    Ok(parsed) => parsed,
+                    Err(error) => {
+                        tracing::error!(?error, "unable to parse weather response");
+                        continue;
+                    }
+                };
+
+                host::send_update(
+                    &self.nickname,
+                    Update::Temperature(parsed.current.temperature_2m),
+                );
+                host::send_update(
+                    &self.nickname,
+                    Update::WindSpeed(parsed.current.wind_speed_10m),
+                );
             }
         }
 

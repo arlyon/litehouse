@@ -34,14 +34,29 @@ pub fn generate(input: TokenStream) -> TokenStream {
         #struct_def
 
         // TODO: post-build step to inject metadata here
-        #[no_mangle]
-        #[link_section = "litehouse_metadata"]
+        #[unsafe(no_mangle)]
+        #[unsafe(link_section = "litehouse_metadata")]
         pub static METADATA: [u8; 0] = [];
+
+        struct DefaultA;
+        impl exports::litehouse::plugin::plugin::GuestA for DefaultA {
+            fn new() -> Self {
+                Self
+            }
+        }
+
+        struct DefaultB;
+        impl exports::litehouse::plugin::plugin::GuestB for DefaultB {
+            fn new() -> Self {
+                Self
+            }
+        }
 
         struct RunnerInterface;
         impl exports::litehouse::plugin::plugin::Guest for RunnerInterface {
             type Runner = #plugin_type;
-            // type Notify = #plugin_type;
+            type A = DefaultA;
+            type B = DefaultB;
             fn get_metadata() -> exports::litehouse::plugin::plugin::Metadata {
                 exports::litehouse::plugin::plugin::Metadata {
                     identifier: core::env!("CARGO_PKG_NAME").to_string(),
@@ -67,7 +82,6 @@ pub fn generate(input: TokenStream) -> TokenStream {
             path: #wit_dir,
             world: "plugin-host",
             runtime_path: "litehouse_plugin::wit_bindgen::rt",
-            std_feature,
             generate_all,
         });
 
@@ -84,23 +98,12 @@ pub fn generate_host(_input: TokenStream) -> TokenStream {
     quote! {
         wasmtime::component::bindgen!({
             path: #wit_dir,
-            imports: {
-                default: async
-            },
-            exports: {
-                default: async,
-            },
+            exports: { default: async },
+            require_store_data_send: true,
             with: {
-                "wasi:http/outgoing-handler": wasmtime_wasi_http::p2::bindings::http::outgoing_handler,
-                "wasi:http/types": wasmtime_wasi_http::p2::bindings::http::types,
-                "wasi:sockets/tcp": wasmtime_wasi::p2::bindings::sockets::tcp,
-                "wasi:clocks/monotonic-clock": wasmtime_wasi::p2::bindings::clocks::monotonic_clock,
-                "wasi:io/streams": wasmtime_wasi::p2::bindings::io::streams,
-                "wasi:io/poll": wasmtime_wasi::p2::bindings::io::poll,
-                "wasi:io/error": wasmtime_wasi::p2::bindings::io::error,
-                "wasi:sockets/network": wasmtime_wasi::p2::bindings::sockets::network,
-                "wasi:sockets/tcp-create-socket": wasmtime_wasi::p2::bindings::sockets::tcp_create_socket,
-                "wasi:sockets/instance-network": wasmtime_wasi::p2::bindings::sockets::instance_network,
+                "wasi:http/client": wasmtime_wasi_http::p3::bindings::http::client,
+                "wasi:http/types": wasmtime_wasi_http::p3::bindings::http::types,
+                "wasi:sockets/types": wasmtime_wasi::p3::bindings::sockets::types,
             }
         });
     }
