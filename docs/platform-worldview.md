@@ -22,10 +22,9 @@ The worldview does not replace the PRD. It records what the current sessions
 know, including implementation reality, unresolved work, dirty-worktree
 boundaries, and the intended Wayfinder destination.
 
-**Compaction precondition:** this file is currently untracked. Do not compact or
-treat it as durable until the user explicitly approves a commit containing only
-the reviewed worldview/Wayfinder paths, or explicitly accepts an uncommitted
-handoff.
+**Compaction precondition:** satisfied. Commit `1484940` preserves this reviewed
+worldview, the project-local Wayfinder files/symlink, and the single-skill
+lockfile without absorbing unrelated dirty work.
 
 ## 2. Destination
 
@@ -190,9 +189,8 @@ Before implementation, Wayfinder must resolve or research:
 
 ### Unpublished branch boundary
 
-At snapshot creation, `main` is eight commits ahead of `origin/main` and zero
-behind. If this worldview is committed, it will become the ninth unpublished
-commit. Preserve all unpublished commits; do not push, rewrite, or publish them
+After commit `1484940`, `main` is nine commits ahead of `origin/main` and zero
+behind. Preserve all unpublished commits; do not push, rewrite, or publish them
 without explicit approval.
 
 - `1f41c19` — new auth flow.
@@ -415,8 +413,7 @@ not a source-owned task.
 - The installer briefly selected all repository skills because the
   `--skill=wayfinder` form was ignored in noninteractive mode. The other 38
   skills were removed and final CLI inventory reports exactly one skill.
-- These project-local skill files are currently untracked. Their persistence is
-  a deliberate commit decision.
+- Commit `1484940` tracks the project-local skill files, symlink, and lockfile.
 - No Wayfinder map has been created yet. That is intentional: first compact
   this worldview, then run Wayfinder in the fresh context.
 
@@ -530,15 +527,14 @@ Likely initial frontier:
 
 ## 15. Compact checkpoint
 
-Do not compact until this reviewed document is preserved at an identified
-commit or the user explicitly accepts an uncommitted handoff.
+Commit `1484940` satisfies the worldview durability precondition. Compaction
+may proceed.
 
 At compaction, preserve at minimum:
 
 - this document's path and source-of-truth order;
 - the destination and ESPHome priority;
-- all eight currently unpublished commits from `1f41c19` through `34cf442`,
-  plus the worldview commit if approved;
+- all nine unpublished commits from `1f41c19` through `1484940`;
 - confirmed detached-facet and stable-binding decisions;
 - the fact that no Wayfinder map exists yet;
 - the instruction to run Wayfinder only after compaction;
