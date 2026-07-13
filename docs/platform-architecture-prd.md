@@ -48,6 +48,15 @@ Immediate sequence:
 - **Symmetric plugins:** device, automation, and adapter plugins may provide and
   consume services, publish events, and run state machines. The no-code rule
   executor uses the same fabric.
+- **Detached typed facets:** physical-device state remains private to its
+  provider. Each exact-major capability is registered as an independently
+  bindable typed endpoint, and each consumer receives a host-owned typed proxy.
+  A provider may expose any number of endpoints for the same contract; stable
+  `device-key` and `facet-key` values distinguish them.
+- **Stable binding selectors:** v1 selectors match stable provider, device, and
+  facet keys with explicit `one`, `optional`, or `many` cardinality. Automatic
+  rebinding may target only the same logical endpoint in a new provider
+  generation; v1 never silently substitutes a different matching endpoint.
 - **Native async:** long-running guest operations use WIT `async func`,
   `future<T>`, and `stream<T>`, not merely host wrappers. Construction and
   metadata remain bounded and synchronous in WIT; `update` and transitional
@@ -95,7 +104,9 @@ Current pieces do not yet form one coherent contract:
     ready time separately.
 2. **Typed composition:** one physical light exposes power, brightness, and
     color-temperature facets backed by shared state; independent consumers use
-    different facets concurrently.
+    different facets concurrently. One provider may also expose multiple
+    independently bindable instances of the same contract, such as several
+    switches on one ESPHome node.
 3. **Major coexistence:** `light@1` and `light@2` operate in one process
     without global migration.
 4. **Async-native execution:** guests await I/O and expose async operations
@@ -209,21 +220,63 @@ Required properties:
 
 ### 7.4 Multi-facet devices and shared state
 
-A physical device may expose several capability facets while sharing one
-connection, cache, and lifecycle. The likely shape is a provider-owned device
-aggregate plus independently bindable typed facet endpoints. One Samsung
-television, for example, may expose power, media transport, volume, and
-application-launcher contracts backed by one session.
+**Decision (2026-07-13): use detached typed facets.** A provider privately owns
+one or more device aggregates containing each physical connection, cache,
+lifecycle, and synchronization boundary. The aggregate is not a public WIT
+resource. It never crosses into the host or a consumer.
 
-The exact WIT ownership shape is still open. The decision must prove:
+Each exact-major contract defines a resource interface. A generated provider
+surface returns a list of typed endpoint records. Conceptually, a switch
+contract has this ownership shape; binding and error details remain decisions
+2 and 4:
 
-- several handles can refer to one provider state owner;
-- facets are independently discoverable and permissionable;
-- teardown/restart has deterministic stale-handle behavior;
-- no cross-store raw resource leaks;
-- a plugin may expose multiple instances of the same facet;
-- Matter-inspired endpoint/cluster concepts help without forcing Matter's full
-  data model.
+```wit
+interface provider {
+  use service.{switch};
+
+  record endpoint {
+    device-key: string,
+    facet-key: string,
+    label: string,
+    implementation: own<switch>,
+  }
+
+  endpoints: func() -> list<endpoint>;
+}
+```
+
+The returned `own<switch>` is retained only in the provider's store. The host
+creates a different resource implementing the same exact-major interface in
+each consumer store. That consumer-local resource contains only host-owned
+routing state: endpoint ID, provider generation, contract major, authorization
+context, and bounded dispatch sender. No raw `ResourceAny`, guest resource,
+borrow, instance, or resource-table index crosses stores.
+
+Endpoint identity is:
+
+```text
+(provider instance, device-key, facet-key, namespace, contract name, major)
+```
+
+Repeated facets are first-class, not an edge case. An ESPHome provider may
+manage several nodes, and one node may expose many `switch@1` endpoints. Those
+endpoints share the node's private connection and cache, use the same stable
+`device-key`, and have distinct source-stable `facet-key` values such as entity
+IDs. Labels and list positions are not identities. The provider surface returns
+all of them; it is not limited to one endpoint per contract.
+
+Dropping a consumer proxy releases only that binding. It does not drop the
+provider endpoint or close the shared connection. Provider restart withdraws
+all endpoints from the old aggregate generation; old proxies remain stale and
+are never silently retargeted. Rebinding creates new proxies. A topology change
+republishes the affected aggregate as a new generation in v1.
+
+This shape preserves independent discovery and permissions, supports multiple
+same-contract facets, and keeps major versions independent. Matter contributes
+only useful vocabulary—device, endpoint, and capability/cluster occurrence—not
+a mandatory parent-device API or full Matter data model. A public aggregate
+resource can be introduced later only if device-wide transactions become a
+real contract requirement.
 
 ### 7.5 Provider and consumer lifecycle
 
@@ -240,9 +293,9 @@ Proposed phases:
 9. On failure, withdraw endpoints, increment generation, fail pending calls,
     restart according to policy, and rebind eligible consumers.
 
-Startup discovery must not call arbitrary placeholder implementations. Current
-`outputs()` methods containing `todo!()` are a known panic hazard and must be
-removed before making discovery mandatory.
+Startup discovery must not call arbitrary placeholder implementations. The
+migration removed the tracked plugins' discovery-time `todo!()` traps; future
+provider registration must preserve that invariant.
 
 ### 7.6 Discovery, selection, and binding
 
@@ -251,17 +304,35 @@ minimally includes endpoint ID, contract major, provider/plugin instance, human
 label, device/area identity where available, health, generation, tags, and
 permission requirements.
 
-Configuration stores a selector or explicit endpoint binding. Resolution must be
-deterministic. Ambiguity is an error unless the consumer declares a
-multi-binding cardinality. Automatic rebinding may occur only within declared
-policy and must be observable.
+**Decision (2026-07-13): use stable exact-field selectors with explicit
+cardinality.** A persisted selector may constrain `provider-instance`,
+`device-key`, and `facet-key`; omitted fields act as wildcards. Contract
+namespace, name, and exact major come from the typed requirement and cannot be
+wildcarded. Labels, list positions, areas, and mutable tags are discovery
+metadata, not v1 binding identity.
 
-The first implementation should support:
+Every requirement declares one cardinality:
 
-- explicit endpoint ID;
-- provider instance plus facet key;
-- constrained selector with expected cardinality (`one`, `optional`, or `many`);
-- dry-run resolution explaining matches and rejections.
+- `one` succeeds only with exactly one match;
+- `optional` succeeds with zero or one match and rejects ambiguity; and
+- `many` binds the complete match set in canonical endpoint-identity order.
+
+Resolution occurs at activation and produces a snapshot plus an explanation of
+matches and rejections. A `many` binding does not silently add a newly appearing
+identity. Membership changes require explicit re-resolution, preserving
+predictable automations.
+
+Every requirement also declares `rebind: never | same-identity`.
+`same-identity` may replace a stale proxy only when provider instance, device
+key, facet key, contract identity, and major all match and only the provider
+generation changed. `never` leaves the requirement stale until explicit
+activation. Neither mode may select a different logical endpoint, even if that
+endpoint matches the original wildcard selector.
+
+Host endpoint IDs and generations remain useful in diagnostics and transient
+APIs, but persisted configuration uses the stable selector fields. Dry-run
+resolution must report cardinality, deterministic ordering, matches,
+rejections, ambiguity, and the exact rebind policy.
 
 ### 7.7 Calls, state, events, and streams
 
@@ -431,8 +502,9 @@ will prove success before execution.
   plugin Rust types.
 - **FR4:** Consumers receive host-owned typed proxies; raw Wasmtime resources
   never cross stores.
-- **FR5:** One provider instance can expose multiple facets sharing one state
-  owner and lifecycle.
+- **FR5:** One provider instance can expose multiple devices and any number of
+  facets per device, including repeated instances of the same exact-major
+  contract, while sharing the appropriate state owner and lifecycle.
 - **FR6:** Dispatch enforces queue bounds, deadlines, cancellation, stale
   generations, isolation, and authorization.
 - **FR7:** Plugin manifests declare provided/required contracts and requested
@@ -483,22 +555,29 @@ will prove success before execution.
 2. Expose three typed light facets from one provider state owner; bind separate
     consumers; restart the provider; observe explicit stale proxies and
     successful policy-driven rebind.
-3. Run `light@1` and `light@2` providers/consumers simultaneously and prove no
+3. Expose at least two `switch@1` endpoints from one ESPHome-style device using
+    one shared connection, one stable device key, and distinct stable facet
+    keys; bind and operate both independently.
+4. Resolve those switches with `one`, `optional`, and `many` requirements;
+    reject ambiguity, preserve canonical ordering, and prove that
+    `same-identity` rebinding never substitutes or silently adds another
+    switch.
+5. Run `light@1` and `light@2` providers/consumers simultaneously and prove no
     accidental cross-resolution.
-4. Publish a contract, a provider plugin, and a consumer plugin; query metadata
+6. Publish a contract, a provider plugin, and a consumer plugin; query metadata
     from JS; install from immutable digests; verify an offline cache hit.
-5. Pair two servers to one account, show both in durable inventory, mark one
+7. Pair two servers to one account, show both in durable inventory, mark one
     offline, and connect directly to the online server via a scoped WebRTC
     grant.
-6. Build a rule using a typed trigger/condition/action, reject an invalid
+8. Build a rule using a typed trigger/condition/action, reject an invalid
     binding before activation, simulate it, activate it, and inspect its
     execution trace.
-7. Trigger a plugin trap and a queue-overload condition; show isolation,
+9. Trigger a plugin trap and a queue-overload condition; show isolation,
     bounded failure, structured diagnostics, restart behavior, and no lost
     server control.
-8. Stage an appliance update, fail health checks, roll back automatically, and
+10. Stage an appliance update, fail health checks, roll back automatically, and
     restore backed-up configuration/artifact locks.
-9. Have an AI client inspect a failure, create a dry-run remediation plan,
+11. Have an AI client inspect a failure, create a dry-run remediation plan,
     request only required authorization, apply with an idempotency key, and
     report validation evidence.
 
@@ -562,11 +641,13 @@ reviewed commit.
 
 ### Phase 1 — Contract kernel
 
-- Resolve multi-facet WIT ownership.
+- Implement the decided detached-facet WIT ownership model.
 - Define contract package format and generated adapter catalog.
 - Implement endpoint registry and host proxy dispatch.
+- Make `switch@1` the first vertical contract and use an ESPHome-style provider
+  fixture to prove multiple switches on one shared device connection.
 - Add generations, bounds, deadlines, cancellation, authorization, and tracing.
-- Prove `light@1`/`light@2` coexistence.
+- Prove exact-major coexistence with two versions of one contract.
 
 **Gate:** end-to-end provider/consumer tests pass under restart, trap, and
 overload.
@@ -651,11 +732,15 @@ drill, and bounded AI remediation pass.
 Resolve one item at a time. Each answer should update this document's decision
 log before implementation.
 
-1. **Facet ownership:** What exact WIT shape represents one provider-owned
-    device with multiple independently bindable capability handles?
-2. **Binding model:** Which selectors and cardinalities are supported in v1,
-    and when may automatic rebinding occur?
-3. **State/event model:** What revision, ordering, lag, replay, and timestamp
+1. **Facet ownership — decided 2026-07-13:** private device aggregates,
+    detached exact-major typed provider endpoints, and consumer-store-local
+    host proxies. Repeated same-contract facets use stable device and facet
+    keys.
+2. **Binding model — decided 2026-07-13:** stable exact-field selectors,
+    explicit `one`/`optional`/`many` cardinality, and `never` or
+    `same-identity` rebinding. No silent endpoint substitution or dynamic
+    membership in v1.
+3. **State/event model — next:** What revision, ordering, lag, replay, and timestamp
     guarantees do service contracts receive?
 4. **Error model:** Which shared transport errors exist versus contract-domain
     errors, and how do cancellation/deadlines propagate?
