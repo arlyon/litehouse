@@ -174,7 +174,9 @@ pub struct ProviderConfig {
 
 #[derive(Debug)]
 pub enum ProviderHostError {
-    InvalidComponent,
+    ComponentLinkFailed,
+    ComponentInstantiationFailed,
+    ProviderStartFailed,
     InvalidConfiguration,
     InvalidDescriptor,
     TooManyFacets,
@@ -188,7 +190,15 @@ pub enum ProviderHostError {
 impl fmt::Display for ProviderHostError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidComponent => formatter.write_str("invalid provider component"),
+            Self::ComponentLinkFailed => {
+                formatter.write_str("provider component could not be linked")
+            }
+            Self::ComponentInstantiationFailed => {
+                formatter.write_str("provider component could not be instantiated")
+            }
+            Self::ProviderStartFailed => {
+                formatter.write_str("provider component start call failed")
+            }
             Self::InvalidConfiguration => formatter.write_str("invalid provider configuration"),
             Self::InvalidDescriptor => {
                 formatter.write_str("provider returned an invalid descriptor")
@@ -425,9 +435,9 @@ pub async fn start_provider(
 
     let mut linker = Linker::new(engine);
     wasmtime_wasi::p2::add_to_linker_async(&mut linker)
-        .map_err(|_| ProviderHostError::InvalidComponent)?;
+        .map_err(|_| ProviderHostError::ComponentLinkFailed)?;
     bindings::Component::add_to_linker::<_, HasSelf<_>>(&mut linker, |data| data)
-        .map_err(|_| ProviderHostError::InvalidComponent)?;
+        .map_err(|_| ProviderHostError::ComponentLinkFailed)?;
 
     let bound = tokio::time::timeout_at(
         deadline,
@@ -435,7 +445,7 @@ pub async fn start_provider(
     )
     .await
     .map_err(|_| deadline_error(deadline))?
-    .map_err(|_| ProviderHostError::InvalidComponent)?;
+    .map_err(|_| ProviderHostError::ComponentInstantiationFailed)?;
     let guest = bound.litehouse_provider_provider();
     set_store_deadline(&mut store, deadline)?;
     let instance_id = config.instance.as_str().to_owned();
@@ -449,8 +459,8 @@ pub async fn start_provider(
     )
     .await
     .map_err(|_| deadline_error(deadline))?
-    .map_err(|_| ProviderHostError::InvalidComponent)?
-    .map_err(|_| ProviderHostError::InvalidComponent)?
+    .map_err(|_| ProviderHostError::ProviderStartFailed)?
+    .map_err(|_| ProviderHostError::ProviderStartFailed)?
     .map_err(provider_error)?;
 
     set_store_deadline(&mut store, deadline)?;
@@ -464,8 +474,8 @@ pub async fn start_provider(
     )
     .await
     .map_err(|_| deadline_error(deadline))?
-    .map_err(|_| ProviderHostError::InvalidComponent)?
-    .map_err(|_| ProviderHostError::InvalidComponent)?;
+    .map_err(|_| ProviderHostError::ProviderStartFailed)?
+    .map_err(|_| ProviderHostError::ProviderStartFailed)?;
     let on_off_handles = on_off_handles.map_err(provider_error)?;
     let boolean_handles = boolean_handles.map_err(provider_error)?;
     if on_off_handles.len() + boolean_handles.len() > MAX_FACETS {

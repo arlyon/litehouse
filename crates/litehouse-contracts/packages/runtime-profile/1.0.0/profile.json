@@ -144,7 +144,16 @@
       "package": "wasi:clocks",
       "version": "0.2.12",
       "interfaces": [
-        "monotonic-clock"
+        "monotonic-clock",
+        "wall-clock"
+      ]
+    },
+    {
+      "package": "wasi:filesystem",
+      "version": "0.2.12",
+      "interfaces": [
+        "preopens",
+        "types"
       ]
     },
     {
@@ -160,7 +169,21 @@
       "package": "wasi:random",
       "version": "0.2.12",
       "interfaces": [
-        "insecure-seed"
+        "insecure-seed",
+        "random"
+      ]
+    },
+    {
+      "package": "wasi:sockets",
+      "version": "0.2.12",
+      "interfaces": [
+        "instance-network",
+        "ip-name-lookup",
+        "network",
+        "tcp",
+        "tcp-create-socket",
+        "udp",
+        "udp-create-socket"
       ]
     },
     {

@@ -1,7 +1,7 @@
 {
   "ci_policy_sha256": "57354dec4b3993b92a99fc816fdee7dec65c2527013b5166fc0ab6005a2704b5",
-  "contract_package_json_sha256": "fed097ca64412f5b2bb0f4592ac575a085303a4f04d2523f327a76a3d5e102ad",
-  "contract_source_tree_sha256": "7b4d3c1b6cecfb61a535df12fd1b9b9cc4d4a961b1b6641d061ce649b7e3ec41",
+  "contract_package_json_sha256": "4f6b5e23607a7306e16767aba6a03f3dbd332760932157fee75a25dc710101fd",
+  "contract_source_tree_sha256": "9fe241c969ceaa0a34e5aaa6bbc75ac6cc2ba2882fe0476366cdec9d964202a1",
   "contract_wit_tree_sha256": "925b079a09ad62ee4fe9c50eaa299c5bcd24ee17a5b2dafcc89daf2830315178",
   "flatc_installer_sha256": "64845bc24de742866aef4415257ed0f9bda69bcae0a87601f98e04397dc93f33",
   "flatc_version": "25.12.19",
@@ -105,6 +105,11 @@
       "edition": "workspace",
       "name": "litehouse-service-fabric-provider-fixture",
       "path": "crates/service-fabric-provider-fixture/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "esphome",
+      "path": "plugins/esphome/Cargo.toml"
     },
     {
       "edition": "workspace",

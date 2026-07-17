@@ -440,3 +440,18 @@ configuration.
   production Wasmtime adapter proves typed discovery, query, absolute set,
   generation fencing, accepted-delivery receipt projection, and endpoint
   withdrawal on actor shutdown.
+
+### R-007 — Run ESPHome client work on one guest-local runtime
+
+- **Resolution:** one ESPHome component runner owns one current-thread Tokio
+  runtime, encrypted Native API client, topology, and observation cache. Every
+  facet shares it, while the host provider actor remains the external ordered
+  queue and hard deadline boundary. Reconnect preserves numeric source-locator
+  facet keys; absolute writes do not update cached state and a failed write is
+  outcome-unknown without replay.
+- **Evidence:** the compiled `wasm32-wasip2` component passes runtime-profile and
+  Component Model validation. A fixed-key Noise server exercised the actual
+  component through Wasmtime and exact TCP grants: discovery returned one
+  On/Off and one Boolean resource, query observed the initial relay state,
+  absolute set returned accepted-for-delivery, and a later query observed the
+  server-emitted state.
