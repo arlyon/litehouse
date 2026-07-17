@@ -285,7 +285,7 @@ configuration.
   visited set rather than recursion, preserving behavior for deeply nested
   service graphs without consuming call stack per edge.
 
-### D-018 — Empty optional/many binding ownership
+### D-019 — Empty optional/many binding ownership
 
 - **Status:** resolved
 - **Blocks:** nothing
@@ -295,6 +295,55 @@ configuration.
   cycle-graph record. Only non-empty snapshots retain host binding state. A
   repeated-miss regression test proves optional/many resolution leaves the
   active-binding count at zero.
+
+### D-020 — T3 preserves the existing runtime
+
+- **Status:** user-selected
+- **Blocks:** nothing
+- **Question:** Should T3 replace Litehouse's runtime/compiler/cache with a new
+  policy kernel and compiler sandbox?
+- **Resolution:** no. Preserve the existing Wasmtime engine, in-process
+  compilation, incremental cache, store strategies, capability hooks, event loop,
+  and restart path. T3 applies only the focused defect fixes in issue 38. There is
+  no compiler sandbox, custom cache/DNS, component-size ceiling, global activation
+  journal, host-restore protocol, or arbitrary resource-limit system.
+
+### D-021 — T9 first-release container boundary
+
+- **Status:** user-selected
+- **Blocks:** nothing
+- **Question:** Which portability and rollback machinery belongs in the first
+  container tranche?
+- **Resolution:** keep a conventional non-root amd64/arm64 image, one data
+  directory, health/readiness/shutdown, basic digest/smoke evidence, and a small
+  Butane/Quadlet generator. Remove cross-version restore, receipt watermarks,
+  N-1 migration rollback, and prescribed CPU/memory/PID/tmpfs limits. Protected
+  signing/publication qualification remains later T15 work.
+
+### D-022 — T11 basic direct WebRTC RPC
+
+- **Status:** user-selected
+- **Blocks:** nothing
+- **Question:** What transport does the web UI need over broker-facilitated
+  WebRTC?
+- **Resolution:** the broker performs signaling only. Browser and Litehouse use
+  one direct reliable ordered data channel carrying standard JSON-RPC 2.0. The
+  first `session.open` authenticates a short-lived T10 grant; selected methods
+  call T8 handlers; notifications update/invalidate UI state; reconnect creates a
+  fresh session and reloads state. No custom binary/credit/transfer/resume/
+  reauthorization protocol or TURN belongs to T11.
+
+### D-023 — T13/T14/T15 release scope
+
+- **Status:** user-selected
+- **Blocks:** exact T13 tool list only
+- **Question:** How much MCP and external release qualification belongs in the
+  first connected release?
+- **Resolution:** T13 exposes a small explicitly approved subset of safe
+  inspection, state, and essential-control tools rather than one tool per
+  operation. T14 remains the isolated local release-candidate proof. T15
+  provider-backed staging/signing/cloud qualification is later work requiring a
+  separate decision and per-action external approval; it does not block T14.
 
 ## Deferred external-authority decisions
 

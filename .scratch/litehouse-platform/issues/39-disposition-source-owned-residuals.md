@@ -45,7 +45,7 @@ or commit.
 |---|---|---|
 | `util.rs` `PathChunk::Keyword(_) => todo!()` | **Implement fail-closed.** `resolve_pointer` returns `None` for a keyword in an instance path; it must not invent a source location or panic. | **T0 only.** Unit/property fixtures cover root, escaped property, valid/invalid index, missing node, keyword in every position, and malformed/deep bounded input. CLI schema diagnostics remain typed and safe when no span exists. |
 | Current runtime event payload forwarding and output-discovery rejection | **Retain, do not reimplement.** | **T3 only.** Regression fixtures prove real payload/ID/time/generation forwarding, delivery-epoch gaps, and whole-activation rejection with no endpoint or startup control action. |
-| Runtime/store/server/cache resilience seams | **Replace with issue 38's actor, generation, cancellation, connector, cache, activation, and rollback contracts.** | **T3 only.** The complete issue-38 deterministic matrix passes; no guest-controlled `expect`/`unwrap`, immediate restart loop, inherited environment, authority substring match, or panic-on-cache-corruption remains reachable. |
+| Runtime/store/server/cache resilience seams | **Preserve the existing runtime and apply issue 38's focused cache, deadline, continuity, generation, capability, protected-value, panic-path, and T2-integration fixes.** | **T3 only.** Focused regressions prove corrupt cache rebuild, CPU/I/O deadline interruption, explicit event continuity loss, stale proxy fencing after restart, per-instance grants, protected-value non-persistence, and ordinary errors without replacing the compiler/cache/runtime. |
 | Plugin metadata placeholder/static zero-length section | **Replace, not inject post-build.** Runtime/config metadata comes from generated typed contracts; immutable release metadata, permissions, provenance, and exact locks come from the signed release record. | **T1 only.** Reproducible component bytes, WIT/import validation, signed payload vectors, native/Wasm metadata parity, and a scan proving no mutable post-build metadata injection. |
 | Current anonymous pairing password path | **Delete with the legacy Cockpit pairing route.** Do not validate or preserve the static Basic/password protocol. | **T10 only.** Key-proof pairing, pair epochs, scoped short grants, crash/replay fixtures, and a route/import scan prove the old handler is unreachable/removed before T11 adds new signaling. |
 
@@ -107,7 +107,7 @@ requirements nor authorization for optimization work.
   custom allocator, or product SLO.
 - Future performance owner: the runtime maintainer. Trigger: a reproducible
   amd64/arm64 production-path regression or inability to satisfy the existing
-  512 MiB correctness envelope. Evidence must measure the exact implemented
+  actual release behavior. Evidence may measure the implemented
   seam before proposing a threshold or optimization.
 
 ## WASI and generated-artifact migration

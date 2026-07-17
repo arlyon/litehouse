@@ -113,10 +113,11 @@ Cloudflare code rollback does not roll back D1/R2/Durable Object state, so later
 schemas use expand/contract compatibility.
 
 Framework qualification is two-stage. T4 is only the local build/workerd/
-prerender/accessibility candidate gate. It does not finalize TanStack. T12 must
-add integrated auth, D1, R2/Wasm, private-cache, and connected-journey evidence;
-T15 must add separately approved provider-backed staging, gradual-deploy, purge,
-and rollback evidence. TanStack becomes final only after all three stages pass.
+prerender/accessibility candidate gate. It does not finalize TanStack. T12 adds
+integrated auth, D1, R2/Wasm, private-cache, and connected-journey evidence, and
+T14 repeats the complete local candidate journey/build. TanStack becomes final
+when those selected local gates pass; later external T15 staging is not a
+framework-selection prerequisite.
 
 Switch the implementation plan to React Router 8 rather than extending the
 TanStack experiment if any of these framework gates fail:

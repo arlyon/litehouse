@@ -11,7 +11,8 @@ Litehouse's first connected release: log in, pair a portable local container,
 install independent signed ESPHome, Tasmota HTTP, ntfy, and non-commercial
 Open-Meteo providers from the central registry, discover and control
 vendor-neutral typed capabilities, build basic React Flow automations, and
-operate the same management API through the web UI or a thin MCP adapter.
+operate the management API through the web UI and an explicitly selected small
+subset through a thin MCP adapter.
 ESPHome remains the primary physical-device proof; ntfy owns notifications.
 Implementation remains separately approved.
 
@@ -63,8 +64,9 @@ plus a very thin optional Butane configurator.
   React Flow and its synchronized semantic outline are projections over that one
   state, while bounded CEL remains only a pure condition leaf.
 - Web UI and structured management API have functional parity.
-- AI may use every authenticated Litehouse API through a thin MCP adapter, but
-  receives no host shell, arbitrary filesystem/network access, raw secrets,
+- AI may use the explicitly approved small subset of authenticated Litehouse
+  operations exposed through a thin MCP adapter, but receives no host shell,
+  arbitrary filesystem/network access, raw secrets,
   ownership/trust bypass, or permission to weaken safeguards.
 - Owner-only accounts initially; multi-user sharing follows later.
 
@@ -269,10 +271,11 @@ WebRTC, CoreOS, AI, and full UI prototypes are not mandatory Wayfinder gates.
   standalone bootstrap, operator TLS, loopback-only unsafe mode, and local-only
   destructive trust migration.
 - [Define the WebRTC management protocol](./issues/28-define-webrtc-management-protocol.md)
-  — use one authenticated reliable channel with strict JSON controls and exact
-  binary chunks, generated API operation IDs, bounded byte credits/queues,
-  generation-scoped streams, JWT-bounded reauthorization, durable idempotency
-  outcomes, never-replayed ambiguous mutations, and full reconnect hydration.
+  — use broker-facilitated signaling followed by one direct reliable ordered
+  WebRTC channel carrying standard JSON-RPC 2.0; authenticate with a short-lived
+  grant, dispatch the web UI's selected methods to canonical handlers, emit
+  notifications, and reconnect with a fresh session/state reload rather than a
+  custom binary, credit, replay, resume, or TURN protocol.
 - [Define the rule IR and editor contract](./issues/29-define-rule-ir-and-editor-contract.md)
   — publish a closed, versioned Rule JSON Schema and typed port catalog; React
   Flow edits that JSON projection while bounded CEL remains a pure condition
@@ -285,23 +288,21 @@ WebRTC, CoreOS, AI, and full UI prototypes are not mandatory Wayfinder gates.
   guest, hidden activation uses the existing pointer transaction, and future
   discovery is a separate artifact class with no reserved ABI or LAN authority.
 - [Define the container and thin Butane contract](./issues/30-define-container-and-butane-contract.md)
-  — publish digest-pinned signed amd64/arm64 OCI images using a non-root read-only
-  sandbox, one locked data directory without injected long-lived credentials,
-  orchestrator-injected runtime
-  environment, bridged TCP plus fixed mapped ICE UDP, exact health/shutdown/
-  update compatibility, stopped-directory backup/restore, and optional minimal
-  validated FCOS Butane/Quadlet output.
+  — build conventional non-root read-only amd64/arm64 OCI images with one locked
+  data directory, health/readiness, graceful shutdown, recorded digest and basic
+  smoke evidence; emit a small optional validated FCOS Butane/Quadlet config and
+  defer cross-version restore, fixed resource envelopes, signing, and staging.
 - [Choose central control-plane hosting](./issues/47-choose-central-control-plane-hosting.md)
   — replace Vercel/Turso with staged Cloudflare Workers and D1 authority; a
   separate Cockpit Worker plus per-server Durable Object owns only bounded live
-  signaling; direct WebRTC prefers local ICE with gated Cloudflare Realtime TURN
-  fallback, R2 stays GET/HEAD-only to web, and thin adapters avoid multi-cloud
+  signaling; direct WebRTC uses ordinary ICE while TURN remains deferred, R2
+  stays GET/HEAD-only to web, and thin adapters avoid multi-cloud
   abstractions without coupling domain behavior to bindings.
 - [Define the AI and MCP management surface](./issues/31-define-ai-and-mcp-management-surface.md)
-  — expose local-HTTPS-only `rmcp` Streamable HTTP with one generated typed tool
-  per closed canonical operation, pull-batch stream parity, fixed OAuth scopes,
-  bounded sessions/admission/diagnostics, shared idempotency/errors, and no host,
-  cloud-control, secret-value, ownership, or generic API escape hatch.
+  — expose local-HTTPS-only `rmcp` Streamable HTTP with a small explicitly
+  approved subset of canonical inspection, state, and essential-control tools;
+  reuse ordinary handlers/auth/redaction and provide no host, cloud-control,
+  secret-value, ownership, or generic API escape hatch.
 - [Define secret lifecycle and credential remediation](./issues/35-define-secret-lifecycle-and-remediation.md)
   — keep long-lived runtime values entirely in Podman/orchestrator-injected
   environment variables with deterministic per-instance field names and no
@@ -356,22 +357,22 @@ WebRTC, CoreOS, AI, and full UI prototypes are not mandatory Wayfinder gates.
   external Matter Server; defer bridges, discovery, commissioning, OTBR, shared
   dispatch, fabric credentials, OTA, and generic Matter operations.
 - [Plan runtime resilience closure](./issues/38-plan-runtime-resilience-closure.md)
-  — use bounded concurrent async guest calls per instance, queue-inclusive
-  deadlines and hard generation cancellation, jittered restart/sparse probes, a
-  fail-closed exact-origin DNS/TLS connector, delivery-epoch event gaps and
-  durable runtime generations, isolated bounded compilation plus disposable
-  compatibility cache, all-or-nothing global plugin activation, receipt-guarded
-  host rollback, and an explicit Samsung defer.
+  — preserve the existing runtime/compiler/cache and apply focused fixes for
+  corrupt cache handling, guest deadlines, explicit event continuity loss,
+  generation fencing after restart, per-instance capabilities, protected
+  environment values, panic paths, and one production T2 integration seam.
 - [Disposition source-owned residuals](./issues/39-disposition-source-owned-residuals.md)
   — implement only the schema/runtime safety seams owned by resolved contracts;
-  replace/delete the old registry/cache/HTTP/pairing/admin placeholders with
-  their production tranches, enforce the four-provider portfolio, and defer
+  replace the old registry/pairing/admin placeholders in their production
+  tranches, harden rather than replace the existing runtime cache/HTTP seams,
+  enforce the four-provider portfolio, and defer
   optimization until measured pressure rather than leaving executable TODOs.
 - [Prepare the implementation-ready handoff](./issues/40-prepare-implementation-ready-handoff.md)
   — deliver the greenfield first connected release through separately approved
   workspace, contract, service, resilience, web, registry, publisher/signing,
-  provider, rule, server, identity, WebRTC, UI, MCP, candidate, and mandatory
-  provider-backed staging tranches with FR1–FR16 traceability, generated-artifact
+  provider, rule, server, identity, basic WebRTC JSON-RPC, UI, small MCP subset,
+  and local candidate tranches, with later separately selected provider-backed
+  staging, FR1–FR16 traceability, generated-artifact
   ownership, rollback, and no implicit external authority.
 
 ## Not yet specified

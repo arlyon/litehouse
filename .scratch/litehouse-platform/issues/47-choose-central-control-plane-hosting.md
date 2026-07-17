@@ -26,8 +26,8 @@ inventory. Use a separate Cockpit Worker with one Durable Object per paired
 server only for bounded live presence/signaling coordination. Use R2 only for the
 static registry, Workers Static Assets for deployment-static web content, and
 Workers Cache only for the public/per-user-derived classes already decided.
-Direct WebRTC remains preferred; issue short-lived managed TURN credentials as a
-fallback when direct ICE cannot connect.
+Direct WebRTC with ordinary ICE is the first-release path. TURN/relay fallback is
+deferred and requires a later explicit selection based on observed connectivity.
 
 Use direct, thin Cloudflare adapters at infrastructure boundaries. Do not build a
 provider-neutral database/cache/object/actor framework, but do keep auth, domain,
@@ -179,38 +179,17 @@ account/server/IP rates. A replacement server socket requires a newer signed
 presence nonce/epoch and closes the prior socket explicitly. Deployments and
 hibernation never imply authorization or preserve expired grants.
 
-### Direct ICE and TURN fallback
+### Direct ICE; TURN deferred
 
-The local container uses its configured fixed UDP ICE range and advertised host/
-server-reflexive candidates. Cockpit supplies configured STUN plus managed TURN
-relay candidates. ICE priority prefers direct host/server-reflexive paths; relay
-is available only as fallback, never forced for routine traffic.
+The first connected release uses ordinary WebRTC ICE with configured STUN as
+needed. Cockpit facilitates signaling only and does not relay routine management
+traffic.
 
-Use Cloudflare Realtime TURN through its exact-pinned ephemeral-credential API
-and published STUN/TURN UDP/TCP/TLS endpoints. Cockpit requests one credential
-after a valid signaling grant/active binding, persists the issuance ID/quota
-reservation before return, and correlates safe provider telemetry to owner,
-client, server, grant, and nonce. Credential material is returned once and never
-stored in D1/DO/log/cache. The provider account credential is an environment-
-specific Cockpit secret.
-
-Hard initial ceilings are two concurrent relay allocations per server, eight per
-account, 10 Mbit/s and 1 GiB/day per account, a global daily spend/byte circuit
-breaker, and one credential issuance per consumed signaling grant. Credentials
-last at most ten minutes. An established relayed connection obtains replacement
-credentials only after normal management-token reauthentication and performs a
-bounded ICE restart before expiry; total uninterrupted relay lease is 30 minutes
-before a fresh signaling flow. Provider-reported allocation/byte telemetry
-reconciles reservations and expiry.
-
-Launch TURN only after staging proves provider-enforced allocation/refresh/
-transport/account ceilings, usable telemetry, and denial of metadata, loopback,
-link-local, private-network, multicast, and arbitrary abuse destinations. If the
-managed service cannot enforce these properties, direct ICE remains available
-but TURN fallback stays disabled rather than shipping an open relay. The TURN
-service cannot see DTLS management plaintext, and credentials cannot authorize
-Cockpit/management. Outage/quota yields visible connection failure, never a
-cloud management proxy or weaker auth.
+TURN provider selection, credential issuance, quotas, abuse controls, telemetry,
+and relay-specific ICE restart are deferred. If observed networks later show that
+direct connectivity is insufficient, define and approve that operational feature
+from measured failure evidence. Until then the UI reports direct-connection
+failure rather than silently routing management through central infrastructure.
 
 ### Better Auth and OAuth issuer boundary
 

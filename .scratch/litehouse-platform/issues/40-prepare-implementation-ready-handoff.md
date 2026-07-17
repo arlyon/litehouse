@@ -25,12 +25,13 @@ implicitly approves the next tranche or any commit, publication, credential,
 external service, staging/production deployment, server mutation, container
 restart, DNS change, email, or household-device access.
 
-Later resolved decisions supersede stale architecture-PRD language. The PRD's
-FR1/FR5/FR10/FR11/FR14/FR15 and representative acceptance/check text have been
-aligned to direct `wasm32-wasip2`, one physical device per instance, local
-`ActivationSet` locks, R2 plus one Rust/Wasm query core, durable receipts/tracing,
-and operator-managed receipt-guarded restore. Its old delivery phases are
-historical only; this issue is the implementation ordering authority.
+Later user-selected decisions supersede stale architecture-PRD language. The
+PRD's FR1/FR5/FR10/FR11/FR14/FR15 and representative acceptance/check text align
+to direct `wasm32-wasip2`, one physical device per instance, R2 plus one
+Rust/Wasm query core, durable rule/management behavior where T8 requires it, a
+basic direct WebRTC JSON-RPC path, and a portable first-release container without
+cross-version restore machinery. Its old delivery phases are historical only;
+this issue is the implementation ordering authority.
 
 The web/control plane is greenfield. Legacy `site/` source, routes, components,
 auth implementation, transport, state, and Turso/libSQL data are evidence only
@@ -65,9 +66,11 @@ runs a publishing workflow unless that exact external action receives separate
 approval. Fixtures use fake time, fake DNS/TLS, local Worker/workerd, isolated
 files, dummy keys, and disposable databases/buckets only when separately allowed.
 
-Performance numbers in runtime/queue/cache/container contracts are correctness
-bounds, not SLOs. No benchmark or optimization tranche exists without a
-reproducible production-path regression.
+Do not invent fixed runtime, component, cache, container, queue, memory, CPU, or
+PID limits without a concrete format/protocol requirement or measured failure.
+Input-format bounds required for deterministic parsing remain part of their
+format. No benchmark or optimization tranche exists without a reproducible
+production-path regression.
 
 ## Evidence versus production inputs
 
@@ -166,33 +169,33 @@ zero Wasmtime resource handles crossing stores.
 **Rollback:** atomic host/component rollback; no reflection or implicit major
 adapter.
 
-### T3 — Async runtime resilience, config, and activation
+### T3 — Minimal runtime resilience and T2 integration
 
 **Prerequisites:** T2.
 
-**Scope:** require per-instance stores; implement concurrent cooperative guest
-calls, local/global admission, queue-inclusive deadlines, durable dispatch,
-soft/hard cancellation, delivery-epoch event gaps, durable runtime generations,
-trap isolation, deterministic restart/sparse probes, exact-origin HTTP/DNS/TLS,
-environment-only protected values, bounded isolated compilation, compatibility
-cache, pure validation, and all-or-nothing global `ActivationSet` transactions.
-Delete the legacy guest HTTP helper. Implement issue 38's receipt-guarded host
-rollback integration.
+**Scope:** preserve the existing runtime, in-process Wasmtime compilation,
+incremental cache, store strategies, capability hooks, event loop, and trap
+restart path. Fix cache-corruption panics, add ordinary lifecycle/update deadlines
+with epoch interruption for non-yielding guests, surface event continuity loss,
+fence old T2 proxies with a fresh in-process generation after restart, support
+backward-compatible per-instance capabilities, inject only explicitly declared
+protected environment values, replace relevant input-driven panic paths with
+errors, and connect one production provider path to the T2 service fabric.
 
-**Not scope:** registry publication, real devices/endpoints, operator secret
-management, process-per-plugin isolation, or performance optimization.
+**Not scope:** compiler sandboxing, serialized compiled-code loading, replacement
+cache, hard component-size limit, custom DNS/IANA policy, durable event replay,
+global activation/rollback transactions, host restore, arbitrary resource limits,
+new diagnostics subsystem, registry, providers, rules, UI, or cloud.
 
-**Acceptance:** the complete issue-38 matrix: 32/64 per-instance and aggregate
-bounds; concurrent/out-of-order completion; cancellation/revocation/dispatch
-races; CPU/I/O interruption; queued/in-flight pre-gap fencing; durable generation
-and stale completion; exact jitter/probe epochs; malicious authority/DNS/socket/
-environment fixtures; corrupt/oversized cache and compiler bounds; two- and
-64-instance activation crash points; predecessor restore; stopped-copy receipt
-guard; and no startup control effect.
+**Acceptance:** focused issue-38 tests prove corrupt cache rebuild, yielding-I/O
+and non-yielding-CPU deadlines, explicit event continuity loss and state refresh,
+per-instance trap isolation and stale T2 proxies, per-instance capability
+isolation with legacy compatibility, protected-value non-persistence, ordinary
+error handling, and preservation of the existing compiler/cache/event/output and
+`run_concurrent` behavior.
 
-**Rollback:** desired and active state remain distinct; one predecessor is
-retained; plugin-set rollback uses the same batch journal; host/data rollback uses
-issue 30's N-1/stopped-copy procedure and blocks if ambiguity would be erased.
+**Rollback:** revert the focused T3 commit; no new durable format, activation
+pointer, compiler artifact, or host restore protocol is introduced.
 
 ### T4 — Greenfield TanStack/Open Design provisional local gate
 
@@ -217,8 +220,8 @@ Router 8 only if the documented objective TanStack gate fails.
 
 **Rollback:** remove the isolated package/adoption patch. The Open Design source
 remains static vendored input, never a runtime dependency. Final framework
-adoption waits for T12's integrated auth/registry/cache gate and T15's separately
-approved provider-backed staging/rollback gate; any issue-50 failure switches to
+adoption waits for T12's integrated auth/registry/cache gate and T14's local
+candidate journey/build gate; any issue-50 failure switches to
 React Router 8 and repeats the affected evidence.
 
 ### T5 — R2 registry, trust, cache, and install locks
@@ -410,23 +413,24 @@ revalidates and never rewinds external effects.
 
 **Prerequisites:** T3, T5, T8.
 
-**Scope:** one-volume layout/lock/migrations, central-token and standalone-
-external-OIDC modes, local HTTPS plus loopback-only unsafe mode, canonical HTTP
-API, health/readiness/shutdown, `data check`/`rollback-check`, signed digest-pinned
-amd64/arm64 non-root read-only OCI image, and optional thin Butane/Quadlet output.
+**Scope:** one persistent data directory and instance lock, configured local
+HTTPS/API, health/readiness, graceful shutdown, a conventional non-root read-only
+`linux/amd64` and `linux/arm64` OCI image, recorded image digest with basic
+architecture smoke tests, and a small optional Butane/Quadlet generator.
 
-**Not scope:** Litehouse OS, VM appliance, auto-update, PKI, backup service,
-secret store, arbitrary host path/device, or host mutation.
+**Not scope:** cross-version backup/restore, receipt watermarks, N-1 migration
+rollback, prescribed CPU/memory/PID/tmpfs limits, protected image signing or
+publication, extensive OCI provenance infrastructure, Litehouse OS, VM appliance,
+auto-update, PKI, secret store, arbitrary host path/device, or host mutation.
 
-**Acceptance:** volume/path/symlink/lock/migration crash fixtures; issuer-mode
-exclusivity; local TLS/cache isolation; shutdown ambiguity; image metadata/SBOM/
-provenance and architecture smoke; 512 MiB/2-vCPU/256-PID envelope; stopped-copy
-watermark and denial/reconciled restore; and Butane/Ignition/Quadlet golden/
-syntax/sandbox tests in a disposable matching environment when separately
-approved.
+**Acceptance:** both images build and start non-root; metadata/digest and
+architecture are correct; one writable data directory and exclusive lock work;
+health/readiness/shutdown work; no secret is embedded; representative Butane
+transpiles to Ignition and generated Quadlet syntax validates.
 
-**Rollback:** issue 30's signed N-1 image/data procedure. No restore force flag
-and no claim to undo device effects.
+**Rollback:** revert the image/generator source. T9 defines no cross-version data
+restore claim; the first incompatible future migration must design against its
+actual predecessor.
 
 ### T10 — Clean central D1 identity, inventory, and pairing
 
@@ -452,27 +456,32 @@ no legacy import/dependency; and no secret/token/email-body logging.
 Framework, auth origin, D1, email, DNS, and route changes are separate deployment
 steps; rollback uses a compatible prior Worker, never legacy data.
 
-### T11 — Signaling-only Cockpit and WebRTC management
+### T11 — Signaling-only Cockpit and basic WebRTC RPC
 
 **Prerequisites:** T8–T10.
 
-**Scope:** separate Cockpit Worker, per-server Durable Object, one authenticated
-reliable data channel, HELLO/version negotiation, strict control JSON/binary
-chunks, credits/backpressure, cancellation, streams, reauthorization, resume,
-idempotency/result lookup, direct HTTP/WebRTC canonical-handler parity, and
-scoped TURN adapter disabled by default.
+**Scope:** the authenticated broker facilitates signaling only. Browser and home
+server then use one direct reliable ordered WebRTC data channel carrying standard
+JSON-RPC 2.0. The first `session.open` call validates a short-lived T10 grant;
+selected web-UI methods dispatch to the same T8 handlers as HTTP; responses use
+standard JSON-RPC results/errors and server notifications invalidate/update UI
+state. Reconnect creates a fresh channel, authenticates again, and reloads state.
 
-**Not scope:** UI, Better Auth cookies, D1 writes, registry writes, management
-relay, arbitrary data channels, or TURN enablement.
+**Not scope:** management relay, raw SDP/DTLS transcript hashing, custom binary
+frames, transfer protocol, credit windows, fixed SCTP thresholds, in-place
+reauthorization, durable stream cursors/replay, transport resume, automatic
+mutation replay, transport-specific idempotency/result stores, mandatory custom
+heartbeat, TURN, arbitrary HTTP tunneling, or arbitrary data channels.
 
-**Acceptance:** codec golden/fuzz limits; grant/nonce/epoch/resource replay;
-transcript negotiation; SCTP/byte/queue credits; disconnect/reconnect hydration;
-stream generation/gaps; cancellation and ambiguous mutation; HTTP/WebRTC typed
-parity; DO replacement/hibernation; and proof routine home payloads never enter
-web/Cockpit/D1/log/registry storage.
+**Acceptance:** direct broker-facilitated connection; RPC denied before
+`session.open`; valid/invalid/expired/wrong-server/stale-pair grants; JSON-RPC
+request/result/error/notification fixtures; representative HTTP/WebRTC handler
+parity; malformed/unknown-method handling; fresh reconnect and state reload; no
+automatic mutation replay; and proof routine payloads are neither relayed nor
+stored by the broker.
 
-**Rollback:** schema/message-compatible prior Worker/DO version; TURN remains off
-until separately approved abuse/quota/expiry staging evidence.
+**Rollback:** remove/disable the JSON-RPC data-channel adapter while preserving
+canonical HTTP handlers and broker signaling.
 
 ### T12 — Connected greenfield web journeys
 
@@ -491,11 +500,12 @@ hand-coded transport call; browser journey from clean account to paired server t
 provider/rule; unknown/stale/offline/unavailable/outcome-unknown truth; blocked
 replay; disconnect hydration; Open-Meteo attribution; keyboard-equivalent rule
 editing; screen reader/contrast/focus/reflow/reduced-motion/forced-colors/coarse-
-pointer evidence at 320–1440 pixels. The integrated issue-50 gate also proves
+pointer evidence at 320–1440 pixels. Reconnect opens a fresh authenticated RPC
+session and reloads current state. The integrated issue-50 gate also proves
 Better Auth/D1 journeys, lazy R2/Rust-Wasm rendering, public/private cache
 segregation, purge failure bounds, server-function compatibility, production
 build stability, and local rollback. Failure switches to React Router 8 before
-T15.
+T14.
 
 **Rollback:** route-by-route greenfield Worker versions; legacy deployment is an
 independent temporary origin only. T12b owns source retirement.
@@ -521,22 +531,23 @@ TODOs are absent; T10's old pairing route remains absent.
 does not make legacy code a supported source, runtime dependency, or release
 member.
 
-### T13 — Thin MCP adapter
+### T13 — Small MCP adapter
 
 **Prerequisites:** T8–T9.
 
-**Scope:** official `rmcp` Streamable HTTP over local HTTPS, one generated tool
-per canonical operation, safe projections/redaction, bounded sessions/admission,
-pull-batch stream resources, shared scopes/revisions/idempotency/errors/receipts.
+**Scope:** official `rmcp` Streamable HTTP over authenticated local HTTPS and a
+small explicitly approved subset of generated canonical operations: safe
+inspection, useful state reads, and essential reversible controls already exposed
+by the web UI. The exact initial list is selected before T13 implementation.
 
-**Not scope:** generic API caller, host/file/shell/container/network tools,
-secret values, ownership/trust migration, central gateway, prompts/chat UI, or
-MCP in loopback-unsafe mode.
+**Not scope:** automatic one-tool-per-operation exposure, generic API caller,
+host/file/shell/container/network tools, secret values, ownership/trust changes,
+registry publication, central gateway, prompts/chat UI, or a separate MCP policy
+or quota system.
 
-**Acceptance:** MCP conformance/Inspector fixture; OAuth resource/server binding;
-tool/resource/operation manifest parity; schema/projection/redaction; cancellation/
-ambiguity/result lookup; session/queue/stream/gap bounds; and malicious host-
-escape/self-grant/generic-call denial.
+**Acceptance:** approved small tool inventory; each tool maps to exactly one T8
+handler; HTTP/MCP semantic parity; normal scope/redaction enforcement; MCP SDK
+smoke/conformance; and absence of generic or unselected operations.
 
 **Rollback:** disable/remove only the thin adapter; canonical HTTP/WebRTC/web
 behavior remains unchanged.
@@ -547,10 +558,11 @@ behavior remains unchanged.
 
 **Scope:** assemble the compatible host/runtime profile, four separately
 **test-signed** provider artifacts, R2 fixtures, clean D1/Workers, container,
-web/Cockpit, rules,
-and MCP; execute the complete clean login → pair → review/install → configure →
-control → rule simulate/activate → inspect/MCP journey in an isolated environment.
-Create the exact artifact/digest/SBOM/provenance/rollback inventory.
+web/Cockpit, rules, and the approved small MCP subset; execute the complete clean
+login → pair → review/install → configure → control → rule simulate/activate →
+inspect/MCP journey in an isolated environment. Record the source revisions,
+artifact/image digests, generated-file status, and rollback instructions needed
+to identify that candidate.
 
 **Not scope:** live publication, production/staging cutover without approval,
 real credentials/email/TURN, server changes, DNS, or household hardware.
@@ -560,59 +572,25 @@ inventory; plugin-set, rule, Worker, image/data, and route rollback drills;
 WCAG 2.2 AA evidence; credential/pattern scan; final diff/status/scope review;
 and independent adversarial correctness/risk PASS with no waived blocker.
 
-**Rollback:** demonstrate each bounded rollback independently. External staging
-and publisher qualification remain T15.
+**Rollback:** demonstrate each implemented local rollback independently. T14 is
+the first connected release-candidate gate. External staging and publisher
+qualification are later T15 work.
 
-### T15 — Provider-backed staging, signing, and release-readiness gate
+### T15 — Deferred external staging and publication qualification
 
-**Prerequisites:** T14 PASS, issue-35 remediation evidence, approved Open Design
-release, and separate explicit authorization for each named staging/signing/
-cloud/DNS action plus its cleanup. This is a mandatory release gate, not implicit
-T14 authority.
+**Prerequisites:** T14 PASS and a later explicit decision to define T15.
 
-**Scope:** qualify T5b's protected plugin/OCI publisher identities and actual
-provider IAM without exposing key material; sign the exact candidate and publish
-only to isolated staging R2 and OCI registry namespaces under separate roles;
-prove object-first CAS/purge and OCI signature/SBOM/provenance binding; deploy
-isolated web/Cockpit/DO bindings with clean staging D1 and stable staging auth
-origin; run provider-enforced cache, gradual-deploy, recovery, observability,
-permission-denial, and route/DNS rollback evidence.
+T15 is a placeholder for real provider-backed staging, signing, publication, and
+cloud deployment qualification. It is not part of first-release implementation
+or the T14 local candidate gate. No provider, IAM layout, signing topology,
+staging domain, observability product, retention policy, recovery drill, or TURN
+service is selected by this placeholder.
 
-**Not scope:** production registry/image publication, production D1/email/TURN,
-production DNS/cutover, household/server access, or real home management payloads.
-Staging TURN is also out unless explicitly selected and authorized in the T15
-approval; production TURN remains a later launch decision.
-
-**Acceptance:** safe key-ID/digest evidence proves plugin/OCI domain separation,
-rotation overlap, revocation, and publisher-versus-deployer denial; the exact
-staging OCI digest is bound to its signature, SBOM, provenance, and source.
-Actual CI/IAM negative tests deny cross-role R2, cache, OCI publication, D1,
-Cockpit, signing, deployment, Logpush-configuration, and retention-sink read/
-administration access. Provider delivery may write the sink, but signer,
-publisher, deployer, web, and Cockpit identities cannot read, alter, disable, or
-delete retained evidence. Staging proves R2 root CAS/range/cache purge failure
-bounds; cross-tenant
-Workers Cache isolation; clean D1 migrations plus point-in-time restore rehearsal
-and plan qualification; passkey/OAuth/pairing on the stable staging origin;
-preview/binding/secret/email isolation; DO hibernation/replacement and compatible
-gradual versions; Logpush delivery, redaction, retention, lag/failure alerting;
-custom staging-domain rollback; and the complete T12 browser/accessibility
-journey. TanStack is final only if every objective issue-50 gate passes here;
-otherwise switch to React Router 8 and repeat T12–T15. TURN is optional: with it
-disabled, prove no provider credential request and explicit relay-unavailable UI/
-protocol behavior; if selected, its own separately approved provider abuse/
-destination/quota/expiry/telemetry/circuit-breaker/cleanup evidence becomes
-mandatory before T15 can pass.
-
-**Rollback/cleanup:** use only the pre-approved staging rollback/cleanup plan:
-revoke candidate roles/keys as applicable, restore prior Worker/DO-compatible
-versions, rebind/restore isolated D1, roll back staging routes, remove staging
-R2/OCI objects, and disable staging Logpush configuration without deleting the
-retained evidence before its policy expires. Cleanup is an external mutation
-covered only when explicitly listed in the T15 approval. External effects are never claimed undone.
-
-A production launch decision may be considered only after T15 PASS; it is not a
-tranche hidden inside this handoff.
+When T15 is intentionally started, first present a proportionate scope based on
+the exact T14 candidate and selected deployment providers. Every credential,
+signing, R2/OCI/D1/Worker/DO, DNS/route, deployment, rollback, and cleanup action
+requires separate explicit authorization. T15 never includes production or
+household/server mutation implicitly.
 
 ## Critical path and safe parallelism
 
@@ -626,12 +604,15 @@ T0 workspace
   -> T7 rule planner -> T8 management     |
   -> T9 local container/server            |
   -> T10 central identity/D1 -> T11 RTC   |
-  -> T12 connected web -> T12b cleanup ---+-> T14 candidate -> T15 staging gate
-  -> T13 MCP -----------------------------┘
+  -> T12 connected web -> T12b cleanup ---+-> T14 local candidate
+  -> T13 small MCP subset ----------------┘
+
+T15 provider-backed staging/signing qualification is a later separately selected
+and authorized route after T14; it does not block the local candidate.
 ```
 
 T4 may proceed after T1/Open-Design approval in parallel with T2–T3 but remains
-provisional through T12/T15. T6a–T6d are independent after T1/T3 and finish
+provisional through T12/T14. T6a–T6d are independent after T1/T3 and finish
 signed install evidence after T5; T5b may proceed once T5's formats pass. T6e
 waits for consumer scans. T7 may proceed after T2; T13 may proceed after T8/T9
 without waiting for central cloud work. Parallel work never shares an activation pointer, generated artifact,
@@ -646,16 +627,16 @@ D1 schema, or deployment target without an explicit integration owner.
 | FR3 typed provider endpoints | T1, T2, T6a–T6d |
 | FR4 host-owned cross-store proxies | T2 |
 | FR5 one-device instance/repeated facets | T2, T6a–T6d |
-| FR6 queue/deadline/cancel/stale/isolation/auth | T3 |
+| FR6 deadline/stale-generation/isolation/capability scope | T3 |
 | FR7 manifest contracts/permissions | T1, T3, T5 |
 | FR8 deterministic typed binding | T2, T7 |
 | FR9 rules use the same contracts | T7, T8 |
 | FR10 immutable contract/release/local lock | T5, T5b, T15 |
 | FR11 native/Wasm JS registry queries/R2 cache | T5, T12, T15 |
 | FR12 durable authorized inventory | T10, T12, T15 |
-| FR13 negotiated/cancellable/resumable/backpressured WebRTC | T11, T15 |
-| FR14 scoped/revisioned/idempotent durable mutations | T8, T10, T11, T13, T15 |
-| FR15 install/pair/update/rollback/local diagnostics | T5, T9–T12, T15 |
+| FR13 authenticated direct WebRTC JSON-RPC for the web UI | T11, T14 |
+| FR14 scoped/revisioned/idempotent durable mutations | T8, T10, T11, T13, T14 |
+| FR15 install/pair/update/local diagnostics | T5, T9–T12, T14 |
 | FR16 structured inspect/validate/plan/apply for AI | T8, T13 |
 
 The architecture PRD's eleven acceptance scenarios map respectively to T1–T3,
@@ -669,13 +650,13 @@ No scenario substitutes a mock for the stable seam it is meant to prove.
 |---|---|---|
 | WIT contracts/runtime profile | canonical source packages and exact dependency lock | Rust/Wasm bindings and binary WIT are pinned generator output; regenerate and byte-compare, never hand-edit |
 | Quantity/error/state fixtures | canonical typed JSON/binary vectors | Rust/Wasm/TypeScript projections must be byte/semantic identical |
-| Management operations | one versioned closed manifest | HTTP/WebRTC/web/MCP bindings generated from it; no transport-only operation |
+| Management operations | one versioned closed manifest | HTTP/WebRTC/web bindings and the explicitly selected MCP subset project from it; no transport-only operation |
 | Rule JSON/port catalog | versioned schema/catalog source | Rust/browser-Wasm validator/compiler vectors and semantic digests match |
 | Registry | FlatBuffer schemas, partition/signature versions, release locks | bindings/root/shard/signature vectors generated from pinned tools; old schema never edited in place |
 | Activation/config | source schemas/annotations plus signed artifact IDs | deterministic environment requirement names and `ActivationSet` bytes; values never generated/persisted |
 | D1 | reviewed expand/contract migrations | generated types may be refreshed; clean bootstrap and migration hashes are tested; no legacy import |
 | Web/Workers | source routes/bindings/cache classes and exact package lock | TanStack route/build output is project-generated; workerd/Wrangler dry run must consume the built Worker |
-| Container/Butane | Docker/build/generator source and compatibility metadata | OCI manifests/SBOM/provenance and Ignition/Quadlet goldens are reproducible and contain no secret |
+| Container/Butane | Docker/build/generator source | amd64/arm64 image metadata/digest and representative Ignition/Quadlet fixtures are reproducible and contain no secret |
 
 Every release candidate records source revision, tool/runtime profile, artifact
 and bundle digests, generated-file status, compatibility range, and predecessor.
@@ -701,8 +682,8 @@ pnpm --dir web check
 ```
 
 Cloudflare evidence remains local workerd/Worker integration and Wrangler dry
-run through T14. After separate explicit external approval, T15's provider-backed
-staging/signing/recovery/observability checks are mandatory before release.
+run through T14. T15 provider-backed staging/signing/observability qualification
+is later work requiring a separate decision and explicit external approval.
 Container/Butane commands are defined by T9 and run only in a disposable approved
 environment. No canonical local completion check requires a production API,
 secret, server, device, R2/D1 mutation, email, TURN, DNS, or deployment.
@@ -719,8 +700,9 @@ The implementation route is decision-complete, but release remains blocked until
   and evidenced without exposing values;
 - the Open Design source package receives the approved release identity/digest
   used by T4/T12;
-- every T0–T15 implementation/gate passes from a reviewed clean baseline,
-  including protected publisher/IAM denial and provider-backed staging evidence;
+- every selected T0–T14 implementation/gate passes from a reviewed clean
+  baseline; later T15 publisher/IAM/provider-backed staging evidence is not a
+  first-candidate prerequisite;
 - production R2/image publication, Cloudflare/D1/email/TURN, DNS/cutover, server,
   and any hardware proof receive their own later approvals (TURN may remain off);
   and

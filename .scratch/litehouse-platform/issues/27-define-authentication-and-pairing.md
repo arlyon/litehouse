@@ -187,12 +187,13 @@ forwarding it, and the browser verifies the inventory key and committed
 fingerprint before accepting the answer. This removes any need to know the
 server's ephemeral fingerprint before it creates the answer.
 
-The data channel rejects application frames until an authenticated `HELLO`
-validates the separate management JWT and signaling transcript. Channel
-authorization ends at JWT expiry; a bounded reauthentication must complete first
-or the channel closes. Pair-epoch, owner, or trust-generation change closes all
-channels immediately. Every request/stream operation still passes through the
-normal typed authorization seam; `HELLO` never grants an indefinite session.
+The data channel rejects management calls until JSON-RPC `session.open`
+validates the separate short-lived management grant. Channel authorization ends
+at grant expiry; V1 closes and reconnects rather than reauthorizing a live
+channel. Pair-epoch, owner, or trust-generation change closes all channels
+immediately. Every RPC operation still passes through the normal typed
+authorization seam; opening a session never grants indefinite or additional
+authority.
 
 ### Standalone external issuer
 

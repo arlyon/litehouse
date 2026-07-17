@@ -118,8 +118,8 @@ server shell:
 /servers/:server-id/settings/diagnostics    bounded advanced diagnostics
 ```
 
-`litehouse-cockpit` owns only signaling, presence routing, TURN coordination, and
-its per-server Durable Object calls. It has no browser route, Better Auth cookie,
+`litehouse-cockpit` owns only signaling and presence routing through its
+per-server Durable Object. TURN is deferred. It has no browser route, Better Auth cookie,
 HTML renderer, app assets, or management UI. After `litehouse-web` authorizes and
 renders the stable private shell, lazy leaf components obtain the short-lived
 grant and communicate directly with the server over WebRTC. Routine management
@@ -289,7 +289,7 @@ must not fabricate live device state or queue management mutations. If an
 already-authorized WebRTC channel survives a central outage, it may continue only
 until its current token lease; no new signaling, grants, pairing, or refresh
 starts. Standalone issuer outage follows cached-key/token-expiry rules. Reconnect
-always reauthorizes and performs full snapshot hydration before resuming streams.
+always authenticates a fresh JSON-RPC session and reloads the current snapshots.
 No UI automatically replays an ambiguous mutation.
 
 Public/static pages and immutable registry assets may work from their declared
@@ -402,9 +402,9 @@ still reauthorizes and fails closed.
 A build/test parity check must account for every manifest row as intentionally
 `visible`, `contextual`, or `non-UI`, with a route/component and reason. It also
 asserts that every UI mutation names one manifest operation. This is metadata
-coverage, not automatic screen generation. MCP remains one generated typed tool
-per the same operation with its explicit private-field projection and no generic
-escape hatch.
+coverage, not automatic screen generation. T13 selects a small generated MCP
+subset from these same operations, with explicit private-field projections and no
+generic escape hatch.
 
 ### Security and privacy presentation
 
@@ -511,12 +511,11 @@ Required evidence before release:
 - automated accessibility analysis plus manual keyboard and representative
   screen-reader checks at desktop/mobile, 200% text, 400% reflow, light/dark,
   reduced motion, and high contrast;
-- deployed staging proof of public/private cache isolation, no-store management,
-  the `litehouse-web` UI versus signaling-only `litehouse-cockpit` boundary,
-  direct WebRTC, full reconnect hydration, central outage behavior, and no cross-
-  owner leakage; if TURN is selected/enabled for that release, add real relayed
-  states and provider abuse/quota evidence, otherwise prove explicit disabled/
-  unavailable relay UI with simulated failure states; and
+- isolated candidate proof of public/private cache isolation, no-store
+  management, the `litehouse-web` UI versus signaling-only `litehouse-cockpit`
+  boundary, direct WebRTC JSON-RPC, fresh-session state reload after reconnect,
+  central outage behavior, and no cross-owner leakage; TURN/relayed-connectivity
+  validation is deferred to a later separately selected release; and
 - independent lint, typecheck, Worker integration tests, browser tests, and
   production builds with no ignored TypeScript errors, followed by final diff,
   secret, generated-artifact, and scope review.
