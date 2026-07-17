@@ -1,0 +1,13 @@
+[package]
+name = "litehouse-service-fabric-provider-fixture"
+version = "0.0.0"
+description = "Test-only typed provider component for the Litehouse service fabric"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = "0.59.0"

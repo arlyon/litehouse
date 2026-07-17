@@ -1,0 +1,128 @@
+// TEST-ONLY: concrete typed fixtures for the service-fabric host harness.
+// This package is not a published Litehouse contract and has no generic call.
+package litehouse:service-fabric-fixture@1.0.0;
+
+interface model {
+  use litehouse:errors/types@1.0.0.{core-error, retry-advice};
+
+  record service-error {
+    inner: core-error,
+    retry: retry-advice,
+    error-id: string,
+  }
+
+  record state {
+    endpoint: string,
+    provider-generation: u64,
+    revision: u64,
+    current: bool,
+  }
+
+  record receipt {
+    endpoint: string,
+    ticket: u32,
+    provider-generation: u64,
+    revision: u64,
+    completion-order: u32,
+    current: bool,
+    target: bool,
+  }
+
+  record initial-report {
+    v1-keys: list<string>,
+    v1-current: list<bool>,
+    v1-provider-generations: list<u64>,
+    v2-key: string,
+    v2-current: bool,
+    v2-provider-generation: u64,
+    ambiguity: core-error,
+    completion-tickets: list<u32>,
+    completion-order: list<u32>,
+  }
+
+  record restart-report {
+    stale: core-error,
+    never-rebind: core-error,
+    rebound-provider-generation: u64,
+  }
+}
+
+interface fixture-gate {
+  complete: async func(ticket: u32);
+  after-completion: async func(ticket: u32);
+}
+
+interface provider-v1 {
+  use model.{receipt, service-error, state};
+
+  resource endpoint {
+    key: func() -> string;
+    incarnation: func() -> u64;
+    query: async func() -> result<state, service-error>;
+    set: async func(value: bool, ticket: u32) -> result<receipt, service-error>;
+    fail-for-host-test: async func();
+  }
+
+  discover: func() -> list<own<endpoint>>;
+}
+
+interface provider-v2 {
+  use model.{service-error, state};
+
+  resource endpoint {
+    key: func() -> string;
+    incarnation: func() -> u64;
+    query: async func() -> result<state, service-error>;
+  }
+
+  discover: func() -> list<own<endpoint>>;
+}
+
+interface fabric-v1 {
+  use model.{receipt, service-error, state};
+
+  resource proxy {
+    key: func() -> string;
+    query: async func() -> result<state, service-error>;
+    set: async func(value: bool, ticket: u32) -> result<receipt, service-error>;
+    rebind: func() -> result<own<proxy>, service-error>;
+  }
+
+  bind-many: func() -> result<list<own<proxy>>, service-error>;
+  bind-one: func() -> result<own<proxy>, service-error>;
+}
+
+interface fabric-v2 {
+  use model.{service-error, state};
+
+  resource proxy {
+    key: func() -> string;
+    query: async func() -> result<state, service-error>;
+    rebind: func() -> result<own<proxy>, service-error>;
+  }
+
+  bind-one: func() -> result<own<proxy>, service-error>;
+}
+
+interface scenario {
+  use model.{initial-report, restart-report, service-error};
+
+  resource session {
+    initial: async func() -> result<initial-report, service-error>;
+    after-restart: async func() -> result<restart-report, service-error>;
+  }
+
+  open: func() -> result<own<session>, service-error>;
+}
+
+world provider-world {
+  import fixture-gate;
+  export provider-v1;
+  export provider-v2;
+}
+
+world consumer-world {
+  import fabric-v1;
+  import fabric-v2;
+  export scenario;
+}

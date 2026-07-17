@@ -41,9 +41,13 @@ jobs:
         run: |
           cargo install cargo-groups --version 0.1.9 --locked
           cargo install wasm-tools --version 1.253.0 --locked
-      - name: Run contract kernel tests
+      - name: Run contract and service-fabric kernel tests
         run: |
-          cargo test -p litehouse-contracts -p litehouse-plugin -p litehouse-plugin-macro
+          cargo test \
+            -p litehouse-contracts \
+            -p litehouse-plugin \
+            -p litehouse-plugin-macro \
+            -p litehouse-service-fabric
           cargo run -p litehouse-contracts --bin contract-codegen -- --check
           generated="$(mktemp -d)"
           cargo run -p litehouse-contracts --bin contract-codegen -- --out "${generated}"
@@ -52,11 +56,22 @@ jobs:
       - name: Build and validate representative components
         run: |
           cargo build --target wasm32-wasip2 \
-            -p noop -p tasmota -p weather -p litehouse-quantity-component
-          for component in noop tasmota weather litehouse_quantity_component; do
+            -p noop -p tasmota -p weather -p litehouse-quantity-component \
+            -p litehouse-service-fabric-provider-fixture \
+            -p litehouse-service-fabric-consumer-fixture
+          for component in \
+            noop \
+            tasmota \
+            weather \
+            litehouse_quantity_component \
+            litehouse_service_fabric_provider_fixture \
+            litehouse_service_fabric_consumer_fixture; do
             wasm-tools validate --features cm-async \
               "target/wasm32-wasip2/debug/${component}.wasm"
           done
+          cargo run -p litehouse-service-fabric-harness -- \
+            target/wasm32-wasip2/debug/litehouse_service_fabric_provider_fixture.wasm \
+            target/wasm32-wasip2/debug/litehouse_service_fabric_consumer_fixture.wasm
           for component in noop tasmota weather; do
             cargo run -p litehouse-contracts --bin validate-component -- \
               plugin "target/wasm32-wasip2/debug/${component}.wasm"

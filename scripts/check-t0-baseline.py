@@ -21,6 +21,15 @@ WIT_ROOT = ROOT / "crates/plugin-macro/wit"
 CONTRACTS_ROOT = ROOT / "crates/litehouse-contracts"
 CONTRACT_WIT_ROOT = CONTRACTS_ROOT / "packages"
 QUANTITY_SOURCE_ROOT = CONTRACTS_ROOT / "src/quantity"
+SERVICE_FABRIC_ROOT = ROOT / "crates/litehouse-service-fabric"
+SERVICE_FABRIC_FIXTURE_WIT_ROOT = SERVICE_FABRIC_ROOT / "tests/fixtures/wit"
+SERVICE_FABRIC_HARNESS_ROOT = ROOT / "crates/service-fabric-harness"
+SERVICE_FABRIC_PROVIDER_FIXTURE_ROOT = (
+    ROOT / "crates/service-fabric-provider-fixture"
+)
+SERVICE_FABRIC_CONSUMER_FIXTURE_ROOT = (
+    ROOT / "crates/service-fabric-consumer-fixture"
+)
 MANAGEMENT_OPERATIONS = (
     CONTRACTS_ROOT / "management/management-operations-v1.json"
 )
@@ -170,6 +179,23 @@ def check_read_only_permissions(path: Path, lines: list[str]) -> None:
         fail(f"{path.relative_to(ROOT)} permissions must be contents: read")
 
 
+def check_service_fabric_fixtures() -> None:
+    world = (SERVICE_FABRIC_FIXTURE_WIT_ROOT / "world.wit").read_text()
+    if not world.startswith("// TEST-ONLY:"):
+        fail("service-fabric fixture WIT must remain explicitly test-only")
+    for marker in ("operation: string", "payload: list<u8>", "invoke: async func"):
+        if marker in world:
+            fail(f"service-fabric fixture WIT contains generic escape hatch: {marker}")
+    fixture_errors = (
+        SERVICE_FABRIC_FIXTURE_WIT_ROOT / "deps/errors.wit"
+    ).read_bytes()
+    contract_errors = (
+        CONTRACTS_ROOT / "packages/errors/1.0.0/wit/errors.wit"
+    ).read_bytes()
+    if fixture_errors != contract_errors:
+        fail("service-fabric fixture must use the exact T1 shared error WIT")
+
+
 def check_workflow_authority() -> None:
     write_permission = re.compile(
         r"(?m)^\s+[A-Za-z][A-Za-z-]*:\s*(?:write|write-all)\s*$"
@@ -225,6 +251,7 @@ def flatc_generated_digest(expected_version: str) -> str:
 
 
 def collect_state(flatc_version: str, skip_flatc: bool) -> dict[str, object]:
+    check_service_fabric_fixtures()
     state: dict[str, object] = {
         "ci_policy_sha256": sha256(Path(__file__).read_bytes()),
         "contract_package_json_sha256": tree_digest(CONTRACT_WIT_ROOT, ".json"),
@@ -234,6 +261,24 @@ def collect_state(flatc_version: str, skip_flatc: bool) -> dict[str, object]:
         "flatc_version": flatc_version,
         "management_operations_sha256": sha256(MANAGEMENT_OPERATIONS.read_bytes()),
         "quantity_engine_tree_sha256": tree_digest(QUANTITY_SOURCE_ROOT, ".rs"),
+        "service_fabric_consumer_fixture_sha256": tree_digest(
+            SERVICE_FABRIC_CONSUMER_FIXTURE_ROOT, ""
+        ),
+        "service_fabric_fixture_wit_sha256": tree_digest(
+            SERVICE_FABRIC_FIXTURE_WIT_ROOT, ".wit"
+        ),
+        "service_fabric_harness_sha256": tree_digest(
+            SERVICE_FABRIC_HARNESS_ROOT, ""
+        ),
+        "service_fabric_kernel_sha256": tree_digest(
+            SERVICE_FABRIC_ROOT / "src", ".rs"
+        ),
+        "service_fabric_provider_fixture_sha256": tree_digest(
+            SERVICE_FABRIC_PROVIDER_FIXTURE_ROOT, ""
+        ),
+        "service_fabric_tests_sha256": tree_digest(
+            SERVICE_FABRIC_ROOT / "tests", ""
+        ),
         "registry_schema_sha256": sha256(SCHEMA_PATH.read_bytes()),
         "tracked_workspace_members": workspace_state(),
         "wit_tree_sha256": tree_digest(WIT_ROOT, ".wit"),

@@ -1,5 +1,5 @@
 {
-  "ci_policy_sha256": "195ed1bc12207c5f43351c9872f38d4af912a1811158704d3b29fa73f50502dd",
+  "ci_policy_sha256": "57354dec4b3993b92a99fc816fdee7dec65c2527013b5166fc0ab6005a2704b5",
   "contract_package_json_sha256": "650cd474b7da81c66989722d89a52bc2acb7fe7cfd30994aad9af059708d1805",
   "contract_source_tree_sha256": "3f9ef72e294ec6f8acf4b0df9038c70eebef30cd4ab975a1a8258a0d47ec511e",
   "contract_wit_tree_sha256": "d2b71b695d199310b164c69f051b2a267db712aa1751fa5b0b612138f0aa2820",
@@ -9,6 +9,12 @@
   "quantity_engine_tree_sha256": "da5341ae4d470e7cd109b9948854934ca99fc4fe7003445c155a724b9634c7b4",
   "registry_generated_sha256": "db64638ce8966b4dee602aac9e27046058a8a6f18a83a49f6b853899cdf2c33d",
   "registry_schema_sha256": "1f39d1296632cb9b5bb1fdca1db8d55b72aff186b55e5db537fed5b3d583aa4d",
+  "service_fabric_consumer_fixture_sha256": "11eb0acef856e2739def27d8c1cbdb57415ffa332838f89e1efa0736e52b44b3",
+  "service_fabric_fixture_wit_sha256": "e5734ded54816bb219a5132635348843907a243d96d74e229ad4e4db0c145178",
+  "service_fabric_harness_sha256": "1508431fb5a623b121dfda7455c95759badf186551927306ff1741c734d888ca",
+  "service_fabric_kernel_sha256": "5d0dca1b6ed29ae27f78d2cd64dd736c9876489badb01f0ae385edd6b0a18099",
+  "service_fabric_provider_fixture_sha256": "f540f1d8c8fb6ca5bffb6c976b5641582ab0206bd75128df05104bbee18bfec3",
+  "service_fabric_tests_sha256": "de03ae3ff162d074b885cb2cba767bdff362b62672cc0d2ac91cb63148631575",
   "tracked_workspace_members": [
     {
       "edition": "workspace",
@@ -29,6 +35,11 @@
       "edition": "workspace",
       "name": "litehouse-contracts",
       "path": "crates/litehouse-contracts/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-service-fabric",
+      "path": "crates/litehouse-service-fabric/Cargo.toml"
     },
     {
       "edition": "2024",
@@ -69,6 +80,21 @@
       "edition": "workspace",
       "name": "litehouse-registry",
       "path": "crates/registry/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-service-fabric-consumer-fixture",
+      "path": "crates/service-fabric-consumer-fixture/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-service-fabric-harness",
+      "path": "crates/service-fabric-harness/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-service-fabric-provider-fixture",
+      "path": "crates/service-fabric-provider-fixture/Cargo.toml"
     },
     {
       "edition": "workspace",
@@ -174,5 +200,5 @@
       "workflow": ".github/workflows/rust.yml"
     }
   ],
-  "workflow_tree_sha256": "dc251177a807636a95daf7fa1a85a53a6b44182dedacd94e788bf4e46f8a780b"
+  "workflow_tree_sha256": "43debfac78b2c29e8963f40d15fd2947e222ff6b0e7e3ca3c9030ad7ae0989fe"
 }

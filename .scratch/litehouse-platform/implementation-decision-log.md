@@ -1,6 +1,6 @@
 # Implementation decision log
 
-Updated: 2026-07-15
+Updated: 2026-07-17
 Owner: T1–T15 implementation route
 Status: active; review requested in the morning
 
@@ -212,6 +212,89 @@ configuration.
   symlinked roots and ancestors, proves canonical containment, and rejects every
   descendant symlink and non-regular entry. Tests cover package-root and
   version-root escapes, descendant escapes, and a Unix socket entry.
+
+### D-014 — T2 kernel and store-resource boundary
+
+- **Status:** resolved
+- **Blocks:** nothing
+- **Question:** Which production layer owns binding policy without retaining a
+  provider guest resource in consumer or registry state?
+- **Resolution:** `litehouse-service-fabric` is a Wasmtime-independent kernel.
+  Its registry and proxy records contain stable endpoint metadata and host-owned
+  numeric proxy IDs only. Generated adapters retain provider `ResourceAny`
+  values inside the single provider-store actor and consumer resource tables
+  retain only a typed `ProxyId`; actor messages carry typed dispatch records and
+  never a Wasmtime resource, table index, instance, or store.
+
+### D-015 — T2 selector ordering and snapshot semantics
+
+- **Status:** resolved
+- **Blocks:** nothing
+- **Question:** What ordering is canonical for `many`, and when may wildcard
+  membership change?
+- **Resolution:** order by stable endpoint identity: provider-instance ID, then
+  facet key, then exact contract namespace/name/major. `one` and `optional`
+  reject more than one authorized match; `many` is the complete authorized
+  ordered snapshot. Wildcard grants authorize a later explicit resolution but
+  never mutate an existing binding.
+
+### D-016 — T2 authorization, cycle, and rebind failures
+
+- **Status:** resolved
+- **Blocks:** nothing
+- **Question:** How should the kernel preserve the closed T1 shared error model
+  where it has no cycle-specific variant?
+- **Resolution:** one concrete default-deny `ServiceAuthorizer::authorize` seam
+  checks every bind, rebind, and invocation at exact operation and grant
+  revision. Each grant set is associated with one principal and every service
+  grant explicitly names its permitted actions; a missing set or principal,
+  action, resource, or operation mismatch cannot inherit authority. Cycle
+  rejection is a host-synthesized `execution(unsupported)`/`never` error; it
+  does not extend `litehouse:errors@1`. Never-rebind returns stale/never.
+  Same-identity rebind looks up the original identity only, but retains and
+  rechecks the complete original selector and every bound operation against the
+  current descriptor before grant checks or proxy allocation. It never reruns a
+  wildcard selector against other identities.
+
+### D-017 — T2 provider lifecycle and fixture ABI
+
+- **Status:** resolved
+- **Blocks:** nothing
+- **Question:** How much lifecycle and WIT surface belongs in T2 rather than T3?
+- **Resolution:** T2 fences active provider generation, facet incarnation, and
+  grant revision; an explicit endpoint withdrawal must present the withdrawing
+  `InstanceGeneration` and expected facet incarnation, so stale lifecycle work
+  returns a `LifecycleError` without removing a newer descriptor. A trap
+  withdraws endpoints and reports provider-trapped until a higher generation
+  activates, after which old proxies are stale. Restart policy, deadlines,
+  cancellation, admission/resource limits, and durable generation allocation
+  remain T3. The real provider/consumer fixture WIT is explicitly test-only and
+  contains fixed typed query/set/rebind functions—no operation strings, generic
+  payload, reflection, or dynamic call escape hatch.
+
+### D-018 — T2 live cycle-edge bookkeeping
+
+- **Status:** resolved
+- **Blocks:** nothing
+- **Question:** How should a `many` binding contribute dependency edges after
+  individual proxies are dropped, including repeated facets from one provider?
+- **Resolution:** each binding maintains a live proxy refcount per provider.
+  Dropping a proxy decrements only its provider; the dependency edge disappears
+  when that provider's last proxy drops, while other provider edges in the same
+  binding remain live. Cycle reachability uses an explicit iterative worklist and
+  visited set rather than recursion, preserving behavior for deeply nested
+  service graphs without consuming call stack per edge.
+
+### D-018 — Empty optional/many binding ownership
+
+- **Status:** resolved
+- **Blocks:** nothing
+- **Question:** Successful `optional` or `many` resolution may select no endpoint,
+  leaving no guest proxy whose drop hook could release a retained binding.
+- **Resolution:** empty snapshots carry no `BindingId` and create no binding or
+  cycle-graph record. Only non-empty snapshots retain host binding state. A
+  repeated-miss regression test proves optional/many resolution leaves the
+  active-binding count at zero.
 
 ## Deferred external-authority decisions
 

@@ -3121,6 +3121,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "litehouse-service-fabric"
+version = "0.1.0"
+dependencies = [
+ "litehouse-contracts",
+]
+
+[[package]]
+name = "litehouse-service-fabric-consumer-fixture"
+version = "0.0.0"
+dependencies = [
+ "futures",
+ "wit-bindgen 0.59.0",
+]
+
+[[package]]
+name = "litehouse-service-fabric-harness"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "litehouse-contracts",
+ "litehouse-service-fabric",
+ "tokio",
+ "wasmtime",
+ "wasmtime-wasi",
+]
+
+[[package]]
+name = "litehouse-service-fabric-provider-fixture"
+version = "0.0.0"
+dependencies = [
+ "wit-bindgen 0.59.0",
+]
+
+[[package]]
 name = "litemap"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
