@@ -23,7 +23,7 @@ use tokio::sync::broadcast::channel;
 
 use crate::{
     LogMessage,
-    runtime::{PluginRunnerFactory, set_up_engine},
+    runtime::{PluginRunnerFactory, epoch_ticks, set_up_engine},
     store::StoreStrategy,
     util::resolve_span,
 };
@@ -144,10 +144,12 @@ impl Subcommand {
                     return Ok(());
                 }
                 let default = LitehouseConfig::default();
-                let mut value = serde_json::to_value(default).expect("can't fail");
+                let mut value = serde_json::to_value(default)
+                    .into_diagnostic()
+                    .wrap_err("unable to encode default settings")?;
                 value
                     .as_object_mut()
-                    .expect("can't fail")
+                    .ok_or_else(|| miette::miette!("default settings must encode as an object"))?
                     .insert("$schema".to_string(), "schema.json".into());
                 let mut file = std::fs::File::create("settings.json")
                     .into_diagnostic()
@@ -261,8 +263,10 @@ impl Subcommand {
                 let dirs = [(
                     plugin.plugin.clone(),
                     PluginConfig {
-                        config: None,
                         plugin,
+                        instance_id: None,
+                        capabilities: Vec::new(),
+                        config: None,
                     },
                 )]
                 .into_iter()
@@ -287,8 +291,14 @@ impl Subcommand {
                     .map(|(a, _, host, mut store, _)| async move {
                         let mut store = store.enter().await;
 
-                        let indices = crate::runtime::bindings::exports::litehouse::plugin::plugin::GuestIndices::new( &host.instance_pre(&mut store)).unwrap();
-                        let guest = indices.load(&mut store, &host).unwrap();
+                        let indices = crate::runtime::bindings::exports::litehouse::plugin::plugin::GuestIndices::new(
+                            &host.instance_pre(&mut store),
+                        )
+                        .map_err(|error| miette::miette!("failed to load plugin export indices: {error:?}"))?;
+                        let guest = indices
+                            .load(&mut store, &host)
+                            .map_err(|error| miette::miette!("failed to load plugin exports: {error:?}"))?;
+                        store.set_epoch_deadline(epoch_ticks(std::time::Duration::from_secs(10)));
                         let metadata = tokio::time::timeout(
                             std::time::Duration::from_secs(10),
                             guest.call_get_metadata(&mut store),
@@ -367,7 +377,9 @@ impl Subcommand {
                 let schema = generate::generate(&wasm_path, !no_cache)
                     .await
                     .wrap_err("unable to generate schema")?;
-                let schema = jsonschema::JSONSchema::compile(&schema).expect("can't fail");
+                let schema = jsonschema::JSONSchema::compile(&schema).map_err(|error| {
+                    miette::miette!("generated config schema is invalid: {error}")
+                })?;
 
                 let data = std::fs::read_to_string("settings.json")
                     .into_diagnostic()
@@ -391,7 +403,9 @@ impl Subcommand {
                     })
                 })?;
 
-                let config = ast.value.expect("has a value");
+                let config = ast
+                    .value
+                    .ok_or_else(|| miette::miette!("settings document is empty"))?;
 
                 schema
                     .validate(&config.clone().into())

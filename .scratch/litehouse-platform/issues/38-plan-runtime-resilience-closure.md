@@ -51,18 +51,20 @@ than immutable profile policy.
 ### Event continuity
 
 The existing broadcast lag path must not log and silently continue as though no
-event was lost. Surface an explicit continuity-loss condition to the affected
-instance/UI projection and refresh current state before treating later updates as
-continuous. Do not add durable event replay, cursor rehydration, or a delivery-
-epoch state machine in T3.
+event was lost. Lag matters only to an instance with matching update
+subscriptions. Disable that affected actor with an explicit continuity-loss error
+rather than guessing that constructor restart equals state refresh. Timer-only
+instances ignore unrelated broadcast lag. A later provider/management seam may
+add explicit snapshot refresh when it exists; T3 does not add durable replay,
+cursors, or a delivery state machine.
 
-### Restart generation fencing
+### Trap isolation
 
-When a plugin store traps and restarts, allocate a fresh in-process runtime
-generation, withdraw the old generation's T2 endpoints, and publish endpoints for
-the fresh generation only after normal initialization succeeds. Old T2 proxies
-must become stale. No cross-process durable generation database is needed because
-store resources and proxies do not survive process restart.
+The default per-instance store strategy may reconstruct only the trapped
+instance. Global and per-plugin shared-store strategies remain valid legacy
+configuration, but an individual actor cannot safely replace their shared store;
+on trap that actor becomes inactive while siblings keep their existing store.
+T3 does not invent coordinated shared-store restart or runtime generations.
 
 ### Capability scope
 
@@ -85,13 +87,6 @@ Replace relevant runtime/cache `unwrap` and `expect` paths reached by component,
 configuration, cache, lifecycle, or output errors with normal typed/reportable
 errors. Do not convert unrelated internal invariants into a new error framework.
 
-### T2 production seam
-
-Connect the existing `litehouse-service-fabric` generation and endpoint lifecycle
-to one production provider path. Do not add a second routing or authorization
-authority. Treat the current service-fabric harness as evidence, not product
-integration.
-
 ## Explicitly not scope
 
 T3 does not add:
@@ -104,6 +99,8 @@ T3 does not add:
 - global plugin-set activation/rollback transactions;
 - runtime or host restore journals;
 - durable event replay/rehydration;
+- production service-fabric endpoint publication before T6 supplies a real
+  provider endpoint;
 - arbitrary fixed queue, memory, PID, timer, or diagnostic limits;
 - process-per-plugin isolation;
 - a new diagnostics subsystem; or
@@ -115,10 +112,13 @@ T3 passes focused tests proving:
 
 1. corrupt/truncated cache bytes cause a rebuild rather than panic;
 2. yielding I/O and non-yielding guest CPU calls terminate at their deadline;
-3. broadcast lag becomes explicit continuity loss followed by state refresh;
-4. a trap restarts only the affected instance and fences old T2 proxies;
-5. per-instance capabilities do not leak while legacy global configuration still
-   behaves compatibly;
+3. subscribed broadcast lag disables only the affected actor instead of
+   continuing with incomplete state, while timer-only actors ignore unrelated
+   lag;
+4. a trap restarts only a default per-instance store; shared-store actor failure
+   does not replace sibling state or terminate the whole runtime;
+5. per-instance capabilities do not leak, duplicate instance IDs are rejected,
+   and legacy global configuration remains compatible;
 6. protected environment values reach only the declared instance and never enter
    persisted config or logs;
 7. invalid component/config/output/lifecycle input returns an error instead of a
@@ -126,6 +126,6 @@ T3 passes focused tests proving:
 8. the existing cache, in-process compiler, event payload forwarding, output
    validation, and ordinary `run_concurrent` behavior remain intact.
 
-Run focused Litehouse/runtime tests, the T2 service-fabric harness, release build,
+Run focused Litehouse/runtime tests, the T2 service-fabric regression harness, release build,
 Wasm component validation, formatting, diagnostics, and the repository's T0
 checks. T3 remains one independently reviewed commit.

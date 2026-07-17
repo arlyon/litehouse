@@ -358,9 +358,10 @@ WebRTC, CoreOS, AI, and full UI prototypes are not mandatory Wayfinder gates.
   dispatch, fabric credentials, OTA, and generic Matter operations.
 - [Plan runtime resilience closure](./issues/38-plan-runtime-resilience-closure.md)
   — preserve the existing runtime/compiler/cache and apply focused fixes for
-  corrupt cache handling, guest deadlines, explicit event continuity loss,
-  generation fencing after restart, per-instance capabilities, protected
-  environment values, panic paths, and one production T2 integration seam.
+  corrupt cache handling, queue-inclusive guest deadlines, explicit subscribed
+  event continuity loss, safe per-instance versus shared-store trap behavior,
+  per-instance capabilities with unique IDs, protected environment values, and
+  panic paths; real T2 endpoint publication waits for a T6 provider.
 - [Disposition source-owned residuals](./issues/39-disposition-source-owned-residuals.md)
   — implement only the schema/runtime safety seams owned by resolved contracts;
   replace the old registry/pairing/admin placeholders in their production

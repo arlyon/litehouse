@@ -96,17 +96,25 @@ native http client, meaning plugins do not need to bundle heavy dependencies.
 Other capabilities, such as filesystem, clocks, random numbers, and more are
 also available but not exposed to plugins yet.
 
-Plugins are completely sandboxed by default, so to allow them to access
-outside the sandbox, you must award them capabilities by adding them to
-the `capabilities` field in your settings file.
+Plugins are completely sandboxed by default. The top-level `capabilities` list
+remains a backwards-compatible default for every plugin. Prefer granting an
+exact HTTP origin or TCP socket to one configured instance:
 
 ```jsonc
 {
-  "capabilities": [
-    "http-client:api.open-meteo.com",
-    "http-server:0.0.0.0:8000",
-    // (not implemented yet)
-    "folder:example",
-  ],
+  "plugins": {
+    "weather": {
+      "plugin": "weather@0.1.1",
+      "capabilities": ["http-client:https://api.open-meteo.com"],
+      "config": { "lat": 51.5, "lon": -0.1 }
+    }
+  }
 }
 ```
+
+Per-instance capabilities require the default `instance` sandbox strategy;
+shared global/per-plugin stores continue to support the legacy top-level list.
+If a plugin declares an environment-backed protected config field, its instance
+also needs a stable lowercase UUID `instance_id`. Litehouse derives the exact
+`LITEHOUSE_INSTANCE_<UUID>_<FIELD>` variable, reads only that variable at
+startup, and never writes its value to `settings.json`.

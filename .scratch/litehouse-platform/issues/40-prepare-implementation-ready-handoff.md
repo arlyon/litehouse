@@ -169,28 +169,31 @@ zero Wasmtime resource handles crossing stores.
 **Rollback:** atomic host/component rollback; no reflection or implicit major
 adapter.
 
-### T3 — Minimal runtime resilience and T2 integration
+### T3 — Minimal runtime resilience
 
 **Prerequisites:** T2.
 
 **Scope:** preserve the existing runtime, in-process Wasmtime compilation,
 incremental cache, store strategies, capability hooks, event loop, and trap
-restart path. Fix cache-corruption panics, add ordinary lifecycle/update deadlines
-with epoch interruption for non-yielding guests, surface event continuity loss,
-fence old T2 proxies with a fresh in-process generation after restart, support
+restart path. Fix cache-corruption panics, add queue-inclusive lifecycle/update
+deadlines with epoch interruption for non-yielding guests, disable only an
+affected subscribed actor on event continuity loss, restart traps only for the
+default per-instance strategy without replacing shared sibling stores, support
 backward-compatible per-instance capabilities, inject only explicitly declared
-protected environment values, replace relevant input-driven panic paths with
-errors, and connect one production provider path to the T2 service fabric.
+protected environment values, and replace relevant input-driven panic paths with
+errors.
 
 **Not scope:** compiler sandboxing, serialized compiled-code loading, replacement
 cache, hard component-size limit, custom DNS/IANA policy, durable event replay,
 global activation/rollback transactions, host restore, arbitrary resource limits,
-new diagnostics subsystem, registry, providers, rules, UI, or cloud.
+production service-fabric endpoint publication before a real T6 provider, new
+diagnostics subsystem, registry, providers, rules, UI, or cloud.
 
 **Acceptance:** focused issue-38 tests prove corrupt cache rebuild, yielding-I/O
-and non-yielding-CPU deadlines, explicit event continuity loss and state refresh,
-per-instance trap isolation and stale T2 proxies, per-instance capability
-isolation with legacy compatibility, protected-value non-persistence, ordinary
+and non-yielding-CPU deadlines, subscribed event continuity loss without silent
+continuation, shared-store sibling preservation, per-instance capability
+isolation with legacy compatibility and unique IDs, protected-value
+non-persistence/bounds, ordinary
 error handling, and preservation of the existing compiler/cache/event/output and
 `run_concurrent` behavior.
 

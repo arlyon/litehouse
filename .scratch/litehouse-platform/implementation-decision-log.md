@@ -306,7 +306,9 @@ configuration.
   compilation, incremental cache, store strategies, capability hooks, event loop,
   and restart path. T3 applies only the focused defect fixes in issue 38. There is
   no compiler sandbox, custom cache/DNS, component-size ceiling, global activation
-  journal, host-restore protocol, or arbitrary resource-limit system.
+  journal, host-restore protocol, or arbitrary resource-limit system. T3 does not
+  create inert T2 lifecycle bookkeeping; real endpoint publication and proxy
+  fencing begin with a real T6 provider.
 
 ### D-021 — T9 first-release container boundary
 

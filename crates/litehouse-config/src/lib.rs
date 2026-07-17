@@ -205,8 +205,12 @@ impl LitehouseConfig {
                     if val.plugin == manifest.import && val.config == config {
                         ManifestAddResult::Ignored(k)
                     } else if replace {
+                        let instance_id = val.instance_id.clone();
+                        let capabilities = val.capabilities.clone();
                         let v_old = e.insert(PluginConfig {
                             plugin: manifest.import.clone(),
+                            instance_id,
+                            capabilities,
                             config,
                         });
                         ManifestAddResult::Replaced(k, v_old.config)
@@ -217,6 +221,8 @@ impl LitehouseConfig {
                 Entry::Vacant(entry) => {
                     entry.insert(PluginConfig {
                         plugin: manifest.import.clone(),
+                        instance_id: None,
+                        capabilities: Vec::new(),
                         config,
                     });
                     ManifestAddResult::Added(k)
@@ -285,6 +291,15 @@ pub struct Registry {
 pub struct PluginConfig {
     #[schemars(with = "String")]
     pub plugin: Import,
+    /// Stable canonical UUID used to derive protected environment-variable names.
+    /// Existing instances without protected fields may omit it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub instance_id: Option<String>,
+    /// Additional capabilities granted only to this configured instance.
+    /// The top-level capability list remains a backwards-compatible default.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<String>")]
+    pub capabilities: Vec<Capability>,
     pub config: Option<serde_json::Value>,
 }
 
@@ -332,6 +347,35 @@ mod test {
             }
             ImportAddResult::Replaced(x) => ImportAddResult::Replaced(x),
         }
+    }
+
+    #[test]
+    fn plugin_instance_capabilities_roundtrip_without_changing_global_defaults() {
+        let source = serde_json::json!({
+            "$schema": "./schema.json",
+            "plugins": {
+                "lamp": {
+                    "plugin": "noop",
+                    "instance_id": "00112233-4455-6677-8899-aabbccddeeff",
+                    "capabilities": ["http-client:http://192.168.1.50:8002"],
+                    "config": null
+                }
+            }
+        });
+
+        let config: LitehouseConfig = serde_json::from_value(source).unwrap();
+        let lamp = &config.plugins["lamp"];
+
+        assert!(config.capabilities.is_empty());
+        assert_eq!(
+            lamp.instance_id.as_deref(),
+            Some("00112233-4455-6677-8899-aabbccddeeff")
+        );
+        assert_eq!(lamp.capabilities.len(), 1);
+        assert_eq!(
+            lamp.capabilities[0].to_string(),
+            "http-client:http://192.168.1.50:8002"
+        );
     }
 
     #[test_case("package", "package" => Some(Ordering::Equal) ; "same package")]
