@@ -455,3 +455,22 @@ configuration.
   On/Off and one Boolean resource, query observed the initial relay state,
   absolute set returned accepted-for-delivery, and a later query observed the
   server-emitted state.
+
+### R-008 — Keep MCP behind three canonical management handlers
+
+- **Resolution:** the proving principal carries only `litehouse:read` and
+  `litehouse:operate`. One fixed-scope authorization seam guards the typed
+  `inventory_snapshot`, `facet_query`, and `on_off_set` handlers before lookup
+  or provider invocation. A bounded, provider-generation-local result cache
+  supplies the set operation's required host idempotency, including stable
+  replay of outcome-unknown errors without reissuing a device command. The
+  in-process `rmcp` adapter publishes exactly `litehouse_inventory`,
+  `litehouse_query`, and `litehouse_interact`, using the checked contract
+  projection schemas and safe structured errors. It has no
+  generic operation dispatcher and no independent policy.
+- **Evidence:** an in-process MCP client listed exactly three tools with schemas
+  equal to the checked manifest, then exercised inventory, query, absolute set,
+  and later observation through the production provider actor. A full fixed-key
+  Noise fixture separately proved ESPHome Native API → Wasm component →
+  store-local host → canonical handlers → MCP, including absolute restore and
+  restoration observation.

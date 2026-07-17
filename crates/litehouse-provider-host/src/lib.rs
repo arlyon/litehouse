@@ -6,7 +6,7 @@
 use litehouse_contracts::identity::Version;
 use litehouse_service_fabric as fabric;
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, VecDeque},
     error::Error,
     fmt,
     net::SocketAddr,
@@ -152,6 +152,7 @@ pub struct CommandReceipt {
     pub accepted_at_unix_milliseconds: u64,
     pub completed_at_unix_milliseconds: Option<u64>,
     pub idempotency_key: Option<String>,
+    pub deduplicated: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -172,7 +173,7 @@ pub struct ProviderConfig {
     pub startup_timeout: Duration,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ProviderHostError {
     ComponentLinkFailed,
     ComponentInstantiationFailed,
@@ -283,6 +284,43 @@ struct ActorState {
     handles: BTreeMap<HandleKey, ResourceAny>,
     provider: fabric::InstanceGeneration,
     fabric: Arc<Mutex<fabric::ServiceFabric>>,
+    idempotency: IdempotencyCache,
+}
+
+const MAX_IDEMPOTENCY_ENTRIES: usize = 1_024;
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct IdempotencyKey {
+    facet: String,
+    generation: fabric::Generation,
+    key: String,
+}
+
+#[derive(Default)]
+struct IdempotencyCache {
+    entries: BTreeMap<IdempotencyKey, Result<CommandReceipt, ProviderHostError>>,
+    order: VecDeque<IdempotencyKey>,
+}
+
+impl IdempotencyCache {
+    fn get(&self, key: &IdempotencyKey) -> Option<Result<CommandReceipt, ProviderHostError>> {
+        self.entries.get(key).cloned().map(|result| {
+            result.map(|mut receipt| {
+                receipt.deduplicated = true;
+                receipt
+            })
+        })
+    }
+
+    fn insert(&mut self, key: IdempotencyKey, result: Result<CommandReceipt, ProviderHostError>) {
+        if self.entries.len() == MAX_IDEMPOTENCY_ENTRIES
+            && let Some(oldest) = self.order.pop_front()
+        {
+            self.entries.remove(&oldest);
+        }
+        self.order.push_back(key.clone());
+        self.entries.insert(key, result);
+    }
 }
 
 enum ActorRequest {
@@ -313,6 +351,10 @@ impl ProviderHandle {
 
     pub fn descriptors(&self) -> &[HostFacetDescriptor] {
         self.descriptors.as_slice()
+    }
+
+    pub fn is_running(&self) -> bool {
+        !self.sender.is_closed()
     }
 
     pub async fn query(
@@ -545,6 +587,7 @@ pub async fn start_provider(
         handles,
         provider: provider.clone(),
         fabric,
+        idempotency: IdempotencyCache::default(),
     };
     tokio::spawn(run_actor(actor, receiver));
     Ok(ProviderHandle {
@@ -795,11 +838,11 @@ impl ActorState {
         value: bool,
         context: CallContext,
     ) -> (Result<CommandReceipt, ProviderHostError>, bool) {
-        let key = HandleKey {
+        let handle_key = HandleKey {
             kind: FacetKind::OnOff,
             facet: endpoint.facet().as_str().to_owned(),
         };
-        let Some(handle) = self.handles.get(&key).copied() else {
+        let Some(handle) = self.handles.get(&handle_key).copied() else {
             return (
                 Err(service_error(
                     fabric::CoreError::Binding(fabric::BindingError::EndpointRemoved),
@@ -808,18 +851,29 @@ impl ActorState {
                 false,
             );
         };
+        let idempotency_key = context.idempotency_key.as_ref().map(|key| IdempotencyKey {
+            facet: endpoint.facet().as_str().to_owned(),
+            generation: self.provider.generation(),
+            key: key.clone(),
+        });
+        if let Some(cached) = idempotency_key
+            .as_ref()
+            .and_then(|key| self.idempotency.get(key))
+        {
+            return (cached, false);
+        }
         if let Err(error) = set_store_deadline(&mut self.store, context.deadline) {
             return (Err(error), false);
         }
         let request_id = context.request_id.clone();
         let attempt = context.attempt;
-        let idempotency_key = context.idempotency_key.clone();
+        let request_idempotency_key = context.idempotency_key.clone();
         let wire_context = wire_context(
             self.store.data().clock_started,
             context.deadline,
             &request_id,
             context.correlation_id.clone(),
-            idempotency_key.clone(),
+            request_idempotency_key.clone(),
             attempt,
         );
         let request = wire_on_off::SetRequest {
@@ -827,7 +881,7 @@ impl ActorState {
             timed: None,
             effect: None,
         };
-        let result = tokio::time::timeout_at(
+        let call = tokio::time::timeout_at(
             context.deadline,
             self.store.run_concurrent(async |accessor| {
                 self.component
@@ -838,44 +892,43 @@ impl ActorState {
             }),
         )
         .await;
-        let result = match result {
-            Err(_) => {
-                return (
-                    Err(outcome_unknown(
-                        fabric::UnknownOutcomeCause::DeadlineExceeded,
-                        request_id,
-                        attempt,
-                        idempotency_key,
-                    )),
-                    true,
-                );
-            }
-            Ok(Err(_)) | Ok(Ok(Err(_))) => {
-                return (
-                    Err(outcome_unknown(
-                        fabric::UnknownOutcomeCause::ProviderFailed,
-                        request_id,
-                        attempt,
-                        idempotency_key,
-                    )),
-                    true,
-                );
-            }
-            Ok(Ok(Ok(Err(error)))) => return (Err(on_off_error(error)), false),
-            Ok(Ok(Ok(Ok(receipt)))) => receipt,
-        };
-        (
-            host_receipt(
-                endpoint,
-                self.provider.generation(),
-                value,
-                &request_id,
-                attempt,
-                idempotency_key.as_deref(),
-                result,
+        let (result, fatal) = match call {
+            Err(_) => (
+                Err(outcome_unknown(
+                    fabric::UnknownOutcomeCause::DeadlineExceeded,
+                    request_id,
+                    attempt,
+                    request_idempotency_key,
+                )),
+                true,
             ),
-            false,
-        )
+            Ok(Err(_)) | Ok(Ok(Err(_))) => (
+                Err(outcome_unknown(
+                    fabric::UnknownOutcomeCause::ProviderFailed,
+                    request_id,
+                    attempt,
+                    request_idempotency_key,
+                )),
+                true,
+            ),
+            Ok(Ok(Ok(Err(error)))) => (Err(on_off_error(error)), false),
+            Ok(Ok(Ok(Ok(receipt)))) => (
+                host_receipt(
+                    endpoint,
+                    self.provider.generation(),
+                    value,
+                    &request_id,
+                    attempt,
+                    request_idempotency_key.as_deref(),
+                    receipt,
+                ),
+                false,
+            ),
+        };
+        if !fatal && let Some(key) = idempotency_key {
+            self.idempotency.insert(key, result.clone());
+        }
+        (result, fatal)
     }
 }
 
@@ -1133,6 +1186,7 @@ fn host_receipt(
         accepted_at_unix_milliseconds: receipt.receipt.accepted_at_unix_milliseconds,
         completed_at_unix_milliseconds: receipt.receipt.completed_at_unix_milliseconds,
         idempotency_key: receipt.receipt.idempotency_key,
+        deduplicated: false,
     })
 }
 

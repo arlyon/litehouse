@@ -38,6 +38,11 @@
     },
     {
       "edition": "workspace",
+      "name": "litehouse-management",
+      "path": "crates/litehouse-management/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
       "name": "litehouse-provider-host",
       "path": "crates/litehouse-provider-host/Cargo.toml"
     },
