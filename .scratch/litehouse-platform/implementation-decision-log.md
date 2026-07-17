@@ -411,3 +411,18 @@ configuration.
   facets, and publishes five handle-free service-fabric descriptors. The
   component validates with Component Model async features and the workspace
   passes Clippy with warnings denied.
+
+### R-005 — Promote a three-tool MCP ESPHome proving slice
+
+- **Resolution:** leave the existing partially working registry untouched and
+  defer T5/T5b. Combine the first ESPHome production slice with an internal MCP
+  proving adapter exposing exactly `litehouse_inventory`, `litehouse_query`, and
+  On/Off-only `litehouse_interact`. MCP calls canonical handlers, which dispatch
+  through the production provider host adapter to store-local typed guest
+  resources. The proof uses in-process `rmcp` transport; authenticated stateful
+  Streamable HTTP remains T13 after T9/T10. The supervised device mutation is
+  limited to an absolute Relay 1 set, observation, and restoration.
+- **Evidence required:** deterministic provider/Noise/host/MCP tests, exact
+  three-tool inventory, real component validation, release Litehouse build, and
+  a redacted supervised inventory/query/set/query/restore/query transcript with
+  successful restoration.
