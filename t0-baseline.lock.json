@@ -1,0 +1,158 @@
+{
+  "ci_policy_sha256": "53980c78c27a15bd81d2d281a5b8e8e5d1da4f0fb0897496e29ce1be73be5e8f",
+  "flatc_installer_sha256": "64845bc24de742866aef4415257ed0f9bda69bcae0a87601f98e04397dc93f33",
+  "flatc_version": "25.12.19",
+  "registry_generated_sha256": "db64638ce8966b4dee602aac9e27046058a8a6f18a83a49f6b853899cdf2c33d",
+  "registry_schema_sha256": "1f39d1296632cb9b5bb1fdca1db8d55b72aff186b55e5db537fed5b3d583aa4d",
+  "tracked_workspace_members": [
+    {
+      "edition": "workspace",
+      "name": "litehouse-auth",
+      "path": "crates/auth/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "cockpit",
+      "path": "crates/cockpit/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-config",
+      "path": "crates/litehouse-config/Cargo.toml"
+    },
+    {
+      "edition": "2024",
+      "name": "litehouse",
+      "path": "crates/litehouse/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "opendal-fs-cache",
+      "path": "crates/opendal-fs-cache/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-plugin-macro",
+      "path": "crates/plugin-macro/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-plugin",
+      "path": "crates/plugin/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-registry-js",
+      "path": "crates/registry-js/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-registry",
+      "path": "crates/registry/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "mqtt",
+      "path": "plugins/mqtt/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "noop",
+      "path": "plugins/noop/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "persistent-task",
+      "path": "plugins/persistent-task/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "presence",
+      "path": "plugins/presence/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "samsung",
+      "path": "plugins/samsung/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "sonoff",
+      "path": "plugins/sonoff/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "tasmota",
+      "path": "plugins/tasmota/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "weather",
+      "path": "plugins/weather/Cargo.toml"
+    }
+  ],
+  "wit_tree_sha256": "619e58478102e40afcda2c5b854d4da1586ff4788a9172a3560b4048c6373bc5",
+  "workflow_actions": [
+    {
+      "action": "actions/checkout",
+      "sha": "34e114876b0b11c390a56381ad16ebd13914f8d5",
+      "workflow": ".github/workflows/biome.yml"
+    },
+    {
+      "action": "oven-sh/setup-bun",
+      "sha": "f4d14e03ff726c06358e5557344e1da148b56cf7",
+      "workflow": ".github/workflows/biome.yml"
+    },
+    {
+      "action": "actions/checkout",
+      "sha": "34e114876b0b11c390a56381ad16ebd13914f8d5",
+      "workflow": ".github/workflows/build.yml"
+    },
+    {
+      "action": "docker/build-push-action",
+      "sha": "10e90e3645eae34f1e60eeb005ba3a3d33f178e8",
+      "workflow": ".github/workflows/build.yml"
+    },
+    {
+      "action": "docker/setup-buildx-action",
+      "sha": "8d2750c68a42422c14e847fe6c8ac0403b4cbd6f",
+      "workflow": ".github/workflows/build.yml"
+    },
+    {
+      "action": "actions/checkout",
+      "sha": "34e114876b0b11c390a56381ad16ebd13914f8d5",
+      "workflow": ".github/workflows/cargo-rdme.yml"
+    },
+    {
+      "action": "dtolnay/rust-toolchain",
+      "sha": "2c7215f132e9ebf062739d9130488b56d53c060c",
+      "workflow": ".github/workflows/cargo-rdme.yml"
+    },
+    {
+      "action": "actions/checkout",
+      "sha": "34e114876b0b11c390a56381ad16ebd13914f8d5",
+      "workflow": ".github/workflows/napi.yml"
+    },
+    {
+      "action": "actions/checkout",
+      "sha": "34e114876b0b11c390a56381ad16ebd13914f8d5",
+      "workflow": ".github/workflows/release.yml"
+    },
+    {
+      "action": "actions/checkout",
+      "sha": "34e114876b0b11c390a56381ad16ebd13914f8d5",
+      "workflow": ".github/workflows/rust.yml"
+    },
+    {
+      "action": "actions/upload-artifact",
+      "sha": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "workflow": ".github/workflows/rust.yml"
+    },
+    {
+      "action": "dtolnay/rust-toolchain",
+      "sha": "2c7215f132e9ebf062739d9130488b56d53c060c",
+      "workflow": ".github/workflows/rust.yml"
+    }
+  ],
+  "workflow_tree_sha256": "25c9e17b220bcb95b8a71ab6759f6682a7562e18f4dec7c3db47e4a4e5365b0d"
+}

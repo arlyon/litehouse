@@ -1,45 +1,65 @@
+---
 name: Rust CI
 
-on:
+"on":
   push:
-    branches:
-      - main
+    branches: ["main"]
   pull_request:
-    branches:
-      - main
+    branches: ["main"]
+
+permissions:
+  contents: read
 
 jobs:
-  test:
-    name: Run Tests
+  safety:
+    name: T0 safety baseline
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          profile: minimal
-          toolchain: nightly
-          override: true
+          persist-credentials: false
+      - name: Check workspace, sources, and CI authority
+        run: python3 scripts/check-t0-baseline.py --skip-flatc
+
+  test:
+    name: Run tests
+    needs: safety
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
+        with:
+          toolchain: nightly-2026-07-15
+      - name: Install pinned flatc
+        run: bash scripts/install-flatc.sh
+      - name: Verify generated baseline
+        run: python3 scripts/check-t0-baseline.py
       - name: Install cargo groups
-        run: cargo install cargo-groups
+        run: cargo install cargo-groups --version 0.1.9 --locked
       - name: Run tests
         run: cargo groups test bin
 
   build:
     name: Compile Litehouse
+    needs: safety
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          profile: minimal
-          toolchain: nightly
-          override: true
-      - name: Build litehouse
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
+        with:
+          toolchain: nightly-2026-07-15
+      - name: Install pinned flatc
+        run: bash scripts/install-flatc.sh
+      - name: Verify generated baseline
+        run: python3 scripts/check-t0-baseline.py
+      - name: Build Litehouse
         run: cargo build --release -p litehouse
-      - name: Upload litehouse binary
-        uses: actions/upload-artifact@v2
+      - name: Upload Litehouse binary
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: litehouse-binary
           path: target/release/litehouse

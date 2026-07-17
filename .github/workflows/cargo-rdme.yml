@@ -1,19 +1,28 @@
+---
 name: Cargo RDME
 
-on:
+"on":
   pull_request:
-    branches:
-      - main
+    branches: ["main"]
   push:
-    branches:
-      - main
+    branches: ["main"]
+
+permissions:
+  contents: read
 
 jobs:
   cargo-rdme:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Install cargo-rdme and cargo-workspaces
-        run: cargo install cargo-rdme cargo-workspaces
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
+        with:
+          toolchain: nightly-2026-07-15
+      - name: Install documentation tools
+        run: |
+          cargo install cargo-rdme --version 2.1.0 --locked
+          cargo install cargo-workspaces --version 0.4.2 --locked
       - name: Check cargo-rdme
         run: cargo ws exec cargo rdme --check
