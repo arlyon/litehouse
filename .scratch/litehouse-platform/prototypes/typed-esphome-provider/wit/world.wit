@@ -1,0 +1,61 @@
+// Disposable proof that one provider component can return arbitrarily many
+// opaque, typed facet resources backed by one shared node session.
+package litehouse:esphome-resource-spike@1.0.0;
+
+interface model {
+  record on-off-state {
+    current: bool,
+  }
+
+  record level-state {
+    current: u8,
+  }
+
+  record rgb {
+    red: u8,
+    green: u8,
+    blue: u8,
+  }
+}
+
+interface on-off-provider {
+  use model.{on-off-state};
+
+  resource endpoint {
+    key: func() -> string;
+    query: func() -> on-off-state;
+    set: func(value: bool);
+  }
+
+  discover: func() -> list<own<endpoint>>;
+}
+
+interface level-provider {
+  use model.{level-state};
+
+  resource endpoint {
+    key: func() -> string;
+    query: func() -> level-state;
+    set: func(value: u8);
+  }
+
+  discover: func() -> list<own<endpoint>>;
+}
+
+interface color-provider {
+  use model.{rgb};
+
+  resource endpoint {
+    key: func() -> string;
+    query: func() -> rgb;
+    set: func(value: rgb);
+  }
+
+  discover: func() -> list<own<endpoint>>;
+}
+
+world provider-world {
+  export on-off-provider;
+  export level-provider;
+  export color-provider;
+}

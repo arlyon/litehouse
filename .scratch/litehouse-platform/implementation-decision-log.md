@@ -397,3 +397,17 @@ configuration.
 - **Evidence:** bundle-integrity verification, TypeScript checking, 13 jsdom
   behavior tests, a built-Worker workerd test, production build/prerender, and a
   Wrangler dry run under the pinned Node 24 and pnpm 10 toolchain.
+
+### R-004 — ESPHome typed subresource feasibility
+
+- **Resolution:** use the T2 Component Model resource pattern for provider
+  facets. One configured provider component/store may return arbitrarily many
+  instances of statically declared typed resources. Provider handles remain in
+  that store; only handle-free endpoint descriptors and host-owned proxy IDs may
+  enter the service fabric or consumer stores.
+- **Evidence:** the disposable typed ESPHome provider spike returns two switch
+  On/Off resources plus LED On/Off, Level, and Color resources from one guest.
+  Wasmtime invokes all five opaque handles, observes shared LED state across
+  facets, and publishes five handle-free service-fabric descriptors. The
+  component validates with Component Model async features and the workspace
+  passes Clippy with warnings denied.
