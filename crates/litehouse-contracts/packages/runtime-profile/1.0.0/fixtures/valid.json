@@ -1,0 +1,7 @@
+{
+  "case": "declared-official-import",
+  "profile": "litehouse:runtime-profile@1.0.0",
+  "componentImport": "wasi:http/client@0.3.0",
+  "facilityGrant": "exact-http-origin",
+  "accepted": true
+}

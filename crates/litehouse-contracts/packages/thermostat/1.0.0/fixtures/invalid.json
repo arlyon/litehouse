@@ -1,0 +1,8 @@
+{
+  "case": "partial-dual-target",
+  "setpointModel": "heat-cool",
+  "request": {
+    "heat": { "profile": "litehouse:quantity/temperature-absolute@1", "magnitude": "293.15", "unit": "K" }
+  },
+  "invalidBecause": "incomplete-range"
+}

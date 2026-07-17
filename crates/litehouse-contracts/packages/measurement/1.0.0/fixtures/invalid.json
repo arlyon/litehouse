@@ -1,0 +1,5 @@
+{
+  "case": "profile-unit-mismatch",
+  "current": { "profile": "litehouse:quantity/power@1", "magnitude": "42.5", "unit": "V" },
+  "invalidBecause": "dimension-profile-mismatch"
+}

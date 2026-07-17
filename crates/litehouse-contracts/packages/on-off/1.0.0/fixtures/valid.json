@@ -1,0 +1,18 @@
+{
+  "case": "unknown-current-while-available",
+  "state": {
+    "generation": 7,
+    "revision": 19,
+    "receivedAtUnixMilliseconds": 1784246400000,
+    "availability": "available",
+    "quality": "source-assumed",
+    "current": null
+  },
+  "request": {
+    "requestId": "req-on-1",
+    "deadlineMonotonicNanoseconds": 5000000000,
+    "operation": "set",
+    "value": true
+  },
+  "receiptConfidence": "accepted-for-delivery"
+}

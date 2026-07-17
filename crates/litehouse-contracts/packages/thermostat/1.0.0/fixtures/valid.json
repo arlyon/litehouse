@@ -1,0 +1,10 @@
+{
+  "case": "complete-dual-target",
+  "setpointModel": "heat-cool",
+  "currentMode": { "known": "auto" },
+  "targetMode": { "known": "auto" },
+  "targets": {
+    "heat": { "profile": "litehouse:quantity/temperature-absolute@1", "magnitude": "293.15", "unit": "K" },
+    "cool": { "profile": "litehouse:quantity/temperature-absolute@1", "magnitude": "297.15", "unit": "K" }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "case": "actuator-operation-on-read-only-facet",
+  "request": { "operation": "set", "value": true },
+  "invalidBecause": "boolean-state-has-no-operations"
+}

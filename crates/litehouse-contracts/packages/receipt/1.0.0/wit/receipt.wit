@@ -1,0 +1,50 @@
+package litehouse:receipt@1.0.0;
+
+interface types {
+  record deadline {
+    absolute-monotonic-nanoseconds: u64,
+  }
+
+  record idempotency-context {
+    key: string,
+    scope: string,
+  }
+
+  record request-context {
+    request-id: string,
+    correlation-id: option<string>,
+    deadline: deadline,
+    idempotency: option<idempotency-context>,
+    attempt: u32,
+  }
+
+  enum operation-kind {
+    absolute-convergent,
+    relative,
+    continuous,
+    momentary,
+  }
+
+  enum deduplication-guarantee {
+    none,
+    provider-generation,
+    durable,
+  }
+
+  enum receipt-confidence {
+    accepted-for-delivery,
+    protocol-or-target-acknowledged,
+    completed,
+    observed-completed,
+  }
+
+  record command-receipt {
+    request-id: string,
+    attempt: u32,
+    provider-generation: u64,
+    confidence: receipt-confidence,
+    accepted-at-unix-milliseconds: u64,
+    completed-at-unix-milliseconds: option<u64>,
+    idempotency-key: option<string>,
+  }
+}

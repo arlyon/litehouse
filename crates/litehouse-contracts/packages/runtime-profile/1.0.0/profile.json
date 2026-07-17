@@ -1,0 +1,187 @@
+{
+  "identity": "litehouse:runtime-profile@1.0.0",
+  "componentModelFeatures": [
+    "component-model",
+    "async-functions",
+    "concurrent-calls"
+  ],
+  "wasmtimeVersion": "46.0.1",
+  "sandbox": "per-instance-store",
+  "acceptedImports": [
+    {
+      "package": "litehouse:boolean-state",
+      "version": "1.0.0",
+      "interfaces": [
+        "capability"
+      ]
+    },
+    {
+      "package": "litehouse:color-control",
+      "version": "1.0.0",
+      "interfaces": [
+        "capability"
+      ]
+    },
+    {
+      "package": "litehouse:descriptor",
+      "version": "1.0.0",
+      "interfaces": [
+        "types"
+      ]
+    },
+    {
+      "package": "litehouse:errors",
+      "version": "1.0.0",
+      "interfaces": [
+        "types"
+      ]
+    },
+    {
+      "package": "litehouse:level-control",
+      "version": "1.0.0",
+      "interfaces": [
+        "capability"
+      ]
+    },
+    {
+      "package": "litehouse:measurement",
+      "version": "1.0.0",
+      "interfaces": [
+        "capability"
+      ]
+    },
+    {
+      "package": "litehouse:momentary-action",
+      "version": "1.0.0",
+      "interfaces": [
+        "capability"
+      ]
+    },
+    {
+      "package": "litehouse:notification-sink",
+      "version": "1.0.0",
+      "interfaces": [
+        "capability"
+      ]
+    },
+    {
+      "package": "litehouse:on-off",
+      "version": "1.0.0",
+      "interfaces": [
+        "capability"
+      ]
+    },
+    {
+      "package": "litehouse:plugin",
+      "version": "1.0.0",
+      "interfaces": [
+        "host",
+        "update"
+      ]
+    },
+    {
+      "package": "litehouse:quantity",
+      "version": "1.0.0",
+      "interfaces": [
+        "engine",
+        "types"
+      ]
+    },
+    {
+      "package": "litehouse:receipt",
+      "version": "1.0.0",
+      "interfaces": [
+        "types"
+      ]
+    },
+    {
+      "package": "litehouse:runtime-profile",
+      "version": "1.0.0",
+      "interfaces": [
+        "types"
+      ]
+    },
+    {
+      "package": "litehouse:state",
+      "version": "1.0.0",
+      "interfaces": [
+        "types"
+      ]
+    },
+    {
+      "package": "litehouse:thermostat",
+      "version": "1.0.0",
+      "interfaces": [
+        "capability"
+      ]
+    },
+    {
+      "package": "litehouse:window-covering",
+      "version": "1.0.0",
+      "interfaces": [
+        "capability"
+      ]
+    },
+    {
+      "package": "wasi:cli",
+      "version": "0.2.12",
+      "interfaces": [
+        "environment",
+        "exit",
+        "stdin",
+        "stdout",
+        "stderr",
+        "terminal-input",
+        "terminal-output",
+        "terminal-stdin",
+        "terminal-stdout",
+        "terminal-stderr"
+      ]
+    },
+    {
+      "package": "wasi:clocks",
+      "version": "0.2.12",
+      "interfaces": [
+        "monotonic-clock"
+      ]
+    },
+    {
+      "package": "wasi:io",
+      "version": "0.2.12",
+      "interfaces": [
+        "error",
+        "poll",
+        "streams"
+      ]
+    },
+    {
+      "package": "wasi:random",
+      "version": "0.2.12",
+      "interfaces": [
+        "insecure-seed"
+      ]
+    },
+    {
+      "package": "wasi:http",
+      "version": "0.3.0",
+      "interfaces": [
+        "client",
+        "types"
+      ]
+    },
+    {
+      "package": "wasi:sockets",
+      "version": "0.3.0",
+      "interfaces": [
+        "types"
+      ]
+    }
+  ],
+  "limits": {
+    "maximumCallMilliseconds": 30000,
+    "maximumInFlightPerInstance": 32,
+    "maximumWaitingPerInstance": 64,
+    "maximumLinearMemoryBytes": 67108864,
+    "maximumResourceTableEntries": 4096
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "case": "secret-value-in-metadata",
+  "configAnnotations": [{ "jsonPointer": "/token", "kind": "environment-secret", "fieldToken": "API_TOKEN", "value": "must-not-appear" }],
+  "invalidBecause": "annotations-contain-no-secret-values"
+}

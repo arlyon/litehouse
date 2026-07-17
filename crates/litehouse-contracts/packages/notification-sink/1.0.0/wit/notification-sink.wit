@@ -1,0 +1,81 @@
+package litehouse:notification-sink@1.0.0;
+
+interface capability {
+  use litehouse:descriptor/types@1.0.0.{facet-descriptor};
+  use litehouse:errors/types@1.0.0.{core-error, retry-advice};
+  use litehouse:receipt/types@1.0.0.{command-receipt, deduplication-guarantee, operation-kind, receipt-confidence, request-context};
+
+  enum priority {
+    low,
+    normal,
+    high,
+    urgent,
+  }
+
+  enum optional-field {
+    title,
+    priority,
+    expiry,
+    idempotency,
+  }
+
+  enum operation {
+    send,
+  }
+
+  record operation-support {
+    kind: operation-kind,
+    deduplication: deduplication-guarantee,
+    default-deadline-milliseconds: u32,
+    maximum-deadline-milliseconds: u32,
+  }
+
+  record notification-descriptor {
+    common: facet-descriptor,
+    supported-fields: list<optional-field>,
+    maximum-title-bytes: u32,
+    maximum-body-bytes: u32,
+    maximum-receipt-confidence: receipt-confidence,
+    operation: operation-support,
+  }
+
+  record notification {
+    body: string,
+    title: option<string>,
+    priority: option<priority>,
+    expires-at-unix-milliseconds: option<u64>,
+  }
+
+  record send-receipt {
+    receipt: command-receipt,
+    provider-message-id: option<string>,
+  }
+
+  variant contract-error-detail {
+    invalid-content,
+    oversized-content,
+    unsupported-field(optional-field),
+    rate-limited,
+    expired-message,
+    provider-rejected,
+  }
+
+  record error {
+    inner: core-error,
+    detail: option<contract-error-detail>,
+    retry: retry-advice,
+    message: option<string>,
+    error-id: string,
+  }
+
+  describe: async func(context: request-context) -> result<notification-descriptor, error>;
+  send: async func(context: request-context, notification: notification) -> result<send-receipt, error>;
+}
+
+world provider {
+  export capability;
+}
+
+world consumer {
+  import capability;
+}

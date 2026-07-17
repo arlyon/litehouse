@@ -18,6 +18,12 @@ ROOT = Path(__file__).resolve().parents[1]
 LOCK_PATH = ROOT / "t0-baseline.lock.json"
 SCHEMA_PATH = ROOT / "crates/registry/registry.fbs"
 WIT_ROOT = ROOT / "crates/plugin-macro/wit"
+CONTRACTS_ROOT = ROOT / "crates/litehouse-contracts"
+CONTRACT_WIT_ROOT = CONTRACTS_ROOT / "packages"
+QUANTITY_SOURCE_ROOT = CONTRACTS_ROOT / "src/quantity"
+MANAGEMENT_OPERATIONS = (
+    CONTRACTS_ROOT / "management/management-operations-v1.json"
+)
 WORKFLOW_ROOT = ROOT / ".github/workflows"
 FLATC_INSTALLER = ROOT / "scripts/install-flatc.sh"
 FORBIDDEN_WORKFLOW_MARKERS = {
@@ -221,8 +227,13 @@ def flatc_generated_digest(expected_version: str) -> str:
 def collect_state(flatc_version: str, skip_flatc: bool) -> dict[str, object]:
     state: dict[str, object] = {
         "ci_policy_sha256": sha256(Path(__file__).read_bytes()),
+        "contract_package_json_sha256": tree_digest(CONTRACT_WIT_ROOT, ".json"),
+        "contract_source_tree_sha256": tree_digest(CONTRACT_WIT_ROOT, ""),
+        "contract_wit_tree_sha256": tree_digest(CONTRACT_WIT_ROOT, ".wit"),
         "flatc_installer_sha256": sha256(FLATC_INSTALLER.read_bytes()),
         "flatc_version": flatc_version,
+        "management_operations_sha256": sha256(MANAGEMENT_OPERATIONS.read_bytes()),
+        "quantity_engine_tree_sha256": tree_digest(QUANTITY_SOURCE_ROOT, ".rs"),
         "registry_schema_sha256": sha256(SCHEMA_PATH.read_bytes()),
         "tracked_workspace_members": workspace_state(),
         "wit_tree_sha256": tree_digest(WIT_ROOT, ".wit"),

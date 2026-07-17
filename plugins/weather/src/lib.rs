@@ -4,10 +4,10 @@
 //! from various sources, allowing for weather-based automation within the Litehouse system.
 
 use exports::litehouse::plugin::plugin::Output;
-use host::Update;
 
 use crate::{
     exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit},
+    litehouse::plugin::{host, update::Update},
     wasi::http::{
         client,
         types::{Fields, Request, Response, Scheme},
@@ -25,7 +25,7 @@ pub struct WeatherPlugin {
     request_path: String,
 }
 
-#[derive(litehouse_plugin::JsonSchema, serde::Deserialize)]
+#[derive(litehouse_plugin::JsonSchema, litehouse_plugin::Config, serde::Deserialize)]
 pub struct WeatherConfig {
     /// The latitude to fetch the weather for.
     pub lat: f64,

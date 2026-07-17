@@ -1,0 +1,6 @@
+{
+  "case": "cross-generation-resume",
+  "currentGeneration": 10,
+  "cursor": { "generation": 9, "revision": 99 },
+  "invalidBecause": "generation-changed-gap-required"
+}

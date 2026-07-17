@@ -1,0 +1,133 @@
+package litehouse:descriptor@1.0.0;
+
+interface types {
+  record version {
+    major: u32,
+    minor: u32,
+    patch: u32,
+  }
+
+  record package-identity {
+    namespace: string,
+    name: string,
+    version: version,
+  }
+
+  record package-requirement {
+    namespace: string,
+    name: string,
+    minimum: version,
+  }
+
+  enum artifact-kind {
+    plugin,
+    contract,
+    runtime-profile,
+  }
+
+  enum facet-direction {
+    provided,
+    required,
+    bidirectional,
+  }
+
+  record semantic-tag {
+    namespace: string,
+    name: string,
+    value: option<string>,
+  }
+
+  record facet-descriptor {
+    provider-instance-id: string,
+    facet-key: string,
+    incarnation: u64,
+    generation: u64,
+    contract: package-identity,
+    primary-group-key: string,
+    direction: facet-direction,
+    label: option<string>,
+    semantic-role: string,
+    semantic-profile: option<string>,
+    features: list<string>,
+    operations: list<string>,
+    events: list<string>,
+    tags: list<semantic-tag>,
+  }
+
+  record provided-contract {
+    identity: package-identity,
+    operations: list<string>,
+    events: list<string>,
+  }
+
+  enum selector-cardinality {
+    one,
+    optional,
+    many,
+  }
+
+  record required-contract {
+    requirement: package-requirement,
+    operations: list<string>,
+    selector: selector-cardinality,
+  }
+
+  record host-facility-requests {
+    exact-http-origins: list<string>,
+    exact-tcp-origins: list<string>,
+    clocks: bool,
+    random: bool,
+    tracing: bool,
+  }
+
+  enum secret-encoding {
+    utf8,
+    base64,
+  }
+
+  record environment-secret-annotation {
+    field-token: string,
+    encoding: secret-encoding,
+  }
+
+  enum private-projection {
+    configured-status,
+    omitted,
+  }
+
+  record private-local-annotation {
+    projection: private-projection,
+  }
+
+  variant config-field-annotation {
+    environment-secret(environment-secret-annotation),
+    private-local(private-local-annotation),
+  }
+
+  record annotated-config-field {
+    json-pointer: string,
+    annotation: config-field-annotation,
+  }
+
+  record runtime-metadata-v1 {
+    %package: package-identity,
+    runtime-profile: package-requirement,
+    description: option<string>,
+    provides: list<provided-contract>,
+    requires: list<required-contract>,
+    host-facilities: host-facility-requests,
+    config-schema: option<string>,
+    config-annotations: list<annotated-config-field>,
+  }
+
+  record unsigned-release-input-v1 {
+    kind: artifact-kind,
+    %package: package-identity,
+    runtime-metadata-sha256: string,
+    abi-sha256: string,
+    source-sha256: string,
+    license: string,
+    source-revision: string,
+    build-profile: string,
+  }
+}

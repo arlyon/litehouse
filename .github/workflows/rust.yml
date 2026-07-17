@@ -32,13 +32,54 @@ jobs:
       - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
         with:
           toolchain: nightly-2026-07-15
+          targets: wasm32-wasip2
       - name: Install pinned flatc
         run: bash scripts/install-flatc.sh
       - name: Verify generated baseline
         run: python3 scripts/check-t0-baseline.py
-      - name: Install cargo groups
-        run: cargo install cargo-groups --version 0.1.9 --locked
-      - name: Run tests
+      - name: Install pinned validation tools
+        run: |
+          cargo install cargo-groups --version 0.1.9 --locked
+          cargo install wasm-tools --version 1.253.0 --locked
+      - name: Run contract kernel tests
+        run: |
+          cargo test -p litehouse-contracts -p litehouse-plugin -p litehouse-plugin-macro
+          cargo run -p litehouse-contracts --bin contract-codegen -- --check
+          generated="$(mktemp -d)"
+          cargo run -p litehouse-contracts --bin contract-codegen -- --out "${generated}"
+          python3 scripts/sync-contract-locks.py \
+            --artifacts "${generated}/contract-artifacts-v1.json"
+      - name: Build and validate representative components
+        run: |
+          cargo build --target wasm32-wasip2 \
+            -p noop -p tasmota -p weather -p litehouse-quantity-component
+          for component in noop tasmota weather litehouse_quantity_component; do
+            wasm-tools validate --features cm-async \
+              "target/wasm32-wasip2/debug/${component}.wasm"
+          done
+          for component in noop tasmota weather; do
+            cargo run -p litehouse-contracts --bin validate-component -- \
+              plugin "target/wasm32-wasip2/debug/${component}.wasm"
+          done
+          cargo run -p litehouse-contracts --bin validate-component -- \
+            quantity-engine \
+            target/wasm32-wasip2/debug/litehouse_quantity_component.wasm
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path("target/wasm32-wasip2/debug/noop.wasm").read_bytes()
+          old = b"wasi:random/insecure-seed@0.2.12"
+          new = b"evil:random/insecure-seed@0.2.12"
+          assert len(old) == len(new) and old in source
+          Path("target/unreviewed-import.wasm").write_bytes(source.replace(old, new))
+          PY
+          if cargo run -p litehouse-contracts --bin validate-component -- \
+            plugin target/unreviewed-import.wasm; then
+            echo "validator accepted an unreviewed exact-interface import" >&2
+            exit 1
+          fi
+          cargo run -p litehouse-quantity-parity -- \
+            target/wasm32-wasip2/debug/litehouse_quantity_component.wasm
+      - name: Run binary tests
         run: cargo groups test bin
 
   build:

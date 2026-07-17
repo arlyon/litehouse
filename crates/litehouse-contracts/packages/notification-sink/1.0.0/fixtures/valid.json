@@ -1,0 +1,11 @@
+{
+  "case": "bounded-plain-text",
+  "supportedFields": ["title", "priority", "expiry"],
+  "notification": {
+    "title": "Laundry",
+    "body": "Cycle complete",
+    "priority": "normal",
+    "expiresAtUnixMilliseconds": 1784246460000
+  },
+  "receiptConfidence": "accepted-for-delivery"
+}

@@ -1,0 +1,8 @@
+{
+  "case": "ratio-out-of-range",
+  "request": {
+    "operation": "set-level",
+    "level": { "profile": "litehouse:quantity/ratio@1", "magnitude": "1.1", "unit": "1" }
+  },
+  "invalidBecause": "out-of-range"
+}

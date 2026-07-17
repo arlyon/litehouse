@@ -1,0 +1,106 @@
+package litehouse:quantity@1.0.0;
+
+interface types {
+  type canonical-decimal = string;
+  type profile-id = string;
+  type ucum-code = string;
+
+  record quantity {
+    profile: profile-id,
+    magnitude: canonical-decimal,
+    unit: ucum-code,
+  }
+
+  enum rounding-mode {
+    half-even,
+  }
+
+  record quantization {
+    scale: u32,
+    mode: rounding-mode,
+  }
+
+  record native-representation {
+    magnitude: string,
+    unit: string,
+    quantization: option<quantization>,
+  }
+
+  enum quantity-kind {
+    linear,
+    absolute-temperature,
+    temperature-difference,
+    ratio,
+    logarithmic-source,
+  }
+
+  record profile-definition {
+    id: profile-id,
+    canonical-unit: ucum-code,
+    kind: quantity-kind,
+  }
+}
+
+interface engine {
+  use types.{quantity};
+
+  enum error-code {
+    decimal-input-too-long,
+    unit-input-too-long,
+    too-many-tokens,
+    nesting-too-deep,
+    exponent-out-of-range,
+    invalid-decimal,
+    invalid-unit-syntax,
+    unknown-unit,
+    scale-out-of-range,
+    precision-overflow,
+    arithmetic-overflow,
+    division-by-zero,
+    inexact-result,
+    unknown-profile,
+    dimension-mismatch,
+    semantic-mismatch,
+    affine-misuse,
+    ambiguous-result-profile,
+    unknown-result-profile,
+    invalid-quantization-scale,
+  }
+
+  record source-span {
+    start: u16,
+    end: u16,
+  }
+
+  record quantity-error {
+    code: error-code,
+    span: option<source-span>,
+  }
+
+  record quantization-audit {
+    requested-scale: u8,
+    inexact: bool,
+    tie: bool,
+    adjustment: string,
+  }
+
+  record quantized-quantity {
+    value: quantity,
+    audit: quantization-audit,
+  }
+
+  normalize: func(profile: string, magnitude: string, unit: string) -> result<quantity, quantity-error>;
+  normalize-quantized: func(profile: string, magnitude: string, unit: string, scale: u8) -> result<quantized-quantity, quantity-error>;
+  add: func(left: quantity, right: quantity) -> result<quantity, quantity-error>;
+  subtract: func(left: quantity, right: quantity) -> result<quantity, quantity-error>;
+  multiply: func(left: quantity, right: quantity) -> result<quantity, quantity-error>;
+  multiply-quantized: func(left: quantity, right: quantity, scale: u8) -> result<quantized-quantity, quantity-error>;
+  divide: func(left: quantity, right: quantity) -> result<quantity, quantity-error>;
+  divide-quantized: func(left: quantity, right: quantity, scale: u8) -> result<quantized-quantity, quantity-error>;
+  power: func(value: quantity, exponent: s8) -> result<quantity, quantity-error>;
+  power-quantized: func(value: quantity, exponent: s8, scale: u8) -> result<quantized-quantity, quantity-error>;
+}
+
+world quantity-engine {
+  export engine;
+}

@@ -17,6 +17,7 @@ use http_body_util::{BodyExt, combinators::UnsyncBoxBody};
 use itertools::Itertools;
 use jsonc_parser::common::Ranged;
 use litehouse_config::{Capability, PluginConfig};
+use litehouse_contracts::component::{ComponentKind, validate_component};
 use tokio::sync::broadcast::Sender;
 use wasmtime::{
     AsContextMut, Config, Engine,
@@ -41,10 +42,13 @@ pub mod bindings {
     litehouse_plugin::generate_host!();
 
     impl exports::litehouse::plugin::plugin::UpdateSubscription {
-        pub fn matches(&self, event: &host::Update) -> bool {
+        pub fn matches(&self, event: &litehouse::plugin::host::Update) -> bool {
             matches!(
                 (self, event),
-                (Self::Temperature, &host::Update::Temperature(_))
+                (
+                    Self::Temperature,
+                    &litehouse::plugin::host::Update::Temperature(_)
+                )
             )
         }
     }
@@ -186,8 +190,10 @@ impl WasiHttpHooks for HttpHooks {
     }
 }
 
-impl bindings::host::Host for PluginRunner<Sender<(String, bindings::host::Update)>> {
-    fn send_update(&mut self, nickname: String, event: bindings::host::Update) {
+impl bindings::litehouse::plugin::host::Host
+    for PluginRunner<Sender<(String, bindings::litehouse::plugin::host::Update)>>
+{
+    fn send_update(&mut self, nickname: String, event: bindings::litehouse::plugin::host::Update) {
         tracing::trace!(target: "litehouse::plugin", plugin = nickname, "{:?}", event);
         self.event_sink.send((nickname, event)).unwrap();
     }
@@ -301,8 +307,11 @@ pub async fn set_up_engine(
     wasmtime_wasi_http::p3::add_to_linker(&mut linker)
         .map_err(|e| miette!("unable to add WASI HTTP 0.3 to linker: {}", e))?;
 
-    bindings::host::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |c| c)
-        .map_err(|e| miette!("unable to add http to linker: {}", e))?;
+    bindings::litehouse::plugin::host::add_to_linker::<_, wasmtime::component::HasSelf<_>>(
+        &mut linker,
+        |context| context,
+    )
+    .map_err(|error| miette!("unable to add Litehouse plugin host interface: {error}"))?;
 
     // bindings::litehouse::plugin::notify::add_to_linker(&mut linker, |c| c)
     //     .map_err(|e| miette!("unable to add http to linker: {}", e))?;
@@ -403,6 +412,9 @@ pub async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
                         println!("{:?}", ast.as_ref());
                         panic!();
                     }
+                })?;
+                validate_component(&contents, ComponentKind::Plugin).map_err(|error| {
+                    miette!("plugin {} violates runtime profile: {error}", file_name)
                 })?;
                 let c = tokio::task::spawn_blocking(move || Component::new(&engine, contents)) // TODO(MEM): allocates 7MB of RAM here
                     .await

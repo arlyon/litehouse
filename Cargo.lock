@@ -1719,6 +1719,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28dea519a9695b9977216879a3ebfddf92f1c08c05d984f8996aecd6ecdc811d"
 
 [[package]]
+name = "filetime"
+version = "0.2.29"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c287a33c7f0a620c38e641e7f60827713987b3c0f26e8ddc9462cc69cf75759"
+dependencies = [
+ "cfg-if",
+ "libc",
+]
+
+[[package]]
 name = "find-msvc-tools"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2941,6 +2951,7 @@ dependencies = [
  "jwt",
  "litehouse-auth",
  "litehouse-config",
+ "litehouse-contracts",
  "litehouse-plugin",
  "litehouse-registry",
  "lz4_flex",
@@ -2961,7 +2972,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "wasi-preview1-component-adapter-provider",
  "wasmtime",
  "wasmtime-wasi",
  "wasmtime-wasi-http",
@@ -3015,9 +3025,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "litehouse-contracts"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "flate2",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tar",
+ "url",
+ "wasmparser 0.253.0",
+ "wit-component",
+ "wit-parser 0.253.0",
+]
+
+[[package]]
 name = "litehouse-plugin"
 version = "0.1.0"
 dependencies = [
+ "litehouse-contracts",
  "litehouse-plugin-macro",
  "schemars",
  "serde",
@@ -3032,9 +3059,28 @@ dependencies = [
 name = "litehouse-plugin-macro"
 version = "0.1.0"
 dependencies = [
+ "heck",
  "proc-macro2",
  "quote",
  "syn 2.0.111",
+]
+
+[[package]]
+name = "litehouse-quantity-component"
+version = "0.1.0"
+dependencies = [
+ "litehouse-contracts",
+ "wit-bindgen 0.59.0",
+]
+
+[[package]]
+name = "litehouse-quantity-parity"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "litehouse-contracts",
+ "wasmtime",
+ "wasmtime-wasi",
 ]
 
 [[package]]
@@ -5262,6 +5308,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tar"
+version = "0.4.46"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f6221d9a6003c78398e3b239969f352578258df48c8eb051caadae0015bc840"
+dependencies = [
+ "filetime",
+ "libc",
+ "xattr",
+]
+
+[[package]]
 name = "target-lexicon"
 version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5895,18 +5952,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "twilio"
-version = "0.1.0"
-dependencies = [
- "litehouse-plugin",
- "schemars",
- "serde",
- "serde_json",
- "serde_path_to_error",
- "tracing",
-]
-
-[[package]]
 name = "twox-hash"
 version = "2.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6084,12 +6129,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b"
 
 [[package]]
-name = "wasi-preview1-component-adapter-provider"
-version = "46.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b6c48003fe59c201c97a7786ff55feabe6b6f83b598aa9ff5bcc4f94d940bf3"
-
-[[package]]
 name = "wasip2"
 version = "1.0.1+wasi-0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6241,6 +6280,7 @@ dependencies = [
  "hashbrown 0.17.1",
  "indexmap 2.14.0",
  "semver",
+ "serde",
 ]
 
 [[package]]
@@ -7339,6 +7379,7 @@ dependencies = [
  "wasm-encoder 0.253.0",
  "wasm-metadata",
  "wasmparser 0.253.0",
+ "wat",
  "wit-parser 0.253.0",
 ]
 
@@ -7426,6 +7467,16 @@ dependencies = [
  "rusticata-macros",
  "thiserror 1.0.69",
  "time",
+]
+
+[[package]]
+name = "xattr"
+version = "1.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32e45ad4206f6d2479085147f02bc2ef834ac85886624a23575ae137c8aa8156"
+dependencies = [
+ "libc",
+ "rustix 1.1.4",
 ]
 
 [[package]]

@@ -2,15 +2,14 @@ use std::{collections::HashMap, path::Path, sync::Arc};
 
 use futures::{StreamExt, TryStreamExt};
 use litehouse_config::{Import, LitehouseConfig, PluginConfig};
+use litehouse_contracts::metadata::RuntimeMetadataV1;
 use litehouse_plugin::serde_json::{self, Value};
 use miette::{Context, IntoDiagnostic, Result, SourceSpan, miette};
 use tokio::sync::broadcast::channel;
 use tokio_stream::wrappers::ReadDirStream;
 
 use crate::{
-    runtime::{
-        PluginRunnerFactory, bindings::exports::litehouse::plugin::plugin::Metadata, set_up_engine,
-    },
+    runtime::{PluginRunnerFactory, set_up_engine},
     store::StoreStrategy,
 };
 
@@ -65,8 +64,9 @@ pub async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value
         tracing::warn!("no plugins found in `{}`", wasm_path.display());
     }
 
-    let jobs = hosts.into_iter().map(|(a, instance, host, mut store, _)| {
-        async move {
+    let jobs = hosts
+        .into_iter()
+        .map(|(a, instance, host, mut store, _)| async move {
             let mut store = store.enter().await;
 
             let indices =
@@ -75,17 +75,19 @@ pub async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value
                 )
                 .unwrap();
             let guest = indices.load(&mut store, &host).unwrap();
-            let metadata = guest.call_get_metadata(&mut store).await;
+            let metadata = tokio::time::timeout(
+                std::time::Duration::from_secs(10),
+                guest.call_get_metadata(&mut store),
+            )
+            .await
+            .map_err(|_| miette!("plugin metadata call exceeded 10 seconds"))?;
 
             match metadata {
-                Ok(Metadata {
-                    config_schema,
-                    identifier,
-                    version,
-                    ..
-                }) => {
-                    // check that version above and version here match
-
+                Ok(metadata) => {
+                    let metadata = RuntimeMetadataV1::decode_section(&metadata)
+                        .into_diagnostic()
+                        .wrap_err("plugin returned invalid bounded runtime metadata")?;
+                    let identifier = metadata.package.name;
                     if instance.plugin.plugin != identifier {
                         tracing::error!(
                             "plugin identifier mismatch: {} != {}",
@@ -95,7 +97,14 @@ pub async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value
                         return Err(miette!("plugin identifier mismatch"));
                     };
 
-                    let version = version.parse().into_diagnostic()?;
+                    let version = format!(
+                        "{}.{}.{}",
+                        metadata.package.version.major,
+                        metadata.package.version.minor,
+                        metadata.package.version.patch
+                    )
+                    .parse()
+                    .into_diagnostic()?;
                     if let Some(version_exp) = &instance.plugin.version
                         && version_exp != &version
                     {
@@ -111,6 +120,14 @@ pub async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value
                         .into());
                     }
 
+                    let config_schema = metadata
+                        .config_schema
+                        .map(|schema| {
+                            serde_json::from_str(&schema)
+                                .into_diagnostic()
+                                .wrap_err("plugin returned malformed typed config schema")
+                        })
+                        .transpose()?;
                     Ok((
                         Import {
                             plugin: identifier,
@@ -118,16 +135,15 @@ pub async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value
                             registry: None,
                             sha: None,
                         },
-                        config_schema.and_then(|s| serde_json::from_str(&s).ok()),
+                        config_schema,
                     ))
                 }
-                Err(_) => {
-                    tracing::error!("failed to generate schema: {:?}", metadata);
-                    panic!();
+                Err(error) => {
+                    tracing::error!("failed to obtain plugin metadata: {error:?}");
+                    Err(miette!("plugin metadata call failed"))
                 }
             }
-        }
-    });
+        });
 
     let schemas: Vec<(_, Option<serde_json::Value>)> = futures::future::try_join_all(jobs).await?;
 

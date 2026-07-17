@@ -157,7 +157,7 @@ pub struct SamsungPlugin {
 }
 
 /// Configuration for the Samsung plugin.
-#[derive(litehouse_plugin::JsonSchema, serde::Deserialize)]
+#[derive(litehouse_plugin::JsonSchema, litehouse_plugin::Config, serde::Deserialize)]
 pub struct SamsungConfig {
     /// The IP address of the Samsung TV.
     pub ip: (u8, u8, u8, u8),

@@ -1,0 +1,62 @@
+package litehouse:momentary-action@1.0.0;
+
+interface capability {
+  use litehouse:descriptor/types@1.0.0.{facet-descriptor};
+  use litehouse:errors/types@1.0.0.{core-error, retry-advice};
+  use litehouse:receipt/types@1.0.0.{command-receipt, deduplication-guarantee, operation-kind, request-context};
+
+  enum risk {
+    routine,
+    caution,
+    dangerous,
+  }
+
+  enum operation {
+    invoke,
+  }
+
+  record operation-support {
+    kind: operation-kind,
+    deduplication: deduplication-guarantee,
+    default-deadline-milliseconds: u32,
+    maximum-deadline-milliseconds: u32,
+  }
+
+  record action-descriptor {
+    common: facet-descriptor,
+    action-id: string,
+    risk: risk,
+    operation: operation-support,
+  }
+
+  record invoke-receipt {
+    action-id: string,
+    receipt: command-receipt,
+  }
+
+  variant contract-error-detail {
+    rejected,
+    busy,
+    safety-lockout,
+    unsupported-action(string),
+  }
+
+  record error {
+    inner: core-error,
+    detail: option<contract-error-detail>,
+    retry: retry-advice,
+    message: option<string>,
+    error-id: string,
+  }
+
+  describe: async func(context: request-context) -> result<action-descriptor, error>;
+  invoke: async func(context: request-context) -> result<invoke-receipt, error>;
+}
+
+world provider {
+  export capability;
+}
+
+world consumer {
+  import capability;
+}

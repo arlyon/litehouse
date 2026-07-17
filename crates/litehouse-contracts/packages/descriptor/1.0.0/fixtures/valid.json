@@ -1,0 +1,8 @@
+{
+  "package": { "namespace": "litehouse", "name": "fixture-plugin", "version": { "major": 1, "minor": 0, "patch": 0 } },
+  "runtimeProfile": { "namespace": "litehouse", "name": "runtime-profile", "minimum": { "major": 1, "minor": 0, "patch": 0 } },
+  "provides": [{ "identity": "litehouse:on-off@1.0.0", "operations": ["set"], "events": ["state-observation"] }],
+  "requires": [],
+  "hostFacilities": { "exactHttpOrigins": [], "exactTcpOrigins": [], "clocks": true, "random": false, "tracing": true },
+  "configAnnotations": [{ "jsonPointer": "/token", "kind": "environment-secret", "fieldToken": "API_TOKEN", "encoding": "utf8" }]
+}

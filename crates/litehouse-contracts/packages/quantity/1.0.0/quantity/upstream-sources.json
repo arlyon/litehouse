@@ -1,0 +1,25 @@
+{
+  "ucum": {
+    "version": "2.2",
+    "repository": "https://github.com/ucum-org/ucum",
+    "commit": "d060c6d3dfe3b0deb196c190b8024d95385e0b92",
+    "essence": {
+      "path": "ucum-essence.xml",
+      "sha256": "dfccea1b5dc284245ebae97edd1dc03c45864da4e87df55bc9851797b4fd0b61"
+    },
+    "license": {
+      "path": "LICENSE.md",
+      "sha256": "b7989c84c68b7a80d42aad28cfdd824d756c2f70f26eaf1347d2e49f7838bbdf"
+    },
+    "vendored": false
+  },
+  "qudt": {
+    "version": "3.4.0",
+    "repository": "https://github.com/qudt/qudt-public-repo",
+    "commit": "1137205617d03d3d5c8351ea58105b6719c5d6f0",
+    "releaseAsset": "qudt-public-repo-3.4.0.zip",
+    "sha256": "26aab21644a6531abec1e0285a3907a33a553da7d78d0675ffa323cbab800a95",
+    "role": "design-and-generation-reference-only",
+    "vendored": false
+  }
+}

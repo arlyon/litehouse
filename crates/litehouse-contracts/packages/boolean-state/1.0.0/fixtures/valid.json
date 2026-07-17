@@ -1,0 +1,10 @@
+{
+  "case": "unknown-is-not-false",
+  "profile": "contact",
+  "state": {
+    "availability": "available",
+    "quality": "source-reported",
+    "current": null
+  },
+  "events": ["state-observation", "occurrence"]
+}

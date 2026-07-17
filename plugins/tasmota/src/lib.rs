@@ -10,7 +10,10 @@ use wasi::http::{
     types::{Fields, Request, RequestOptions, Response, Scheme},
 };
 
-use crate::exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit};
+use crate::{
+    exports::litehouse::plugin::plugin::{Every, GuestRunner, Subscription, TimeUnit},
+    litehouse::plugin::host,
+};
 
 litehouse_plugin::generate!(TasmotaPlugin, TasmotaConfig);
 
@@ -20,9 +23,10 @@ pub struct TasmotaPlugin {
     ip: (u8, u8, u8, u8),
 }
 
-#[derive(litehouse_plugin::JsonSchema, serde::Deserialize)]
+#[derive(litehouse_plugin::JsonSchema, litehouse_plugin::Config, serde::Deserialize)]
 pub struct TasmotaConfig {
     /// The ip address of the device to connect to.
+    #[litehouse(private_local = "omitted")]
     pub ip: (u8, u8, u8, u8),
 }
 

@@ -1,0 +1,25 @@
+package litehouse:compatibility-fixture@1.0.0;
+
+interface stable-api {
+  ping: func(value: string) -> string;
+}
+
+interface additive-extension {
+  optional-operation: func(value: string) -> string;
+}
+
+interface breaking-api {
+  ping: func(value: u64) -> string;
+}
+
+world previous {
+  export stable-api;
+}
+
+world compatible-same-major {
+  export stable-api;
+}
+
+world breaking-same-major {
+  export breaking-api;
+}

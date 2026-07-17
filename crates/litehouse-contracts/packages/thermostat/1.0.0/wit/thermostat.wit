@@ -1,0 +1,205 @@
+package litehouse:thermostat@1.0.0;
+
+interface capability {
+  use litehouse:descriptor/types@1.0.0.{facet-descriptor};
+  use litehouse:errors/types@1.0.0.{core-error, retry-advice};
+  use litehouse:quantity/types@1.0.0.{quantity};
+  use litehouse:receipt/types@1.0.0.{command-receipt, deduplication-guarantee, operation-kind, request-context};
+  use litehouse:state/types@1.0.0.{availability, gap, hydration-barrier, observation-meta, quality, resume-position, resume-receipt, resume-request};
+
+  enum known-mode {
+    off,
+    auto,
+    heat,
+    cool,
+    dry,
+    fan-only,
+  }
+
+  variant mode {
+    known(known-mode),
+    provider-qualified(string),
+  }
+
+  enum action {
+    idle,
+    heating,
+    cooling,
+    drying,
+    fan,
+    defrosting,
+  }
+
+  enum setpoint-model {
+    single,
+    heat-cool,
+  }
+
+  record single-target {
+    temperature: quantity,
+  }
+
+  record dual-target {
+    heat: quantity,
+    cool: quantity,
+  }
+
+  variant targets {
+    single(single-target),
+    heat-cool(dual-target),
+  }
+
+  enum feature {
+    fan-choice,
+    swing-choice,
+    preset-choice,
+  }
+
+  enum operation {
+    set-mode,
+    set-single-target,
+    set-dual-target,
+    set-fan,
+    set-swing,
+    set-preset,
+  }
+
+  enum state-field {
+    current-mode,
+    target-mode,
+    action,
+    running,
+    targets,
+    fan,
+    swing,
+    preset,
+  }
+
+  enum event-kind {
+    state-observation,
+  }
+
+  record target-policy {
+    model: setpoint-model,
+    minimum: quantity,
+    maximum: quantity,
+    step: quantity,
+    minimum-deadband: option<quantity>,
+  }
+
+  record operation-support {
+    operation: operation,
+    kind: operation-kind,
+    deduplication: deduplication-guarantee,
+    default-deadline-milliseconds: u32,
+    maximum-deadline-milliseconds: u32,
+  }
+
+  record thermostat-descriptor {
+    common: facet-descriptor,
+    modes: list<mode>,
+    target-policy: target-policy,
+    features: list<feature>,
+    operations: list<operation>,
+    state-fields: list<state-field>,
+    events: list<event-kind>,
+    fan-choices: list<string>,
+    swing-choices: list<string>,
+    preset-choices: list<string>,
+    operation-support: list<operation-support>,
+  }
+
+  record state {
+    meta: observation-meta,
+    availability: availability,
+    quality: option<quality>,
+    current-mode: option<mode>,
+    target-mode: option<mode>,
+    current-action: option<action>,
+    running: option<bool>,
+    targets: option<targets>,
+    fan: option<string>,
+    swing: option<string>,
+    preset: option<string>,
+  }
+
+  record set-mode-request {
+    mode: mode,
+  }
+
+  record set-single-target-request {
+    target: single-target,
+  }
+
+  record set-dual-target-request {
+    target: dual-target,
+  }
+
+  record set-choice-request {
+    choice: string,
+  }
+
+  variant operation-intent {
+    set-mode(set-mode-request),
+    set-single-target(set-single-target-request),
+    set-dual-target(set-dual-target-request),
+    set-fan(set-choice-request),
+    set-swing(set-choice-request),
+    set-preset(set-choice-request),
+  }
+
+  record operation-receipt {
+    operation: operation-intent,
+    receipt: command-receipt,
+  }
+
+  variant contract-error-detail {
+    unsupported-mode(mode),
+    unsupported-choice(string),
+    wrong-setpoint-model(setpoint-model),
+    incomplete-range,
+    inverted-range,
+    deadband-violation,
+    out-of-range-target(quantity),
+    safety-lockout,
+    unsupported-operation(operation),
+  }
+
+  record error {
+    inner: core-error,
+    detail: option<contract-error-detail>,
+    retry: retry-advice,
+    message: option<string>,
+    error-id: string,
+  }
+
+  variant state-event {
+    snapshot(state),
+    caught-up(hydration-barrier),
+    observation(state),
+    gap(gap),
+  }
+
+  resource state-subscription {
+    next: async func(context: request-context) -> result<state-event, error>;
+    resume: async func(context: request-context, request: resume-request) -> result<resume-receipt, error>;
+  }
+
+  describe: async func(context: request-context) -> result<thermostat-descriptor, error>;
+  query: async func(context: request-context) -> result<state, error>;
+  subscribe: async func(context: request-context, resume: option<resume-position>) -> result<state-subscription, error>;
+  set-mode: async func(context: request-context, request: set-mode-request) -> result<operation-receipt, error>;
+  set-single-target: async func(context: request-context, request: set-single-target-request) -> result<operation-receipt, error>;
+  set-dual-target: async func(context: request-context, request: set-dual-target-request) -> result<operation-receipt, error>;
+  set-fan: async func(context: request-context, request: set-choice-request) -> result<operation-receipt, error>;
+  set-swing: async func(context: request-context, request: set-choice-request) -> result<operation-receipt, error>;
+  set-preset: async func(context: request-context, request: set-choice-request) -> result<operation-receipt, error>;
+}
+
+world provider {
+  export capability;
+}
+
+world consumer {
+  import capability;
+}

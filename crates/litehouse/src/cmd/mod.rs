@@ -15,6 +15,7 @@ use litehouse_config::{
     ConfigError, Import, ImportAddResult, LitehouseConfig, Manifest, ManifestAddResult,
     ManifestImport, ParseError, PluginConfig,
 };
+use litehouse_contracts::metadata::RuntimeMetadataV1;
 use litehouse_plugin::serde_json;
 use litehouse_registry::Registry;
 use miette::{Context, IntoDiagnostic, NamedSource, Result};
@@ -108,12 +109,6 @@ pub enum Subcommand {
         wasm_path: PathBuf,
         #[clap(long, default_value_t = false)]
         debug: bool,
-        /// Do not perform the final packaging, leaving a regular wasm file.
-        #[clap(long)]
-        no_package: bool,
-        /// Do not optimise the wasm file for size.
-        #[clap(long)]
-        no_optimise: bool,
     },
     /// Search for a package in the registry.
     Search {
@@ -294,42 +289,55 @@ impl Subcommand {
 
                         let indices = crate::runtime::bindings::exports::litehouse::plugin::plugin::GuestIndices::new( &host.instance_pre(&mut store)).unwrap();
                         let guest = indices.load(&mut store, &host).unwrap();
-                        let metadata = guest.call_get_metadata(&mut store).await;
+                        let metadata = tokio::time::timeout(
+                            std::time::Duration::from_secs(10),
+                            guest.call_get_metadata(&mut store),
+                        )
+                        .await
+                        .map_err(|_| miette::miette!("plugin metadata call exceeded 10 seconds"))?;
 
                         match metadata {
                             Ok(meta) => {
+                                let meta = RuntimeMetadataV1::decode_section(&meta)
+                                    .into_diagnostic()
+                                    .wrap_err("plugin returned invalid bounded runtime metadata")?;
                                 println!("metadata for {}:\n", a);
-                                println!(" - version: {}", meta.version);
-                                if let Some(author) = meta.author
-                                    && !author.is_empty()
-                                {
-                                    println!(" - author: {}", author);
-                                }
-                                if let Some(homepage) = meta.homepage
-                                    && !homepage.is_empty()
-                                {
-                                    println!(" - homepage: {}", homepage);
-                                }
-                                if let Some(source) = meta.source
-                                    && !source.is_empty()
-                                {
-                                    println!(" - source: {}", source);
-                                }
+                                println!(
+                                    " - package: {}:{}@{}.{}.{}",
+                                    meta.package.namespace,
+                                    meta.package.name,
+                                    meta.package.version.major,
+                                    meta.package.version.minor,
+                                    meta.package.version.patch
+                                );
+                                println!(
+                                    " - runtime profile: {}:{}@^{}.{}.{}",
+                                    meta.runtime_profile.namespace,
+                                    meta.runtime_profile.name,
+                                    meta.runtime_profile.minimum.major,
+                                    meta.runtime_profile.minimum.minor,
+                                    meta.runtime_profile.minimum.patch
+                                );
                                 if let Some(description) = meta.description
                                     && !description.is_empty()
                                 {
                                     println!(" - description: {}", description);
                                 }
-                                println!(" - capabilities: {:?}", meta.capabilities);
+                                println!(" - provided contracts: {}", meta.provides.len());
+                                println!(" - required contracts: {}", meta.requires.len());
+                                println!(
+                                    " - protected config requirements: {}",
+                                    meta.config_annotations.len()
+                                );
+                                Ok(())
                             }
-                            Err(_) => {
-                                tracing::error!("failed to generate schema: {:?}", metadata);
-                                panic!();
-                            }
+                            Err(error) => Err(miette::miette!(
+                                "failed to obtain plugin metadata: {error:?}"
+                            )),
                         }
                     });
 
-                _ = futures::future::join_all(jobs).await;
+                futures::future::try_join_all(jobs).await?;
 
                 Ok(())
             }
@@ -457,9 +465,7 @@ impl Subcommand {
                 wasm_path,
                 package,
                 debug,
-                no_package,
-                no_optimise,
-            } => packages::build(&package, &wasm_path, debug, !no_optimise, no_package).await,
+            } => packages::build(&package, &wasm_path, debug).await,
             Subcommand::Search { query } => {
                 let prefix = query.map(|q| Import {
                     plugin: q,

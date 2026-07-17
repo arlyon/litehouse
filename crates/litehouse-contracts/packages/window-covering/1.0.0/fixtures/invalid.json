@@ -1,0 +1,6 @@
+{
+  "case": "position-on-unaware-axis",
+  "axisDescriptor": { "axis": "tilt", "awareness": "unaware" },
+  "request": { "operation": "set-position", "position": "0.5" },
+  "invalidBecause": "unsupported-position:tilt"
+}

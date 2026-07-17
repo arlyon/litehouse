@@ -1,4 +1,4 @@
-package litehouse:plugin;
+package litehouse:plugin@1.0.0;
 
 interface plugin {
     use update.{update};
@@ -63,19 +63,7 @@ interface plugin {
         constructor();
     }
 
-    record metadata {
-      version: string,
-      identifier: string,
-      config-schema: option<string>,
-      author: option<string>,
-      homepage: option<string>,
-      source: option<string>,
-      description: option<string>,
-      readme: option<string>,
-      capabilities: list<string>,
-    }
-
-    get-metadata: func() -> metadata;
+    get-metadata: func() -> list<u8>;
 }
 
 // note: we import this so we can't export it (ie. keep it in plugin)
@@ -94,14 +82,14 @@ interface update {
     }
 }
 
+interface host {
+  use update.{update};
+  send-update: func(nickname: string, update: update);
+}
+
 world plugin-host {
   import wasi:http/client@0.3.0;
   import wasi:sockets/types@0.3.0;
-
-  import host: interface {
-    use update.{update};
-    send-update: func(nickname: string, update: update);
-  }
-
+  import host;
   export plugin;
 }

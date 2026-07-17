@@ -1,0 +1,88 @@
+package litehouse:errors@1.0.0;
+
+interface types {
+  enum cancellation-origin {
+    caller,
+    provider,
+    host,
+    shutdown,
+  }
+
+  enum binding-error {
+    not-found,
+    ambiguous,
+    stale-handle,
+    endpoint-removed,
+  }
+
+  enum authorization-error {
+    denied,
+    expired-grant,
+    insufficient-scope,
+  }
+
+  enum availability-error {
+    unavailable,
+    reconnecting,
+    shutting-down,
+  }
+
+  record deadline-exceeded {
+    deadline-monotonic-nanoseconds: u64,
+  }
+
+  variant timing-error {
+    deadline-exceeded(deadline-exceeded),
+    cancelled(cancellation-origin),
+  }
+
+  record overloaded {
+    retry-after-milliseconds: option<u64>,
+  }
+
+  variant capacity-error {
+    overloaded(overloaded),
+  }
+
+  enum execution-error {
+    provider-trapped,
+    protocol-failed,
+    unsupported,
+  }
+
+  variant unknown-outcome-cause {
+    deadline-exceeded,
+    cancelled(cancellation-origin),
+    disconnected,
+    provider-failed,
+  }
+
+  record outcome-unknown-error {
+    cause: unknown-outcome-cause,
+    request-id: string,
+    attempt: u32,
+    idempotency-key: option<string>,
+  }
+
+  variant core-error {
+    binding(binding-error),
+    authorization(authorization-error),
+    availability(availability-error),
+    timing(timing-error),
+    capacity(capacity-error),
+    execution(execution-error),
+    outcome-unknown(outcome-unknown-error),
+    contract-error,
+  }
+
+  record retry-after {
+    milliseconds: u64,
+  }
+
+  variant retry-advice {
+    never,
+    reconnect,
+    rebind,
+    retry-after(option<retry-after>),
+  }
+}

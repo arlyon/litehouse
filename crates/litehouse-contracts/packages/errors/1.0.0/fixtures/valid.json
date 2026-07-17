@@ -1,0 +1,14 @@
+{
+  "case": "ambiguous-side-effect",
+  "inner": {
+    "outcomeUnknown": {
+      "cause": "deadline-exceeded",
+      "requestId": "req-42",
+      "attempt": 1,
+      "idempotencyKey": null
+    }
+  },
+  "detail": null,
+  "retry": "never",
+  "errorId": "err-42"
+}

@@ -1,7 +1,12 @@
 {
-  "ci_policy_sha256": "53980c78c27a15bd81d2d281a5b8e8e5d1da4f0fb0897496e29ce1be73be5e8f",
+  "ci_policy_sha256": "195ed1bc12207c5f43351c9872f38d4af912a1811158704d3b29fa73f50502dd",
+  "contract_package_json_sha256": "650cd474b7da81c66989722d89a52bc2acb7fe7cfd30994aad9af059708d1805",
+  "contract_source_tree_sha256": "3f9ef72e294ec6f8acf4b0df9038c70eebef30cd4ab975a1a8258a0d47ec511e",
+  "contract_wit_tree_sha256": "d2b71b695d199310b164c69f051b2a267db712aa1751fa5b0b612138f0aa2820",
   "flatc_installer_sha256": "64845bc24de742866aef4415257ed0f9bda69bcae0a87601f98e04397dc93f33",
   "flatc_version": "25.12.19",
+  "management_operations_sha256": "2fe7ccf083bc71746747d8ed1fa9ae476c33b98b6d22d344d51df54133a59b5a",
+  "quantity_engine_tree_sha256": "da5341ae4d470e7cd109b9948854934ca99fc4fe7003445c155a724b9634c7b4",
   "registry_generated_sha256": "db64638ce8966b4dee602aac9e27046058a8a6f18a83a49f6b853899cdf2c33d",
   "registry_schema_sha256": "1f39d1296632cb9b5bb1fdca1db8d55b72aff186b55e5db537fed5b3d583aa4d",
   "tracked_workspace_members": [
@@ -19,6 +24,11 @@
       "edition": "workspace",
       "name": "litehouse-config",
       "path": "crates/litehouse-config/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-contracts",
+      "path": "crates/litehouse-contracts/Cargo.toml"
     },
     {
       "edition": "2024",
@@ -39,6 +49,16 @@
       "edition": "workspace",
       "name": "litehouse-plugin",
       "path": "crates/plugin/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-quantity-component",
+      "path": "crates/quantity-component/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-quantity-parity",
+      "path": "crates/quantity-parity/Cargo.toml"
     },
     {
       "edition": "workspace",
@@ -91,7 +111,7 @@
       "path": "plugins/weather/Cargo.toml"
     }
   ],
-  "wit_tree_sha256": "619e58478102e40afcda2c5b854d4da1586ff4788a9172a3560b4048c6373bc5",
+  "wit_tree_sha256": "46542161cd249a84d53a374e464f7fa8601ba3d7d059ccb56f7c55cbe20f7701",
   "workflow_actions": [
     {
       "action": "actions/checkout",
@@ -154,5 +174,5 @@
       "workflow": ".github/workflows/rust.yml"
     }
   ],
-  "workflow_tree_sha256": "25c9e17b220bcb95b8a71ab6759f6682a7562e18f4dec7c3db47e4a4e5365b0d"
+  "workflow_tree_sha256": "dc251177a807636a95daf7fa1a85a53a6b44182dedacd94e788bf4e46f8a780b"
 }

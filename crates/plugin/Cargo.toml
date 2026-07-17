@@ -9,6 +9,7 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
+litehouse-contracts = { version = "0.1.0", path = "../litehouse-contracts" }
 litehouse-plugin-macro = { version = "0.1.0", path = "../plugin-macro" }
 schemars = { version = "0.8.16", default-features = false, features = [
   "derive",

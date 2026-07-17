@@ -1,0 +1,37 @@
+[package]
+name = "litehouse-contracts"
+version = "0.1.0"
+description = "Versioned Litehouse capability contracts and deterministic generators"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+build = "build.rs"
+
+[dependencies]
+anyhow = "1.0.86"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.117"
+sha2 = "0.10.8"
+url = "2.5.7"
+wit-component = "0.253.0"
+wit-parser = "0.253.0"
+
+[build-dependencies]
+anyhow = "1.0.86"
+flate2 = "1.0.30"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.117"
+sha2 = "0.10.8"
+tar = "0.4.41"
+wit-component = "0.253.0"
+wit-parser = "0.253.0"
+
+[dev-dependencies]
+anyhow = "1.0.86"
+flate2 = "1.0.30"
+tar = "0.4.41"
+wasmparser = "0.253.0"
+wit-component = { version = "0.253.0", features = ["semver-check"] }
+wit-parser = "0.253.0"

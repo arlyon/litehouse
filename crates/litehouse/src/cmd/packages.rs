@@ -6,258 +6,138 @@ use std::{
 
 use futures::FutureExt;
 use indicatif::{ProgressFinish, ProgressStyle};
-use itertools::Itertools;
 use litehouse_config::{Import, LitehouseConfig};
+use litehouse_contracts::component::{ComponentKind, validate_component};
 use litehouse_plugin::serde_json;
-use miette::{Context, IntoDiagnostic, NamedSource, bail};
+use miette::{Context, IntoDiagnostic, bail};
 use tokio::process::Command;
 use tokio_stream::StreamExt;
-use wasi_preview1_component_adapter_provider::WASI_SNAPSHOT_PREVIEW1_REACTOR_ADAPTER;
 
 use litehouse_registry::{Download, Registry, Upload};
 
-const TARGET: &str = "wasm32-wasip1";
+const TARGET: &str = "wasm32-wasip2";
 
 pub async fn build_in_temp(
     package: &str,
     release: bool,
-    optimise: bool,
-    no_package: bool,
 ) -> Result<(Import, PathBuf), miette::Report> {
-    let workspaces_json = Command::new("cargo")
-        .arg("metadata")
+    let metadata = Command::new("cargo")
+        .args(["metadata", "--format-version", "1", "--no-deps"])
         .output()
         .await
-        .unwrap();
-    let data: serde_json::Value = serde_json::from_slice(&workspaces_json.stdout).unwrap();
-
-    let (_name, version, path, is_cdylib) = data["workspace_members"]
+        .into_diagnostic()
+        .wrap_err("unable to inspect Cargo workspace")?;
+    if !metadata.status.success() {
+        bail!(
+            "cargo metadata returned a non-zero exit code:\n\n{}",
+            String::from_utf8_lossy(&metadata.stderr)
+        );
+    }
+    let data: serde_json::Value = serde_json::from_slice(&metadata.stdout)
+        .into_diagnostic()
+        .wrap_err("cargo metadata returned malformed JSON")?;
+    let target_directory = data["target_directory"]
+        .as_str()
+        .map(PathBuf::from)
+        .ok_or_else(|| miette::miette!("cargo metadata has no target directory"))?;
+    let package_metadata = data["packages"]
         .as_array()
-        .unwrap()
-        .iter()
-        .map(|v| {
-            let v = v.as_str().unwrap();
-
-            // check if package v is a cdylib
-            let package = data["packages"]
-                .as_array()
-                .unwrap()
+        .and_then(|packages| {
+            packages
                 .iter()
-                .find(|p| p["id"] == v)
-                .unwrap();
-
-            let is_cdylib = package["targets"].as_array().unwrap().iter().any(|t| {
-                t["kind"]
-                    .as_array()
-                    .unwrap()
-                    .contains(&serde_json::Value::String("cdylib".into()))
-            });
-
-            let (name, version, path) = if let Some(rest) = v.strip_prefix("path+file://") {
-                // macOS, format path+file:///$PATH/$NAME#$VERSION
-                let (path, rest) = rest.rsplit_once('/').unwrap();
-                let (name, version) = rest.split_once('#').unwrap();
-                (name, version, path)
-            } else {
-                // linux, format $NAME $VERSION (path+file://$PATH)
-                let (name, rest) = v.split_once(' ').unwrap();
-                let (version, rest) = rest.split_once(' ').unwrap();
-                let path = rest
-                    .strip_prefix("(path+file://")
-                    .unwrap()
-                    .strip_suffix(')')
-                    .unwrap();
-                (name, version, path)
-            };
-
-            (name, version, path, is_cdylib)
+                .find(|candidate| candidate["name"] == package)
         })
-        .find(|(name, _, _, _)| *name == package)
-        .unwrap();
-
+        .ok_or_else(|| miette::miette!("package `{package}` is not in the workspace"))?;
+    let version = package_metadata["version"]
+        .as_str()
+        .ok_or_else(|| miette::miette!("package `{package}` has no version"))?;
+    let is_cdylib = package_metadata["targets"]
+        .as_array()
+        .is_some_and(|targets| {
+            targets.iter().any(|target| {
+                target["crate_types"]
+                    .as_array()
+                    .is_some_and(|types| types.iter().any(|kind| kind == "cdylib"))
+            })
+        });
     if !is_cdylib {
-        let path = Path::new(path).join(package).join("Cargo.toml");
-        tracing::info!("{:?}", path);
-        let contents = std::fs::read_to_string(&path).unwrap();
-
         return Err(miette::miette!(
-                help = "Please add a crate-type of cdylib to your Cargo.toml",
-                url = "https://rustwasm.github.io/docs/wasm-pack/tutorials/npm-browser-packages/template-deep-dive/cargo-toml.html#1-crate-type",
-                "plugin {package} is not a cdylib", package = package
-        ).with_source_code(NamedSource::new(path.to_string_lossy(), contents)));
+            help = "Add `crate-type = [\"cdylib\"]` to the package's [lib] section",
+            "plugin `{package}` must build as a Component Model cdylib"
+        ));
     }
 
-    let spinner_style = ProgressStyle::with_template("{prefix:.bold.dim} {spinner} {wide_msg}")
-        .unwrap()
-        .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
+    let spinner = indicatif::ProgressBar::new_spinner()
+        .with_style(
+            ProgressStyle::with_template("{prefix:.bold.dim} {spinner} {wide_msg}")
+                .expect("valid spinner template")
+                .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ "),
+        )
+        .with_message("Building wasm32-wasip2 component...")
+        .with_finish(ProgressFinish::WithMessage("Built!".into()))
+        .with_prefix("[1/1]");
+    spinner.enable_steady_tick(Duration::from_millis(100));
 
-    let build_output_path = {
-        let sp = indicatif::ProgressBar::new_spinner()
-            .with_style(spinner_style.clone())
-            .with_message("Building...")
-            .with_finish(ProgressFinish::WithMessage("Built!".into()))
-            .with_prefix("[1/3]");
-
-        sp.enable_steady_tick(Duration::from_millis(100));
-
-        // run cargo build
-        let out = Command::new("cargo")
-            .args([
-                "+nightly",
-                "build",
-                "-Zbuild-std=panic_abort,std",
-                "--target",
-                TARGET,
-                "-p",
-                package,
-            ])
-            .args(if release { &["--release"][..] } else { &[] })
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .output()
-            .await
-            .expect("failed to run subprocess");
-
-        let disk_name = package.replace("-", "_");
-        let pwd = std::env::current_dir().unwrap();
-        let build_output_path = format!(
-            "target/{}/{}/{}.wasm",
-            TARGET,
-            if release { "release" } else { "debug" },
-            disk_name
-        );
-
-        if !out.status.success() {
-            sp.abandon_with_message("  Failed!".to_string());
-            bail!(
-                "cargo build returned a non-zero exit code:\n\n{}",
-                String::from_utf8(out.stderr).unwrap()
-            );
-        }
-
-        tracing::info!("built the binary");
-
-        pwd.join(build_output_path)
-    };
-
-    let import = Import {
-        registry: None,
-        plugin: package.to_owned(),
-        version: Some(
-            version
-                .parse()
-                .into_diagnostic()
-                .wrap_err("unable to parse version")?,
-        ),
-        sha: None,
-    };
-
-    let tmp = std::env::temp_dir().join("litehouse");
-    std::fs::create_dir_all(&tmp)
+    let output = Command::new("cargo")
+        .args(["build", "--target", TARGET, "-p", package])
+        .args(if release { &["--release"][..] } else { &[] })
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .await
         .into_diagnostic()
-        .wrap_err("unable to create temp dir")?;
-
-    let build_output_path = if optimise {
-        let sp = indicatif::ProgressBar::new_spinner()
-            .with_style(spinner_style.clone())
-            .with_finish(ProgressFinish::WithMessage("Optimising...".into()))
-            .with_prefix("[2/3]");
-        sp.enable_steady_tick(Duration::from_millis(100));
-
-        // run wasm-opt
-        let wasm_path_opt = tmp.join("opt.wasm");
-        let mut cmd = Command::new("wasm-opt");
-        let out = cmd.args([
-            "-Oz",
-            "--enable-mutable-globals",
-            "--enable-bulk-memory",
-            build_output_path.to_str().unwrap(),
-            "-o",
-            wasm_path_opt.to_str().unwrap(),
-        ]);
-
-        tracing::debug!(
-            "running {:?} {}",
-            out.as_std().get_program(),
-            out.as_std()
-                .get_args()
-                .map(|s| s.to_string_lossy())
-                .join(" ")
+        .wrap_err("unable to run cargo build")?;
+    if !output.status.success() {
+        spinner.abandon_with_message("Failed!".to_string());
+        bail!(
+            "cargo build returned a non-zero exit code:\n\n{}",
+            String::from_utf8_lossy(&output.stderr)
         );
+    }
 
-        let out = out
-            .output()
-            .await
-            .into_diagnostic()
-            .wrap_err("unable to run wasm-opt. please make sure it is on your path")?;
+    let disk_name = package.replace('-', "_");
+    let component = target_directory
+        .join(TARGET)
+        .join(if release { "release" } else { "debug" })
+        .join(format!("{disk_name}.wasm"));
+    if !component.is_file() {
+        bail!("cargo did not produce `{}`", component.display());
+    }
 
-        if !out.status.success() {
-            sp.abandon_with_message("Failed!".to_string());
-            bail!(
-                "wasm-opt returned a non-zero exit code:\n\n{}",
-                String::from_utf8(out.stderr).unwrap()
-            );
-        }
-        wasm_path_opt
-    } else {
-        tracing::debug!("skipping optimising");
-        build_output_path
-    };
+    let validation = Command::new("wasm-tools")
+        .args(["validate", "--features", "cm-async"])
+        .arg(&component)
+        .output()
+        .await
+        .into_diagnostic()
+        .wrap_err("unable to run pinned wasm-tools")?;
+    if !validation.status.success() {
+        bail!(
+            "component validation failed:\n\n{}",
+            String::from_utf8_lossy(&validation.stderr)
+        );
+    }
+    let component_bytes = tokio::fs::read(&component)
+        .await
+        .into_diagnostic()
+        .wrap_err("unable to read built component for runtime-profile validation")?;
+    validate_component(&component_bytes, ComponentKind::Plugin)
+        .into_diagnostic()
+        .wrap_err("component violates the frozen runtime profile")?;
 
-    let build_output_path = if !no_package {
-        let sp = indicatif::ProgressBar::new_spinner()
-            .with_style(spinner_style.clone())
-            .with_finish(ProgressFinish::WithMessage("Packaged!".into()))
-            .with_prefix("[3/3]");
-
-        sp.enable_steady_tick(Duration::from_millis(100));
-
-        // write the wasm file to a temp dir
-        let wasi_path = tmp.join("wasi_snapshot_preview1.wasm");
-        let component_path = tmp.join(import.file_name());
-        std::fs::write(&wasi_path, WASI_SNAPSHOT_PREVIEW1_REACTOR_ADAPTER).unwrap();
-
-        tracing::info!("wrote process file to {}", wasi_path.display());
-
-        // run wasm-tools against the wasm file
-        let out = Command::new("wasm-tools")
-            .args([
-                "component",
-                "new",
-                build_output_path.to_str().unwrap(),
-                "--adapt",
-                wasi_path.to_str().unwrap(),
-                "-o",
-                component_path.to_str().unwrap(),
-            ])
-            .status()
-            .await
-            .unwrap();
-
-        tracing::info!("attempted to create component");
-
-        if !out.success() {
-            bail!("creating component returned a non-zero exit code");
-        }
-
-        tracing::info!("created component");
-        component_path
-    } else {
-        tracing::debug!("skipping packaging");
-        build_output_path
-    };
-
-    Ok((import, build_output_path))
+    Ok((
+        Import {
+            registry: None,
+            plugin: package.to_owned(),
+            version: Some(version.parse().into_diagnostic()?),
+            sha: None,
+        },
+        component,
+    ))
 }
 
-pub async fn build(
-    package: &str,
-    wasm_path: &Path,
-    debug: bool,
-    optimise: bool,
-    no_package: bool,
-) -> Result<(), miette::Error> {
-    let (import, path) = build_in_temp(package, !debug, optimise, no_package)
+pub async fn build(package: &str, wasm_path: &Path, debug: bool) -> Result<(), miette::Error> {
+    let (import, path) = build_in_temp(package, !debug)
         .await
         .context("unable to build")?;
     tokio::fs::create_dir_all(wasm_path).await.unwrap();
@@ -272,7 +152,7 @@ pub async fn build(
 }
 
 pub async fn publish<D>(package: &str, op: &Registry<Upload, D>) {
-    let (import, path) = build_in_temp(package, true, true, false).await.unwrap();
+    let (import, path) = build_in_temp(package, true).await.unwrap();
 
     let success = op.publish(&import, &path).await;
     if success {

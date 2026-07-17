@@ -1,0 +1,5 @@
+{
+  "case": "canonicalized-power",
+  "input": { "magnitude": "1.000", "unit": "J/s" },
+  "quantity": { "profile": "litehouse:quantity/power@1", "magnitude": "1", "unit": "W" }
+}

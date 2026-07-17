@@ -30,6 +30,7 @@ itertools = "0.12.1"
 jsonc-parser = { version = "0.23.0", features = ["serde", "serde_json"] }
 jsonschema = "0.17.1"
 litehouse-config = { version = "0.1.0", path = "../litehouse-config" }
+litehouse-contracts = { version = "0.1.0", path = "../litehouse-contracts" }
 lz4_flex = "0.11.2"
 miette = { version = "7.2.0", features = ["fancy"] }
 litehouse-plugin = { version = "0.1.0", path = "../plugin" }
@@ -59,7 +60,6 @@ wasmtime-wasi-http = { version = "46.0.1", default-features = false, features = 
   "default-send-request",
   "p3",
 ] }
-wasi-preview1-component-adapter-provider = "46.0.1"
 reqwest = { version = "0.11.24", default-features = false, features = [
   "rustls-tls",
 ] }
