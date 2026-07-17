@@ -18,6 +18,11 @@ Current committed foundation:
 | T3 runtime resilience | `e3c7240` | Focused cache, deadline, trap, event-continuity, capability, and protected-value hardening |
 | T4 greenfield web gate | `7fcd1fc` | TanStack/Worker capability renderer gate with digest-locked Open Design input |
 | Typed ESPHome resource spike | `b6dc3e8` | One guest/store returned repeated typed On/Off, Level, and Color resources safely |
+| Combined route handoff | `1f66492` | Frozen T6a plus three-tool MCP execution route |
+| Provider and MCP contracts | `7a5c8da` | Production provider ABI, provider admission, and three closed operation projections |
+| Production provider host | `4254b15` | Store-local typed-resource actor with exact TCP authority and generation fencing |
+| ESPHome component | `e24f212` | Encrypted single-session ESPHome switch and binary-sensor provider |
+| Canonical MCP slice | `62fdbc8` | Three `rmcp` tools over authorized typed handlers with deterministic end-to-end proof |
 
 The production worktree should be clean before each phase. Build output belongs under `/home/arlyon/.cache/litehouse-connected-release-target` and project tools run through `mise --no-config`.
 
@@ -64,7 +69,7 @@ Configured test ESPHome node
 
 The MCP adapter invokes canonical handlers; it never calls Wasmtime directly. The host adapter invokes generated methods on typed `Resource<T>` handles. Those opaque handles never enter another store or the service-fabric registry.
 
-## Active combined T6a + MCP vertical slice
+## Completed combined T6a + MCP vertical slice
 
 ### Freeze provider and MCP contracts
 
@@ -125,6 +130,12 @@ No shell, filesystem, arbitrary network, secret, registry publication, ownership
 
 A restoration failure is a blocker and requires manual verification. No other entity may be mutated.
 
+The supervised proof completed successfully. Relay 1 was observed Off, set
+absolutely On, observed at revision 2, restored absolutely Off, and observed at
+revision 3. Both writes returned accepted-for-delivery; restoration was
+independently observed. No other entity was selected or mutated, and the
+runtime-only credential material left with the proof process.
+
 ### Validate and commit
 
 - LSP diagnostics on changed Rust files.
@@ -142,7 +153,7 @@ A restoration failure is a blocker and requires manual verification. No other en
 | Tranche | State | Purpose |
 |---|---|---|
 | T5 / T5b | Deferred | Registry replacement, protected publisher, and signing custody; existing registry retained |
-| T6a + MCP proving slice | Active | ESPHome component, production host adapter, three MCP tools, supervised Relay 1 proof |
+| T6a + MCP proving slice | Completed | ESPHome component, production host adapter, three MCP tools, supervised Relay 1 proof |
 | T6b | Pending | Tasmota HTTP provider |
 | T6c | Pending | ntfy notification provider |
 | T6d | Pending | attributed Open-Meteo provider |
@@ -187,4 +198,4 @@ After context compaction, reorient in this order:
 4. `git status --short` and `git log --oneline -8`
 5. The active combined T6a + MCP todo subtree
 
-The next implementation action is **Freeze provider and MCP contracts**. Do not reopen T0–T4 or the typed-resource feasibility question unless a demonstrated regression requires it.
+The next implementation action is **T6b: implement the Tasmota HTTP provider** after the final combined-slice validation commit. Do not reopen T0–T4, the typed-resource feasibility question, or the proven three-tool adapter unless a demonstrated regression requires it.

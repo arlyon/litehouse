@@ -36,3 +36,4 @@ esphome-native-api = { version = "=2.1.0", default-features = false, features = 
   "version_2026_6_2",
 ] }
 wasmtime = "46.0.1"
+zeroize = "1.8.1"

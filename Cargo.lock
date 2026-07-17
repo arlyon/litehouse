@@ -3211,6 +3211,7 @@ dependencies = [
  "tokio",
  "tracing",
  "wasmtime",
+ "zeroize",
 ]
 
 [[package]]

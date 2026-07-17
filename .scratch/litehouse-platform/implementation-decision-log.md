@@ -474,3 +474,19 @@ configuration.
   Noise fixture separately proved ESPHome Native API → Wasm component →
   store-local host → canonical handlers → MCP, including absolute restore and
   restoration observation.
+
+### R-009 — Accept the supervised Relay 1 vertical proof
+
+- **Resolution:** the approved live mutation remained limited to the unique
+  `Relay 1` On/Off facet. The proof used only the three in-process MCP tools,
+  changed the observed absolute state from Off to On, observed that state, sent
+  the absolute original Off state, and observed restoration. Smart Bulb Mode,
+  Relay 2, Relay 3, and every other entity were excluded by exact label and
+  contract selection.
+- **Evidence:** the production component and runtime profile were revalidated
+  immediately before the proof. Inventory selected facet
+  `switch-0-1878979320` at generation 1; the initial observation was Off,
+  accepted-for-delivery change and restore receipts were returned, the changed
+  observation reached revision 2, and the restored Off observation reached
+  revision 3. The proof process exited successfully and retained no credential
+  file or child process.
