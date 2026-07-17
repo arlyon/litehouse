@@ -1,8 +1,8 @@
 {
   "ci_policy_sha256": "57354dec4b3993b92a99fc816fdee7dec65c2527013b5166fc0ab6005a2704b5",
-  "contract_package_json_sha256": "650cd474b7da81c66989722d89a52bc2acb7fe7cfd30994aad9af059708d1805",
-  "contract_source_tree_sha256": "e57377076128958b58ce09dbebaf48e05168e4e66d172c7088157303a193b368",
-  "contract_wit_tree_sha256": "ed91dcc627c5d3ca654b56346f0e79c8beb23ee2a8ca50fc28428a3be346a681",
+  "contract_package_json_sha256": "fed097ca64412f5b2bb0f4592ac575a085303a4f04d2523f327a76a3d5e102ad",
+  "contract_source_tree_sha256": "7b4d3c1b6cecfb61a535df12fd1b9b9cc4d4a961b1b6641d061ce649b7e3ec41",
+  "contract_wit_tree_sha256": "925b079a09ad62ee4fe9c50eaa299c5bcd24ee17a5b2dafcc89daf2830315178",
   "flatc_installer_sha256": "64845bc24de742866aef4415257ed0f9bda69bcae0a87601f98e04397dc93f33",
   "flatc_version": "25.12.19",
   "management_operations_sha256": "e9ea83eed21a2ee997ea53ae7f2c43a49552eca6052aa1b33e577a02efc67c2e",
@@ -38,6 +38,11 @@
     },
     {
       "edition": "workspace",
+      "name": "litehouse-provider-host",
+      "path": "crates/litehouse-provider-host/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
       "name": "litehouse-service-fabric",
       "path": "crates/litehouse-service-fabric/Cargo.toml"
     },
@@ -60,6 +65,11 @@
       "edition": "workspace",
       "name": "litehouse-plugin",
       "path": "crates/plugin/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-provider-host-fixture",
+      "path": "crates/provider-host-fixture/Cargo.toml"
     },
     {
       "edition": "workspace",

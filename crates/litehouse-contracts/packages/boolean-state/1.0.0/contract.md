@@ -1,6 +1,6 @@
 # `litehouse:boolean-state@1.0.0`
 
-Boolean State is read-only and never implies an actuator. The built-in semantic profile fixes polarity/meaning for contact, occupancy, smoke, status, moisture, vibration, or honest generic use. A source whose meaning is not honest enough for generic publication remains diagnostic.
+Boolean State is read-only and never implies an actuator. The execution-free `types` interface lets provider runners reuse the exact records without importing consumer-side capability functions. The built-in semantic profile fixes polarity/meaning for contact, occupancy, smoke, status, moisture, vibration, or honest generic use. A source whose meaning is not honest enough for generic publication remains diagnostic.
 
 `current: none` is unknown, never false. Availability and quality are independent; stale/unavailable state may retain a last value, and `source-assumed` is not verification. Descriptor event sets feature-gate source-provided occurrences.
 

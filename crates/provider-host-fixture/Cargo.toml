@@ -1,0 +1,13 @@
+[package]
+name = "litehouse-provider-host-fixture"
+version = "0.0.0"
+description = "Test-only component for the production provider host adapter"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = "0.59.0"

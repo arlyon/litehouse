@@ -12,7 +12,8 @@
       "package": "litehouse:boolean-state",
       "version": "1.0.0",
       "interfaces": [
-        "capability"
+        "capability",
+        "types"
       ]
     },
     {
@@ -68,7 +69,8 @@
       "package": "litehouse:on-off",
       "version": "1.0.0",
       "interfaces": [
-        "capability"
+        "capability",
+        "types"
       ]
     },
     {

@@ -150,10 +150,53 @@ fn capability_packages_import_only_litehouse_shared_contracts() {
             .filter(|line| line.trim_start().starts_with("use "))
         {
             assert!(
-                line.contains("litehouse:"),
+                line.contains("litehouse:") || line.trim_start().starts_with("use types."),
                 "{capability} has non-Litehouse dependency: {line}"
             );
         }
+    }
+}
+
+#[test]
+fn provider_reuses_execution_free_capability_types() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("packages");
+    let provider = fs::read_to_string(root.join("provider/1.0.0/wit/provider.wit")).unwrap();
+    assert!(provider.contains("litehouse:on-off/types@1.0.0"));
+    assert!(provider.contains("litehouse:boolean-state/types@1.0.0"));
+    assert!(!provider.contains("litehouse:on-off/capability@1.0.0"));
+    assert!(!provider.contains("litehouse:boolean-state/capability@1.0.0"));
+
+    let mut package_roots = fs::read_dir(&root)
+        .unwrap()
+        .map(|entry| entry.unwrap().path().join("1.0.0/wit"))
+        .collect::<Vec<_>>();
+    package_roots.sort();
+    let groups = package_roots
+        .iter()
+        .map(|path| UnresolvedPackageGroup::parse_dir(path).unwrap())
+        .collect::<Vec<_>>();
+    for package in ["on-off", "boolean-state"] {
+        let source = groups
+            .iter()
+            .position(|group| group.main.name.name == package)
+            .unwrap();
+        let mut resolve = Resolve::default();
+        let package_id = resolve
+            .push_groups(
+                groups[source].clone(),
+                groups
+                    .iter()
+                    .enumerate()
+                    .filter(|(candidate, _)| *candidate != source)
+                    .map(|(_, group)| group.clone())
+                    .collect(),
+            )
+            .unwrap();
+        let types = resolve.packages[package_id].interfaces["types"];
+        assert!(
+            resolve.interfaces[types].functions.is_empty(),
+            "{package}/types gained executable functions"
+        );
     }
 }
 

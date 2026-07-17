@@ -7,7 +7,7 @@ registry = "local.litehouse.invalid"
 [[packages.versions]]
 requirement = "=1.0.0"
 version = "1.0.0"
-digest = "sha256:40bc3e0cf086f756b359d2346466ca0a91e55fd753093b997e7b45f68817affa"
+digest = "sha256:ab838b4780e79c6aa40fbfcbaf8d6a8e80c03fd4a046b6fa74bc0f7ea67dc6de"
 
 [[packages]]
 name = "litehouse:errors"
@@ -25,7 +25,7 @@ registry = "local.litehouse.invalid"
 [[packages.versions]]
 requirement = "=1.0.0"
 version = "1.0.0"
-digest = "sha256:0a5e65a7116be5eeeed19b145a969137dd7cf162d1f029efba175115023c42b5"
+digest = "sha256:28befad02f0fe6bbfa130e8810d14b3584f1cb44133a9f5d2dde44199b503b1c"
 
 [[packages]]
 name = "litehouse:receipt"

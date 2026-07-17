@@ -3067,6 +3067,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "litehouse-provider-host"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "litehouse-contracts",
+ "litehouse-service-fabric",
+ "tokio",
+ "wasmtime",
+ "wasmtime-wasi",
+]
+
+[[package]]
+name = "litehouse-provider-host-fixture"
+version = "0.0.0"
+dependencies = [
+ "wit-bindgen 0.59.0",
+]
+
+[[package]]
 name = "litehouse-quantity-component"
 version = "0.1.0"
 dependencies = [

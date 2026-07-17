@@ -1,6 +1,6 @@
 # `litehouse:on-off@1.0.0`
 
-On/Off is an actuator facet. Boolean sensors MUST use `boolean-state` instead.
+On/Off is an actuator facet. Boolean sensors MUST use `boolean-state` instead. The `types` interface is execution-free so provider runners may reuse the exact records without importing consumer-side capability functions.
 
 `current: none` means unknown and is distinct from `false`; availability is independent and a disconnected facet may retain its last current value. `source-assumed` means the source reports assumed state, not physical verification. A subscription MUST emit snapshot, caught-up barrier, then live observations or an explicit gap.
 

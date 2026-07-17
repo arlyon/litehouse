@@ -426,3 +426,17 @@ configuration.
   three-tool inventory, real component validation, release Litehouse build, and
   a redacted supervised inventory/query/set/query/restore/query transcript with
   successful restoration.
+
+### R-006 — Keep provider execution imports type-only
+
+- **Resolution:** split the On/Off and Boolean packages into execution-free
+  `types` interfaces plus their existing `capability` interfaces. The provider
+  runner reuses only those exact records, so a provider component does not gain
+  consumer capability imports or a reverse invocation path. The production host
+  retains all guest resources in one bounded actor/store, supplies connect-only
+  exact TCP grants, and treats host generation as authoritative.
+- **Evidence:** contract tests reject executable functions in the two `types`
+  interfaces; a real `wasm32-wasip2` fixture passes provider admission and the
+  production Wasmtime adapter proves typed discovery, query, absolute set,
+  generation fencing, accepted-delivery receipt projection, and endpoint
+  withdrawal on actor shutdown.

@@ -1,9 +1,9 @@
 package litehouse:provider@1.0.0;
 
 interface provider {
-  use litehouse:boolean-state/capability@1.0.0.{boolean-descriptor, error as boolean-error, state as boolean-state};
+  use litehouse:boolean-state/types@1.0.0.{boolean-descriptor, error as boolean-error, state as boolean-state};
   use litehouse:errors/types@1.0.0.{core-error, retry-advice};
-  use litehouse:on-off/capability@1.0.0.{error as on-off-error, on-off-descriptor, operation-receipt, set-request, state as on-off-state};
+  use litehouse:on-off/types@1.0.0.{error as on-off-error, on-off-descriptor, operation-receipt, set-request, state as on-off-state};
   use litehouse:receipt/types@1.0.0.{request-context};
 
   record error {
