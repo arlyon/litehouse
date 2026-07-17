@@ -43,8 +43,8 @@ fn main() -> Result<()> {
     );
 
     let packages = discover_packages(&packages_root)?;
-    if packages.len() != 15 {
-        bail!("expected 15 contract packages, found {}", packages.len());
+    if packages.len() != 16 {
+        bail!("expected 16 contract packages, found {}", packages.len());
     }
 
     let mut artifacts = Vec::with_capacity(packages.len());

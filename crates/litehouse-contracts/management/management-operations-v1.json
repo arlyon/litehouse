@@ -9802,7 +9802,7 @@
         "operation_id": "capability.on-off.set@1"
       },
       "mcp": {
-        "tool": "litehouse_capability_on_off_set_v1",
+        "tool": "litehouse_interact",
         "resource_template": null,
         "annotations": {
           "read_only": false,
@@ -14624,6 +14624,430 @@
       "service_binding": null
     },
     {
+      "id": "facets.query@1",
+      "kind": "canonical",
+      "scope_policy": {
+        "kind": "fixed",
+        "scope": "litehouse:read"
+      },
+      "authorization": {
+        "action": "read",
+        "resource": "facet-state"
+      },
+      "class": "read",
+      "idempotency": "not-required",
+      "preconditions": {
+        "revision": "none",
+        "generation": "facet-generation"
+      },
+      "deadline": {
+        "default_ms": 10000,
+        "maximum_ms": 30000
+      },
+      "progress": {
+        "kind": "none"
+      },
+      "stream": {
+        "kind": "none"
+      },
+      "http": {
+        "method": "POST",
+        "path": "/api/operations/facets.query/v1",
+        "cache": "no-store"
+      },
+      "webrtc": {
+        "operation_id": "facets.query@1"
+      },
+      "mcp": {
+        "tool": "litehouse_query",
+        "resource_template": "litehouse://facets/{facet-id}/state",
+        "annotations": {
+          "read_only": true,
+          "destructive": false,
+          "idempotent": true,
+          "open_world": false
+        }
+      },
+      "web": {
+        "group": "facets",
+        "label": "Facet Query",
+        "cache": "no-store",
+        "destructive_confirmation": false
+      },
+      "projection": {
+        "input": "schema-allowlist",
+        "output": "schema-allowlist",
+        "unknown_fields": "deny",
+        "protected_values": "omit",
+        "private_addresses": "omit",
+        "errors": "safe-envelope"
+      },
+      "redaction": {
+        "unknown_fields": "hide",
+        "protected_values": "omit",
+        "private_addresses": "omit",
+        "untrusted_text": "preserve-marked",
+        "diagnostics": "allowlisted"
+      },
+      "schemas": {
+        "input": {
+          "sha256": "8681dac9efdd15e43679a57e8ad1d6b1eb985eeb7257e4a9d58480f20a4d9c2e",
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "facets.query@1 canonical input",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "facet_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+              },
+              "facet_generation": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 18446744073709551615
+              }
+            },
+            "required": [
+              "facet_id",
+              "facet_generation"
+            ]
+          }
+        },
+        "output": {
+          "sha256": "86961eda2d7a98d6695372efb7a911d5d55ab64f17ec7215f95e194e69da8cc8",
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "facets.query@1 canonical output",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "facet_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+              },
+              "generation": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 18446744073709551615
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              },
+              "availability": {
+                "type": "string",
+                "enum": [
+                  "available",
+                  "unavailable",
+                  "stale"
+                ]
+              },
+              "unavailability_reason": {
+                "type": "string",
+                "enum": [
+                  "disconnected",
+                  "reconnecting",
+                  "provider-failed",
+                  "endpoint-removed",
+                  "unknown"
+                ]
+              },
+              "quality": {
+                "type": "string",
+                "enum": [
+                  "source-reported",
+                  "source-assumed"
+                ]
+              },
+              "received_at_unix_milliseconds": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              },
+              "state": {
+                "oneOf": [
+                  {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "facets.query@1 on-off state",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "on-off"
+                      },
+                      "current": {
+                        "type": [
+                          "boolean",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "current"
+                    ]
+                  },
+                  {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "facets.query@1 boolean-state state",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "boolean-state"
+                      },
+                      "current": {
+                        "type": [
+                          "boolean",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "current"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "facet_id",
+              "generation",
+              "revision",
+              "availability",
+              "received_at_unix_milliseconds",
+              "state"
+            ]
+          }
+        },
+        "error": {
+          "sha256": "1912284e78ae0c489469395072b65b1cd0c6ab8384845ffd4e359c1809513a71",
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "facets.query@1 canonical error",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "operation_id": {
+                "type": "string",
+                "const": "facets.query@1"
+              },
+              "inner": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "group": {
+                    "type": "string",
+                    "enum": [
+                      "binding",
+                      "authorization",
+                      "availability",
+                      "timing",
+                      "capacity",
+                      "execution",
+                      "outcome-unknown",
+                      "contract"
+                    ]
+                  },
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "not-found",
+                      "ambiguous",
+                      "stale-handle",
+                      "endpoint-removed",
+                      "denied",
+                      "expired-grant",
+                      "insufficient-scope",
+                      "unavailable",
+                      "reconnecting",
+                      "shutting-down",
+                      "deadline-exceeded",
+                      "cancelled",
+                      "overloaded",
+                      "provider-failed",
+                      "protocol-failed",
+                      "unsupported",
+                      "outcome-unknown",
+                      "contract-failed"
+                    ]
+                  },
+                  "origin": {
+                    "type": "string",
+                    "enum": [
+                      "caller",
+                      "provider",
+                      "host",
+                      "shutdown"
+                    ]
+                  }
+                },
+                "required": [
+                  "group",
+                  "code"
+                ]
+              },
+              "detail": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                  },
+                  "fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64
+                        },
+                        "summary": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "summary"
+                      ]
+                    },
+                    "minItems": 0,
+                    "maxItems": 16
+                  },
+                  "truncated": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "fields",
+                  "truncated"
+                ]
+              },
+              "retry": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "never",
+                      "retry",
+                      "reconnect",
+                      "rebind",
+                      "lookup-result"
+                    ]
+                  },
+                  "retry_after_ms": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 300000
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              "safe_message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "error_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+              },
+              "correlation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+              },
+              "outcome": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "confidence": {
+                    "type": "string",
+                    "enum": [
+                      "definite",
+                      "outcome-unknown"
+                    ]
+                  },
+                  "lookup_available": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "confidence",
+                  "lookup_available"
+                ]
+              }
+            },
+            "required": [
+              "operation_id",
+              "inner",
+              "retry",
+              "error_id",
+              "correlation_id",
+              "outcome"
+            ]
+          }
+        },
+        "mcp_projection": {
+          "sha256": "b8299e446a7c084442417a29b7baa3d2bb26c53386379136714e176e9b3e4f37",
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "facets.query@1 MCP projection",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "facet_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+              },
+              "facet_generation": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 18446744073709551615
+              },
+              "timeout_ms": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 30000
+              }
+            },
+            "required": [
+              "facet_id",
+              "facet_generation"
+            ]
+          }
+        }
+      },
+      "service_binding": null
+    },
+    {
       "id": "facets.state.snapshot@1",
       "kind": "canonical",
       "scope_policy": {
@@ -19284,6 +19708,433 @@
               "safe_config",
               "version"
             ]
+          }
+        }
+      },
+      "service_binding": null
+    },
+    {
+      "id": "inventory.snapshot@1",
+      "kind": "canonical",
+      "scope_policy": {
+        "kind": "fixed",
+        "scope": "litehouse:read"
+      },
+      "authorization": {
+        "action": "read",
+        "resource": "instance"
+      },
+      "class": "read",
+      "idempotency": "not-required",
+      "preconditions": {
+        "revision": "none",
+        "generation": "none"
+      },
+      "deadline": {
+        "default_ms": 10000,
+        "maximum_ms": 30000
+      },
+      "progress": {
+        "kind": "none"
+      },
+      "stream": {
+        "kind": "none"
+      },
+      "http": {
+        "method": "POST",
+        "path": "/api/operations/inventory.snapshot/v1",
+        "cache": "no-store"
+      },
+      "webrtc": {
+        "operation_id": "inventory.snapshot@1"
+      },
+      "mcp": {
+        "tool": "litehouse_inventory",
+        "resource_template": null,
+        "annotations": {
+          "read_only": true,
+          "destructive": false,
+          "idempotent": true,
+          "open_world": false
+        }
+      },
+      "web": {
+        "group": "instances",
+        "label": "Inventory Snapshot",
+        "cache": "no-store",
+        "destructive_confirmation": false
+      },
+      "projection": {
+        "input": "schema-allowlist",
+        "output": "schema-allowlist",
+        "unknown_fields": "deny",
+        "protected_values": "omit",
+        "private_addresses": "omit",
+        "errors": "safe-envelope"
+      },
+      "redaction": {
+        "unknown_fields": "hide",
+        "protected_values": "omit",
+        "private_addresses": "omit",
+        "untrusted_text": "preserve-marked",
+        "diagnostics": "allowlisted"
+      },
+      "schemas": {
+        "input": {
+          "sha256": "04c3b5971666145c89f5e6e690e3707ebe20d4fcc93d8d0795e52207628abd14",
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "inventory.snapshot@1 canonical input",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {},
+            "required": []
+          }
+        },
+        "output": {
+          "sha256": "8052f58504e52c1df1a9a316984c829cc8492c8b9813a857b9b95cc8fa8a4bef",
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "inventory.snapshot@1 canonical output",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "instances": {
+                "type": "array",
+                "items": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "title": "inventory.snapshot@1 instance",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "instance_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128,
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "package": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128,
+                      "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+                    },
+                    "version": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 32,
+                      "pattern": "^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$"
+                    },
+                    "display_name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "disabled",
+                        "unavailable"
+                      ]
+                    },
+                    "generation": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 18446744073709551615
+                    },
+                    "facets": {
+                      "type": "array",
+                      "items": {
+                        "$schema": "https://json-schema.org/draft/2020-12/schema",
+                        "title": "inventory.snapshot@1 facet",
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "facet_id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128,
+                            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                          },
+                          "generation": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 18446744073709551615
+                          },
+                          "contract": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128,
+                            "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*@[1-9][0-9]*$"
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128
+                          },
+                          "available": {
+                            "type": "boolean"
+                          },
+                          "features": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                            },
+                            "minItems": 0,
+                            "maxItems": 64
+                          },
+                          "operations": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128,
+                              "pattern": "^[a-z0-9.-]+@[1-9][0-9]*$"
+                            },
+                            "minItems": 0,
+                            "maxItems": 64
+                          }
+                        },
+                        "required": [
+                          "facet_id",
+                          "generation",
+                          "contract",
+                          "label",
+                          "available",
+                          "features",
+                          "operations"
+                        ]
+                      },
+                      "minItems": 0,
+                      "maxItems": 200
+                    }
+                  },
+                  "required": [
+                    "instance_id",
+                    "package",
+                    "version",
+                    "display_name",
+                    "status",
+                    "generation",
+                    "facets"
+                  ]
+                },
+                "minItems": 0,
+                "maxItems": 200
+              },
+              "truncated": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "instances",
+              "truncated"
+            ]
+          }
+        },
+        "error": {
+          "sha256": "ba908f25cead9247f4a6e9c390ecb8bcde5f6a48047feb74b997b507a0a8501f",
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "inventory.snapshot@1 canonical error",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "operation_id": {
+                "type": "string",
+                "const": "inventory.snapshot@1"
+              },
+              "inner": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "group": {
+                    "type": "string",
+                    "enum": [
+                      "binding",
+                      "authorization",
+                      "availability",
+                      "timing",
+                      "capacity",
+                      "execution",
+                      "outcome-unknown",
+                      "contract"
+                    ]
+                  },
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "not-found",
+                      "ambiguous",
+                      "stale-handle",
+                      "endpoint-removed",
+                      "denied",
+                      "expired-grant",
+                      "insufficient-scope",
+                      "unavailable",
+                      "reconnecting",
+                      "shutting-down",
+                      "deadline-exceeded",
+                      "cancelled",
+                      "overloaded",
+                      "provider-failed",
+                      "protocol-failed",
+                      "unsupported",
+                      "outcome-unknown",
+                      "contract-failed"
+                    ]
+                  },
+                  "origin": {
+                    "type": "string",
+                    "enum": [
+                      "caller",
+                      "provider",
+                      "host",
+                      "shutdown"
+                    ]
+                  }
+                },
+                "required": [
+                  "group",
+                  "code"
+                ]
+              },
+              "detail": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                  },
+                  "fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64
+                        },
+                        "summary": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "summary"
+                      ]
+                    },
+                    "minItems": 0,
+                    "maxItems": 16
+                  },
+                  "truncated": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "fields",
+                  "truncated"
+                ]
+              },
+              "retry": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "never",
+                      "retry",
+                      "reconnect",
+                      "rebind",
+                      "lookup-result"
+                    ]
+                  },
+                  "retry_after_ms": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 300000
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              "safe_message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "error_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+              },
+              "correlation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+              },
+              "outcome": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "confidence": {
+                    "type": "string",
+                    "enum": [
+                      "definite",
+                      "outcome-unknown"
+                    ]
+                  },
+                  "lookup_available": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "confidence",
+                  "lookup_available"
+                ]
+              }
+            },
+            "required": [
+              "operation_id",
+              "inner",
+              "retry",
+              "error_id",
+              "correlation_id",
+              "outcome"
+            ]
+          }
+        },
+        "mcp_projection": {
+          "sha256": "18131b2df56db8eafb935c0bfcdb9d126b486e219d9541dda8b8def5e15df1a7",
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "inventory.snapshot@1 MCP projection",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "timeout_ms": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 30000
+              }
+            },
+            "required": []
           }
         }
       },

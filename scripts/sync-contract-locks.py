@@ -19,8 +19,8 @@ DEPENDENCY = re.compile(
 
 def package_roots() -> list[Path]:
     roots = sorted(PACKAGES.glob("*/1.0.0"))
-    if len(roots) != 15:
-        raise RuntimeError(f"expected 15 package roots, found {len(roots)}")
+    if len(roots) != 16:
+        raise RuntimeError(f"expected 16 package roots, found {len(roots)}")
     return roots
 
 
@@ -104,14 +104,14 @@ def main() -> None:
     if not isinstance(artifacts, list):
         raise RuntimeError("artifact manifest must be a JSON array")
     digests = {artifact["package"]: artifact["abi_sha256"] for artifact in artifacts}
-    if len(digests) != 15:
-        raise RuntimeError(f"expected 15 artifact digests, found {len(digests)}")
+    if len(digests) != 16:
+        raise RuntimeError(f"expected 16 artifact digests, found {len(digests)}")
 
     for root in package_roots():
         deps = dependencies(root)
         check_file(root / "wkg.toml", manifest(root, deps))
         check_file(root / "wkg.lock", lock(deps, digests))
-    sys.stdout.write("contract locks valid (15 packages)\n")
+    sys.stdout.write("contract locks valid (16 packages)\n")
 
 
 if __name__ == "__main__":

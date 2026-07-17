@@ -1,0 +1,41 @@
+package litehouse:provider@1.0.0;
+
+interface provider {
+  use litehouse:boolean-state/capability@1.0.0.{boolean-descriptor, error as boolean-error, state as boolean-state};
+  use litehouse:errors/types@1.0.0.{core-error, retry-advice};
+  use litehouse:on-off/capability@1.0.0.{error as on-off-error, on-off-descriptor, operation-receipt, set-request, state as on-off-state};
+  use litehouse:receipt/types@1.0.0.{request-context};
+
+  record error {
+    inner: core-error,
+    retry: retry-advice,
+    message: option<string>,
+    error-id: string,
+  }
+
+  resource on-off-facet {
+    key: func() -> string;
+    incarnation: func() -> u64;
+    describe: async func(context: request-context) -> result<on-off-descriptor, on-off-error>;
+    query: async func(context: request-context) -> result<on-off-state, on-off-error>;
+    set: async func(context: request-context, request: set-request) -> result<operation-receipt, on-off-error>;
+  }
+
+  resource boolean-facet {
+    key: func() -> string;
+    incarnation: func() -> u64;
+    describe: async func(context: request-context) -> result<boolean-descriptor, boolean-error>;
+    query: async func(context: request-context) -> result<boolean-state, boolean-error>;
+  }
+
+  resource runner {
+    on-off-facets: async func() -> result<list<own<on-off-facet>>, error>;
+    boolean-facets: async func() -> result<list<own<boolean-facet>>, error>;
+  }
+
+  start: async func(instance-id: string, config: string) -> result<own<runner>, error>;
+}
+
+world component {
+  export provider;
+}

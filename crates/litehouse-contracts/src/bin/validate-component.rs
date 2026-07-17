@@ -6,10 +6,11 @@ fn main() -> Result<()> {
     let mut arguments = std::env::args_os().skip(1);
     let kind = match arguments
         .next()
-        .context("usage: validate-component <plugin|quantity-engine> <component.wasm>")?
+        .context("usage: validate-component <plugin|provider|quantity-engine> <component.wasm>")?
         .to_str()
     {
         Some("plugin") => ComponentKind::Plugin,
+        Some("provider") => ComponentKind::Provider,
         Some("quantity-engine") => ComponentKind::QuantityEngine,
         Some(other) => bail!("unknown component kind `{other}`"),
         None => bail!("component kind must be UTF-8"),

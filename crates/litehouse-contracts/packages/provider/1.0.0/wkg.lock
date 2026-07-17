@@ -1,0 +1,37 @@
+version = 1
+
+[[packages]]
+name = "litehouse:boolean-state"
+registry = "local.litehouse.invalid"
+
+[[packages.versions]]
+requirement = "=1.0.0"
+version = "1.0.0"
+digest = "sha256:40bc3e0cf086f756b359d2346466ca0a91e55fd753093b997e7b45f68817affa"
+
+[[packages]]
+name = "litehouse:errors"
+registry = "local.litehouse.invalid"
+
+[[packages.versions]]
+requirement = "=1.0.0"
+version = "1.0.0"
+digest = "sha256:31dfee4682a33480093f8a2cce1da0aab5e23e5a89684657947838185ad5eeab"
+
+[[packages]]
+name = "litehouse:on-off"
+registry = "local.litehouse.invalid"
+
+[[packages.versions]]
+requirement = "=1.0.0"
+version = "1.0.0"
+digest = "sha256:0a5e65a7116be5eeeed19b145a969137dd7cf162d1f029efba175115023c42b5"
+
+[[packages]]
+name = "litehouse:receipt"
+registry = "local.litehouse.invalid"
+
+[[packages.versions]]
+requirement = "=1.0.0"
+version = "1.0.0"
+digest = "sha256:edcab5737952c82d5612fb60dae48f0b9a4d78edc2909aa58fce948e556915a0"

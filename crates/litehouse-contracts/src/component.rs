@@ -10,6 +10,7 @@ const PROFILE_JSON: &str = include_str!("../packages/runtime-profile/1.0.0/profi
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ComponentKind {
     Plugin,
+    Provider,
     QuantityEngine,
 }
 
@@ -17,6 +18,7 @@ impl ComponentKind {
     fn required_export(self) -> &'static str {
         match self {
             Self::Plugin => "litehouse:plugin/plugin@1.0.0",
+            Self::Provider => "litehouse:provider/provider@1.0.0",
             Self::QuantityEngine => "litehouse:quantity/engine@1.0.0",
         }
     }
@@ -176,3 +178,16 @@ impl fmt::Display for ComponentProfileError {
 }
 
 impl Error for ComponentProfileError {}
+
+#[cfg(test)]
+mod tests {
+    use super::ComponentKind;
+
+    #[test]
+    fn provider_admission_requires_the_exact_provider_interface() {
+        assert_eq!(
+            ComponentKind::Provider.required_export(),
+            "litehouse:provider/provider@1.0.0"
+        );
+    }
+}

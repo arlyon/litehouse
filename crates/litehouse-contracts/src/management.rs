@@ -13,8 +13,8 @@ use std::{
     sync::OnceLock,
 };
 
-pub const MANAGEMENT_OPERATION_COUNT: usize = 74;
-pub const CANONICAL_OPERATION_COUNT: usize = 45;
+pub const MANAGEMENT_OPERATION_COUNT: usize = 76;
+pub const CANONICAL_OPERATION_COUNT: usize = 47;
 pub const CAPABILITY_OPERATION_COUNT: usize = 29;
 pub const MANAGEMENT_OPERATIONS_V1_JSON: &[u8] =
     include_bytes!("../management/management-operations-v1.json");
@@ -41,7 +41,9 @@ pub const CANONICAL_OPERATION_IDS: [&str; CANONICAL_OPERATION_COUNT] = [
     "instances.activate@1",
     "instances.disable@1",
     "instances.delete@1",
+    "inventory.snapshot@1",
     "facets.get@1",
+    "facets.query@1",
     "facets.state.snapshot@1",
     "facets.state.stream@1",
     "facets.events.stream@1",
@@ -74,6 +76,27 @@ pub const CANONICAL_OPERATION_IDS: [&str; CANONICAL_OPERATION_COUNT] = [
     "operations.result.get@1",
     "diagnostics.summary@1",
     "diagnostics.events.page@1",
+];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct McpToolBinding {
+    pub tool: &'static str,
+    pub operation_id: &'static str,
+}
+
+pub const MCP_PROVING_TOOL_BINDINGS: [McpToolBinding; 3] = [
+    McpToolBinding {
+        tool: "litehouse_inventory",
+        operation_id: "inventory.snapshot@1",
+    },
+    McpToolBinding {
+        tool: "litehouse_query",
+        operation_id: "facets.query@1",
+    },
+    McpToolBinding {
+        tool: "litehouse_interact",
+        operation_id: "capability.on-off.set@1",
+    },
 ];
 
 pub const CAPABILITY_OPERATION_IDS: [&str; CAPABILITY_OPERATION_COUNT] = [
@@ -616,7 +639,7 @@ pub fn validate_management_manifest(manifest: &ManagementManifest) -> Result<(),
     )?;
     require(
         manifest.operations.len() == MANAGEMENT_OPERATION_COUNT,
-        "manifest must contain exactly 74 operations",
+        "manifest must contain exactly 76 operations",
     )?;
 
     let mut expected_ids = CANONICAL_OPERATION_IDS
@@ -653,7 +676,7 @@ pub fn validate_management_manifest(manifest: &ManagementManifest) -> Result<(),
     require(
         canonical_count == CANONICAL_OPERATION_COUNT
             && capability_count == CAPABILITY_OPERATION_COUNT,
-        "operation kind counts must be 45 canonical and 29 capability",
+        "operation kind counts must be 47 canonical and 29 capability",
     )?;
 
     let mut paths = HashSet::with_capacity(MANAGEMENT_OPERATION_COUNT);
@@ -791,12 +814,18 @@ fn validate_operation(operation: &ManagementOperation) -> Result<(), ManifestErr
             "WebRTC binding must carry the exact operation ID",
         ),
     )?;
-    let expected_tool = format!("litehouse_{}_v{major}", name.replace(['.', '-'], "_"));
+    let expected_tool = MCP_PROVING_TOOL_BINDINGS
+        .iter()
+        .find(|binding| binding.operation_id == operation.id)
+        .map_or_else(
+            || format!("litehouse_{}_v{major}", name.replace(['.', '-'], "_")),
+            |binding| binding.tool.to_owned(),
+        );
     require(
         operation.mcp.tool == expected_tool,
         operation_error(
             operation,
-            "MCP tool is not exactly derived from the operation ID",
+            "MCP tool does not match the closed projection map",
         ),
     )?;
     require(
@@ -1493,7 +1522,13 @@ fn expected_authorization(id: &str) -> AuthorizationMetadata {
             resource: AuthorizationResource::SchemaCatalog,
         };
     }
-    if id.starts_with("facets.state.") {
+    if id == "inventory.snapshot@1" {
+        return AuthorizationMetadata {
+            action: AuthorizationAction::Read,
+            resource: AuthorizationResource::Instance,
+        };
+    }
+    if id == "facets.query@1" || id.starts_with("facets.state.") {
         return AuthorizationMetadata {
             action: if id.contains(".stream@") {
                 AuthorizationAction::Stream
@@ -1569,7 +1604,7 @@ fn expected_resource_template(id: &str) -> Option<&'static str> {
         "system.get@1" => Some("litehouse://server"),
         "instances.get@1" => Some("litehouse://instances/{instance-id}"),
         "facets.get@1" => Some("litehouse://facets/{facet-id}"),
-        "facets.state.snapshot@1" => Some("litehouse://facets/{facet-id}/state"),
+        "facets.query@1" | "facets.state.snapshot@1" => Some("litehouse://facets/{facet-id}/state"),
         "rules.revision.get@1" => Some("litehouse://rules/{rule-id}/revisions/{revision}"),
         "rules.run.get@1" => Some("litehouse://rules/{rule-id}/runs/{run-id}"),
         "operations.result.get@1" => {
@@ -1588,7 +1623,7 @@ fn expected_web_group(id: &str) -> WebGroup {
         WebGroup::System
     } else if id.starts_with("schemas.") {
         WebGroup::Schemas
-    } else if id.starts_with("instances.") {
+    } else if id.starts_with("instances.") || id.starts_with("inventory.") {
         WebGroup::Instances
     } else if id.starts_with("facets.") {
         WebGroup::Facets

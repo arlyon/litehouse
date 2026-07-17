@@ -1,7 +1,8 @@
 use litehouse_contracts::management::{
     CANONICAL_OPERATION_COUNT, CAPABILITY_OPERATION_COUNT, FIXED_WIRE_SCOPES,
-    MANAGEMENT_OPERATION_COUNT, MANAGEMENT_OPERATIONS_V1_JSON, ManagementManifest, OAuthScope,
-    OperationClass, OperationKind, ScopePolicy, management_manifest, schema_sha256,
+    MANAGEMENT_OPERATION_COUNT, MANAGEMENT_OPERATIONS_V1_JSON, MCP_PROVING_TOOL_BINDINGS,
+    ManagementManifest, OAuthScope, OperationClass, OperationKind, ScopePolicy,
+    management_manifest, schema_sha256,
 };
 use serde_json::{Value, json};
 use std::{collections::BTreeSet, fs, path::PathBuf};
@@ -192,10 +193,14 @@ fn bindings_are_exact_derived_and_reads_are_no_store() {
             operation.webrtc.operation_id.as_str(),
             operation.id.as_str()
         );
-        assert_eq!(
-            operation.mcp.tool,
-            format!("litehouse_{}_v{major}", name.replace(['.', '-'], "_"))
-        );
+        let expected_tool = MCP_PROVING_TOOL_BINDINGS
+            .iter()
+            .find(|binding| binding.operation_id == operation.id)
+            .map_or_else(
+                || format!("litehouse_{}_v{major}", name.replace(['.', '-'], "_")),
+                |binding| binding.tool.to_owned(),
+            );
+        assert_eq!(operation.mcp.tool, expected_tool);
         if operation.class == OperationClass::Read {
             assert_eq!(
                 serde_json::to_value(operation.http.cache).unwrap(),
@@ -207,6 +212,92 @@ fn bindings_are_exact_derived_and_reads_are_no_store() {
             );
         }
     }
+}
+
+#[test]
+fn proving_mcp_surface_is_exactly_three_closed_tools() {
+    assert_eq!(
+        MCP_PROVING_TOOL_BINDINGS
+            .iter()
+            .map(|binding| (binding.tool, binding.operation_id))
+            .collect::<Vec<_>>(),
+        [
+            ("litehouse_inventory", "inventory.snapshot@1"),
+            ("litehouse_query", "facets.query@1"),
+            ("litehouse_interact", "capability.on-off.set@1"),
+        ]
+    );
+
+    let manifest = management_manifest().unwrap();
+    for binding in MCP_PROVING_TOOL_BINDINGS {
+        let operation = manifest
+            .operations
+            .iter()
+            .find(|operation| operation.id == binding.operation_id)
+            .unwrap();
+        assert_eq!(operation.mcp.tool, binding.tool);
+        assert!(!operation.mcp.annotations.open_world);
+    }
+}
+
+#[test]
+fn proving_mcp_schemas_are_closed_and_typed() {
+    let manifest = management_manifest().unwrap();
+    let operation = |id: &str| {
+        manifest
+            .operations
+            .iter()
+            .find(|operation| operation.id == id)
+            .unwrap()
+    };
+
+    let inventory = operation("inventory.snapshot@1");
+    assert!(
+        inventory.schemas.input.schema["properties"]
+            .as_object()
+            .unwrap()
+            .is_empty()
+    );
+    let facet_properties = &inventory.schemas.output.schema["properties"]["instances"]["items"]["properties"]
+        ["facets"]["items"]["properties"];
+    assert_eq!(
+        facet_properties
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from([
+            "available",
+            "contract",
+            "facet_id",
+            "features",
+            "generation",
+            "label",
+            "operations",
+        ])
+    );
+
+    let query = operation("facets.query@1");
+    assert_eq!(
+        query.schemas.output.schema["properties"]["state"]["oneOf"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|schema| schema["properties"]["kind"]["const"].as_str().unwrap())
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["boolean-state", "on-off"])
+    );
+
+    let interact = operation("capability.on-off.set@1");
+    assert_eq!(
+        interact.schemas.input.schema["required"],
+        json!(["facet_id", "facet_generation", "on"])
+    );
+    assert_eq!(
+        interact.schemas.mcp_projection.schema["required"],
+        json!(["facet_generation", "facet_id", "idempotency_key", "on"])
+    );
 }
 
 #[test]

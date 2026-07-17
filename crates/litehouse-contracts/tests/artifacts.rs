@@ -23,15 +23,16 @@ struct Artifact {
 }
 
 #[test]
-fn emits_fifteen_independent_deterministic_packages() {
+fn emits_sixteen_independent_deterministic_packages() {
     let artifacts: Vec<Artifact> = serde_json::from_slice(CONTRACT_ARTIFACT_MANIFEST).unwrap();
-    assert_eq!(artifacts.len(), 15);
-    assert_eq!(CONTRACT_ARTIFACTS.len(), 15);
+    assert_eq!(artifacts.len(), 16);
+    assert_eq!(CONTRACT_ARTIFACTS.len(), 16);
     let packages = artifacts
         .iter()
         .map(|artifact| artifact.package.as_str())
         .collect::<BTreeSet<_>>();
-    assert_eq!(packages.len(), 15);
+    assert_eq!(packages.len(), 16);
+    assert!(packages.contains("litehouse:provider"));
     for artifact in artifacts {
         assert_eq!(artifact.version, "1.0.0");
         assert_eq!(artifact.abi_sha256.len(), 64);
