@@ -1,0 +1,24 @@
+[workspace]
+resolver = "3"
+
+[package]
+name = "esphome-capability-spike"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+esphome-client = { version = "=0.2.0", default-features = false, features = [
+  "api-1-14",
+] }
+ryu = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.48", features = ["macros", "rt-multi-thread", "time"] }
+zeroize = { version = "1.8", features = ["derive"] }
+
+[dev-dependencies]
+esphome-native-api = { version = "=2.1.0", default-features = false, features = [
+  "std",
+  "version_2026_6_2",
+] }

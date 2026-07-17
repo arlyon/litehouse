@@ -1,0 +1,17 @@
+[package]
+name = "registry-flow-parity-host"
+version = "0.0.0"
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow = "1.0.103"
+ed25519-dalek.workspace = true
+hex.workspace = true
+registry-flow-core = { path = "../core" }
+tokio.workspace = true
+wasmtime = { version = "46.0.1", features = [
+  "component-model",
+  "component-model-async",
+] }
+wasmtime-wasi = "46.0.1"

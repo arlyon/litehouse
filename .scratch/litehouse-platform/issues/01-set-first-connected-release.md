@@ -18,16 +18,19 @@ The first genuinely usable milestone is a connected platform:
 
 1. Sign in with a basic central account and pair a local Litehouse container by
    short-lived code.
-2. Install a signed first-party ESPHome plugin from the central registry.
-3. Configure ESPHome locally; discover vendor-neutral typed capabilities across
-   switches, lights with brightness/color, sensors, climate, covers, buttons,
-   and notifier.
-4. Control them through the web UI, small typed React Flow automations, or AI
-   using the same management API.
+2. Install the signed first-party ESPHome plugin from the central R2 registry.
+3. Configure one ESPHome physical-device instance locally and expose only its
+   advertised vendor-neutral On/Off, Level, Color, Boolean, Measurement,
+   Thermostat, Covering, and Momentary facets; install Tasmota HTTP, ntfy, or the
+   non-commercial attributed Open-Meteo provider as separate instances when
+   those independent integrations are wanted.
+4. Control them through the web UI, bounded Rule JSON/React Flow automations, or
+   generated MCP tools using the same canonical management operations.
 5. Keep web and structured API behavior at parity.
 
 Use the existing WIT/Component Model pipeline and make Rust the first polished
-plugin SDK. React Flow is only an editor; a versioned standardized or
-standard-informed rule DSL remains a research/decision ticket. Registry installs
-and updates are exact-digest pinned, reviewed, and rollbackable. V1 supports one
+plugin SDK. Versioned Litehouse Rule JSON is the authored and persisted rule
+language; React Flow and the synchronized semantic outline are projections over
+that same JSON state. Registry installs and updates are exact-digest pinned,
+reviewed, and rollbackable. V1 supports one
 owner; sharing roles follow later.

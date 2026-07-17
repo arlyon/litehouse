@@ -8,9 +8,11 @@ Tracker: local-markdown
 
 Produce a decision-complete, evidence-backed, implementation-ready route for
 Litehouse's first connected release: log in, pair a portable local container,
-install the signed ESPHome plugin from the central registry, discover and
-control vendor-neutral typed capabilities, build basic React Flow automations,
-and operate the same management API through the web UI or a thin MCP adapter.
+install independent signed ESPHome, Tasmota HTTP, ntfy, and non-commercial
+Open-Meteo providers from the central registry, discover and control
+vendor-neutral typed capabilities, build basic React Flow automations, and
+operate the same management API through the web UI or a thin MCP adapter.
+ESPHome remains the primary physical-device proof; ntfy owns notifications.
 Implementation remains separately approved.
 
 ## Notes
@@ -26,6 +28,10 @@ Implementation remains separately approved.
 - Every implementation tranche requires a separate proposal, user approval,
   stable behavioral seam, targeted checks, canonical checks, rollback plan, and
   final scope/secret review.
+- Keep it simple: fixed scopes, typed records, one obvious decision seam, and
+  ordinary structured logs. Do not add policy DSLs, approval-token ceremonies,
+  duplicate audit stores, parallel implementations, or speculative abstraction
+  without a demonstrated current requirement.
 
 ### Canonical context
 
@@ -49,10 +55,13 @@ plus a very thin optional Butane configurator.
 - Rust-first plugin authoring; WIT remains language-neutral.
 - Signed first-party registry releases plus explicitly trusted local developer
   artifacts; installs and updates remain digest-pinned and reviewed.
-- Broad vendor-neutral ESPHome capability contracts, including switches,
-  lights with brightness/color, sensors, climate, covers, buttons, and notifier.
-- React Flow is the editor, not the persisted format. It compiles to a versioned,
-  validated rule IR after standardized DSL options are researched.
+- Broad vendor-neutral ESPHome capability contracts for switches, lights with
+  brightness/color, sensors, climate, covers, and buttons; independent narrow
+  Tasmota HTTP, ntfy `notification-sink@1`, and acknowledged non-commercial
+  Open-Meteo providers complete the selected V1 portfolio.
+- Versioned Litehouse Rule JSON is the authored and persisted rule language;
+  React Flow and its synchronized semantic outline are projections over that one
+  state, while bounded CEL remains only a pure condition leaf.
 - Web UI and structured management API have functional parity.
 - AI may use every authenticated Litehouse API through a thin MCP adapter, but
   receives no host shell, arbitrary filesystem/network access, raw secrets,
@@ -89,8 +98,9 @@ WebRTC, CoreOS, AI, and full UI prototypes are not mandatory Wayfinder gates.
 
 - Preserve all pre-existing dirty/untracked work and all unpublished commits.
 - Never reset, clean, stash, overwrite, bulk-stage, or expose secret-bearing
-  files/diffs. The map itself remains untracked until its tracking ticket is
-  resolved.
+  files/diffs. The Wayfinder directory is tracked from planning baseline
+  `4ebaee6`; future commits still require explicit approval and path-scoped
+  review.
 - External credentials, production hardware, Open Design publication, and
   repository commits require separate explicit approval.
 - Imported research answers are snapshots; partial results explicitly label
@@ -99,8 +109,9 @@ WebRTC, CoreOS, AI, and full UI prototypes are not mandatory Wayfinder gates.
 ## Decisions so far
 
 - [Use WASI 0.3 native async and exact-major generated contracts](../../docs/platform-worldview.md#runtime-and-compatibility)
-  — preserve the pinned bridge, S1 adapters, symmetric plugins, and no implicit
-  major adaptation.
+  — preserve native async, S1 adapters, symmetric plugins, and no implicit major
+  adaptation; the former P1 packaging bridge is superseded by the prototype
+  evidence below.
 - [Keep device aggregates private behind detached typed facets](../../docs/platform-worldview.md#facet-ownership)
   — provider resources stay provider-local; consumer proxies are host-owned;
   repeated facets are first-class.
@@ -177,22 +188,202 @@ WebRTC, CoreOS, AI, and full UI prototypes are not mandatory Wayfinder gates.
   — standardize all workspace crates on Rust 2024, keep generated registry code
   untracked and pinned if retained, validate approved patches in clean
   worktrees, and track only the reviewed Litehouse Wayfinder directory.
+- [Research static sparse registry index precedents](./issues/45-research-static-registry-index-precedents.md)
+  — use CDN-backed object storage, immutable OCI-shaped artifacts, signed TUF
+  snapshots, and deterministic JSON Lines shards; binary indexes wait for
+  measured size, latency, memory, or update pressure.
+- [Choose registry hosting and index architecture](./issues/46-choose-registry-hosting-and-index-architecture.md)
+  — retain dynamic partitioned FlatBuffers on R2 only with ETag root CAS,
+  content-addressed blobs, signed single release records, a Rust/Wasm client,
+  first-party CLI publication, and Cargo-like reviewed origin trust.
+- [Inventory the Next.js and Vercel migration surface](./issues/49-inventory-nextjs-vercel-migration-surface.md)
+  — preserve React/content/auth journeys while replacing Next/Vercel bindings,
+  hard-coded registry data, weak migration/auth assumptions, and mixed public,
+  durable authenticated, and live-private runtime boundaries.
+- [Research Cloudflare React framework and cache options](./issues/48-research-cloudflare-react-frameworks.md)
+  — prefer gated TanStack Start for official prerender/selective SSR and typed
+  server boundaries, with React Router 8 as the GA fallback if RC, auth, cache,
+  or deployment-affinity prototypes fail.
+- [Choose Cloudflare web framework and cache model](./issues/50-choose-cloudflare-web-framework-and-cache-model.md)
+  — migrate in phases to exact-pinned TanStack Start with objective React Router
+  fallback gates, static/public-derived/per-user-durable/live-private route
+  classes, lazy heavy modules, and tested Workers Cache isolation/invalidation.
+- [Research standardized rule DSL options](./issues/12-research-rule-dsl-options.md)
+  — use a bounded statically checked CEL profile only for Boolean conditions;
+  exact-major inputs, UCUM math, time/state semantics, control flow, simulation,
+  and traces remain in the Litehouse-owned typed graph and Rust/Wasm core.
+- [Research open event-rule and state-transition standards](./issues/51-research-open-event-rule-standards.md)
+  — no single ECA/workflow standard fits a small typed planner: compose
+  CloudEvents, strict CEL, JSON Patch, JSON Schema/JCS, UCUM, and selected SCXML/
+  IEC graph semantics around an owned pure pre-state-to-plan IR; physical post-
+  state remains receipt-reconciled rather than optimistically asserted.
+- [Research OAuth and OIDC architecture](./issues/14-research-oauth-oidc-architecture.md)
+  — use exclusive central JWT-issuer or standalone external-OIDC modes, exact
+  resource/server-bound tokens, separate Litehouse key-proof pairing, offline
+  JWKS validation, short grants, and standards-discoverable API/MCP resources.
+- [Define service and management authorization](./issues/19-define-service-and-management-authorization.md)
+  — use per-instance typed grants, operation-level service permissions, fixed
+  OAuth scopes for every external client, direct authorized execution, strict
+  permission-plane separation, and filterable tracing instead of policy,
+  approval, AI-specific, or duplicate audit systems.
+- [Research lightweight Rust MCP libraries](./issues/13-research-rust-mcp-libraries.md)
+  — use official `rmcp` 2.2 with bounded stateful Streamable HTTP as a thin
+  Tower adapter; Litehouse keeps all canonical API, OAuth, authorization,
+  limits, redaction, and domain behavior.
+- [Prototype the typed service fabric](./issues/21-prototype-typed-service-fabric.md)
+  — generated provider resources and consumer proxies, typed exact majors,
+  stable IDs/generations/incarnations, deterministic snapshots, operation
+  grants, and ordered actor admission fit without reflection; build guests
+  directly for `wasm32-wasip2` with native P3 bindings instead of a P1 adapter.
+- [Prototype real ESPHome capabilities](./issues/22-prototype-real-esphome-capabilities.md)
+  — one Noise session/cache per configured node maps advertised entities
+  directly to independent typed facets with stable host identity, conservative
+  profiles and non-confirming receipts; real Node S proved topology, state, and
+  reconnect, while fixtures cover isolation, measurements, and Level/Color.
+- [Define the contract artifact format](./issues/23-define-contract-artifact-format.md)
+  — publish type-only binary WIT and deterministic source bundles through the
+  same signed package/lock graph as plugins; use additive same-major minimums,
+  standard wkg resolution plus build-time bindings, structural checks, and a
+  separately versioned official-WASI runtime profile.
+- [Define registry publication and installation locks](./issues/24-define-registry-publication-and-install-locks.md)
+  — replace prototype schemas with versioned FlatBuffer roots, immutable
+  content-addressed shards/blobs, signed complete release records, root ETag
+  CAS, verified offline caches, existing exact-version JSON configuration, and
+  per-plugin restart activation retaining one offline predecessor.
+- [Define signing and trust](./issues/25-define-signing-and-trust.md)
+  — verify deterministic release payloads with a pinned first-party Ed25519 key,
+  protected CI custody and product-shipped rotation; keep origin-owned
+  yank/withdraw/revoke states advisory for running code, allow only digest-
+  pinned local development, and use structured tracing rather than audit DBs.
+- [Prototype registry publish, install, and rollback](./issues/26-prototype-registry-flow.md)
+  — an isolated FlatBuffer/Ed25519 core proved object-first concurrent
+  publication, ETag root CAS, verified offline/resumable reads, guarded
+  activation and one-predecessor rollback; native and `wasm32-wasip2` queries
+  are byte-identical, and a disposable R2 bucket proved the exact conditional
+  and range operations before successful prefix and bucket cleanup.
+- [Define authentication and pairing](./issues/27-define-authentication-and-pairing.md)
+  — use exclusive central or standalone issuers, passkey plus delayed magic-link
+  recovery, exact server-bound JWTs, and one owner; preserve today's nearby/name/
+  six-digit pairing UX while replacing its static password and bearer stubs with
+  short-lived key-proof pairing, pair epochs, separate signaling grants, pinned
+  standalone bootstrap, operator TLS, loopback-only unsafe mode, and local-only
+  destructive trust migration.
+- [Define the WebRTC management protocol](./issues/28-define-webrtc-management-protocol.md)
+  — use one authenticated reliable channel with strict JSON controls and exact
+  binary chunks, generated API operation IDs, bounded byte credits/queues,
+  generation-scoped streams, JWT-bounded reauthorization, durable idempotency
+  outcomes, never-replayed ambiguous mutations, and full reconnect hydration.
+- [Define the rule IR and editor contract](./issues/29-define-rule-ir-and-editor-contract.md)
+  — publish a closed, versioned Rule JSON Schema and typed port catalog; React
+  Flow edits that JSON projection while bounded CEL remains a pure condition
+  leaf, and serialized run-to-completion microsteps produce hypothetical desired
+  patches plus durable typed effects whose receipts reconcile physical state.
+- [Define plugin-driven instance discovery and adoption](./issues/44-define-plugin-driven-instance-discovery.md)
+  — defer device discovery entirely: v1 explicitly configures one artifact/
+  physical-device instance with non-secret connector config, deterministic
+  per-field environment requirements, and exact grants; pure validation runs no
+  guest, hidden activation uses the existing pointer transaction, and future
+  discovery is a separate artifact class with no reserved ABI or LAN authority.
+- [Define the container and thin Butane contract](./issues/30-define-container-and-butane-contract.md)
+  — publish digest-pinned signed amd64/arm64 OCI images using a non-root read-only
+  sandbox, one locked data directory without injected long-lived credentials,
+  orchestrator-injected runtime
+  environment, bridged TCP plus fixed mapped ICE UDP, exact health/shutdown/
+  update compatibility, stopped-directory backup/restore, and optional minimal
+  validated FCOS Butane/Quadlet output.
+- [Choose central control-plane hosting](./issues/47-choose-central-control-plane-hosting.md)
+  — replace Vercel/Turso with staged Cloudflare Workers and D1 authority; a
+  separate Cockpit Worker plus per-server Durable Object owns only bounded live
+  signaling; direct WebRTC prefers local ICE with gated Cloudflare Realtime TURN
+  fallback, R2 stays GET/HEAD-only to web, and thin adapters avoid multi-cloud
+  abstractions without coupling domain behavior to bindings.
+- [Define the AI and MCP management surface](./issues/31-define-ai-and-mcp-management-surface.md)
+  — expose local-HTTPS-only `rmcp` Streamable HTTP with one generated typed tool
+  per closed canonical operation, pull-batch stream parity, fixed OAuth scopes,
+  bounded sessions/admission/diagnostics, shared idempotency/errors, and no host,
+  cloud-control, secret-value, ownership, or generic API escape hatch.
+- [Define secret lifecycle and credential remediation](./issues/35-define-secret-lifecycle-and-remediation.md)
+  — keep long-lived runtime values entirely in Podman/orchestrator-injected
+  environment variables with deterministic per-instance field names and no
+  Litehouse secret store, persistence, rotation, encryption, vault, or CRUD;
+  rotate by provider update plus container recreation, and require a separately
+  approved revoke-first redacted history-remediation incident for existing leaks.
+- [Defer representative performance baselines](./issues/32-establish-representative-baselines.md)
+  — prior operation observed startup well below one second and Cranelift artifacts
+  are cached; add no benchmark harness or numeric SLO without a demonstrated
+  regression, and measure the exact implemented amd64/arm64 seam before any
+  future threshold or optimization.
+- [Define no first-release performance SLOs](./issues/33-define-performance-slos.md)
+  — retain existing queue/session/resource/deadline limits as mandatory safety
+  and resilience bounds, not latency promises; current performance is accepted
+  and any future numeric gate follows a concrete regression plus exact production
+  measurement.
+- [Define Open Design and control-surface adoption](./issues/36-define-open-design-and-control-surface-plan.md)
+  — remediate and separately release the Open Design candidate as a closed,
+  Git-versioned vendored visual source, keep React behavior local, and use one
+  `litehouse-web` generated-operation UI across cloud WebRTC and standalone
+  HTTPS while `litehouse-cockpit` stays signaling-only; fixed routes and
+  densities, complete journeys, honest state/ambiguity, keyboard-equivalent Rule
+  JSON editing, manifest-bounded activity/diagnostics, and WCAG 2.2 AA validation
+  define the release control surface.
+- [Research the first-party notification provider](./issues/52-research-first-party-notification-provider.md)
+  — use one product-specific ntfy adapter with a fixed origin/topic, injected
+  token, bounded body/title/priority, acceptance-only receipts, and no ambiguous
+  retry; defer Twilio and forbid a generic webhook escape hatch.
+- [Research Tasmota and Open-Meteo provider contracts](./issues/53-research-tasmota-and-weather-provider-contracts.md)
+  — constrain Tasmota to explicit private-LAN HTTP nodes exposing absolute power
+  and whitelisted measurements, and Open-Meteo to four attributed current-model
+  measurements on its acknowledged non-commercial free tier.
+- [Decide the V1 plugin portfolio](./issues/37-decide-plugin-portfolio.md)
+  — ship independent signed ESPHome, Tasmota HTTP, ntfy, and non-commercial
+  Open-Meteo providers; keep persistent-task/no-op as non-published development
+  fixtures, defer Samsung, and remove empty MQTT, Presence, Sonoff, and Twilio
+  shells in a separately approved tranche.
+- [Research the OTBR and Thread-radio boundary](./issues/54-research-otbr-and-thread-radio-topology.md)
+  — keep OTBR, Thread routing, privileged host networking, persistence, RCP,
+  firmware, radio, and antenna entirely operator-owned and invisible to
+  Litehouse; OTBR is not a Matter controller.
+- [Research Matter controller and fabric ownership](./issues/55-research-matter-controller-and-fabric-ownership.md)
+  — keep fabric credentials, commissioning, CASE, subscriptions, and controller
+  storage outside Litehouse; reject a native or multi-node plugin controller.
+- [Research the Home Assistant Matter Server adapter](./issues/56-research-home-assistant-matter-server-adapter.md)
+  — reuse external Python Matter Server schema 11 as an operator-owned
+  compatibility target, with Home Assistant retaining commissioning and a
+  filtered loopback/local transport denying unrestricted fabric authority.
+- [Define Matter adapter v1](./issues/57-define-home-assistant-matter-adapter-v1.md)
+  — after the first connected release, configure one plugin instance per native
+  Matter node, each with a dedicated filtered relay/upstream connection to one
+  external Matter Server; defer bridges, discovery, commissioning, OTBR, shared
+  dispatch, fabric credentials, OTA, and generic Matter operations.
+- [Plan runtime resilience closure](./issues/38-plan-runtime-resilience-closure.md)
+  — use bounded concurrent async guest calls per instance, queue-inclusive
+  deadlines and hard generation cancellation, jittered restart/sparse probes, a
+  fail-closed exact-origin DNS/TLS connector, delivery-epoch event gaps and
+  durable runtime generations, isolated bounded compilation plus disposable
+  compatibility cache, all-or-nothing global plugin activation, receipt-guarded
+  host rollback, and an explicit Samsung defer.
+- [Disposition source-owned residuals](./issues/39-disposition-source-owned-residuals.md)
+  — implement only the schema/runtime safety seams owned by resolved contracts;
+  replace/delete the old registry/cache/HTTP/pairing/admin placeholders with
+  their production tranches, enforce the four-provider portfolio, and defer
+  optimization until measured pressure rather than leaving executable TODOs.
+- [Prepare the implementation-ready handoff](./issues/40-prepare-implementation-ready-handoff.md)
+  — deliver the greenfield first connected release through separately approved
+  workspace, contract, service, resilience, web, registry, publisher/signing,
+  provider, rule, server, identity, WebRTC, UI, MCP, candidate, and mandatory
+  provider-backed staging tranches with FR1–FR16 traceability, generated-artifact
+  ownership, rollback, and no implicit external authority.
 
 ## Not yet specified
 
-- Which standardized condition DSL—such as CEL, JSON Logic, DMN/FEEL, or a
-  workflow standard—fits inside the small Litehouse-owned typed rule graph.
-- Which maintained lightweight Rust MCP library and transport profile can expose
-  the canonical management API without creating a second authorization model.
-- Exact OAuth/OIDC discovery, audience, token, JWKS-cache, pairing-grant, and
-  standalone issuer configuration after standards research.
-- Exact implementation workstreams, migrations, generated artifacts, and UI
-  decomposition until their upstream decisions and prototypes resolve.
-- Numeric performance targets until representative measurements exist.
+- No first-connected-release architecture item. Implementation evidence and any
+  post-V1 shared dispatcher or Matter delivery require separately approved work.
 
 ## Out of scope
 
 - Implementing the route during Wayfinder.
+- First-release benchmark infrastructure and numeric performance SLOs; current
+  performance is accepted until demonstrated pressure requires exact measurement.
 - Baking or maintaining a Litehouse OS image, full CoreOS lifecycle controller,
   VM appliance proof, automatic local PKI, or orchestrator-specific runtime.
 - Public third-party publisher onboarding/moderation, multi-user sharing roles,

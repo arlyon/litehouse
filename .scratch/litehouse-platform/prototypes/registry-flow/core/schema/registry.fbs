@@ -1,0 +1,72 @@
+namespace litehouse.registry.spike;
+
+enum ArtifactKind : ubyte {
+  Component,
+  WitPackage,
+  RuntimeProfile
+}
+
+table BlobDescriptor {
+  media_type:string (required);
+  sha256:[ubyte] (required);
+  length:ulong;
+}
+
+table Dependency {
+  package:string (required);
+  requirement:string (required);
+  version:string (required);
+  release_sha256:[ubyte] (required);
+  abi_sha256:[ubyte] (required);
+}
+
+table ReleasePayload {
+  schema_version:ushort = 1;
+  signature_context:ushort = 1;
+  kind:ArtifactKind;
+  package:string (required);
+  version:string (required);
+  publisher:string (required);
+  primary:BlobDescriptor (required);
+  dependencies:[Dependency];
+  runtime_requirement:string;
+  requested_permissions:[string];
+}
+
+table ReleaseRecord {
+  payload:[ubyte] (required);
+  payload_sha256:[ubyte] (required);
+  public_key:[ubyte] (required);
+  signature:[ubyte] (required);
+  yanked:bool = false;
+  withdrawn:bool = false;
+  revoked:bool = false;
+}
+
+table ReleaseShard {
+  schema_version:ushort = 1;
+  partition_id:uint;
+  records:[ReleaseRecord];
+}
+
+table ShardDescriptor {
+  partition_id:uint;
+  lower_bound:string (required);
+  upper_bound:string (required);
+  path:string (required);
+  sha256:[ubyte] (required);
+  length:ulong;
+  schema_version:ushort = 1;
+}
+
+table RegistryRoot {
+  format_version:ushort = 1;
+  schema_version:ushort = 1;
+  normalization_version:ushort = 1;
+  generation:ulong;
+  partition_scheme:string (required);
+  shards:[ShardDescriptor] (required);
+}
+
+root_type RegistryRoot;
+file_identifier "LHR1";

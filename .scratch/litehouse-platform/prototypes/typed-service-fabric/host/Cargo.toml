@@ -1,0 +1,12 @@
+[package]
+name = "service-spike-host"
+version = "0.0.0"
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+tokio.workspace = true
+wasmtime = { version = "46.0.1", features = [
+  "component-model",
+  "component-model-async",
+] }

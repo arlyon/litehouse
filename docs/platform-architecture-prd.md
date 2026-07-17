@@ -1,9 +1,16 @@
 # Litehouse Platform Architecture PRD
 
-- **Status:** Draft for sequential decision-making
-- **Date:** 2026-07-13
+- **Status:** Historical architecture input; superseded for implementation
+- **Date:** 2026-07-13 (authority note updated 2026-07-16)
 - **Classification:** Full PRD—this changes public contracts, concurrency,
   package schemas, trust boundaries, remote workflows, and appliance operations.
+
+> **Authority note:** all architecture/topology/technology/delivery prose in this
+> document is historical unless repeated by a resolved Wayfinder decision. The
+> current authority is `.scratch/litehouse-platform/map.md` and issue 40. Section
+> 8's FR1–FR16 wording is aligned for traceability; old S3/N-API, installation-
+> lock entity, sharing-role, Preview-1, legacy-site, VM/appliance, and delivery-
+> phase language authorizes no implementation.
 
 ## 1. Executive summary
 
@@ -19,12 +26,12 @@ The target has six planes:
     concrete plugin types.
 3. **Automation:** no-code rules and native orchestration plugins with
     equivalent semantics.
-4. **Distribution:** independent contract and plugin artifacts in a cheap,
-    S3-backed, JavaScript-queryable registry.
-5. **Control plane:** a central website owning account/server inventory, with
-    Cockpit handling authenticated presence and WebRTC signaling.
-6. **Appliance and operations:** a Fedora CoreOS-based appliance with
-    machine-readable operations for people and AI agents.
+4. **Distribution:** independent contract/plugin artifacts in an R2-only
+    registry queried by one Rust/native-Wasm core.
+5. **Control plane:** an owner-only greenfield Cloudflare/D1 website, with a
+    separate UI-free Cockpit Worker handling bounded WebRTC signaling.
+6. **Deployment and operations:** one portable non-root container plus optional
+    thin Butane/Quadlet output and machine-readable operations for people/agents.
 
 Immediate sequence:
 
@@ -65,11 +72,11 @@ Immediate sequence:
 - **Independent publishing:** contracts are first-class registry artifacts with
   identity, major, WIT, digest, docs, and compatibility policy. Plugin releases
   reference exact provided and required contract majors.
-- **JavaScript registry querying:** Node/N-API is acceptable. Browser/edge WASM
-  is desirable, not mandatory. Reads must not require a long-running registry
-  database service.
-- **Website-owned inventory:** the website owns durable users, server
-  identities, ownership/sharing, names, and last-known metadata. Cockpit owns
+- **JavaScript registry querying:** one Rust query core runs natively and through
+  Wasm in supported Worker/browser JavaScript environments. N-API is retired and
+  reads require no registry database service.
+- **Website-owned inventory:** clean D1 owns durable users, owner-only server
+  identities, names, and last-known metadata. Cockpit owns
   short-lived presence and signaling.
 - **Versioned WebRTC protocol:** data channels carry structured management
   messages; logs are one stream, not the entire protocol. Normal home traffic
@@ -164,19 +171,18 @@ Wasmtime 46 provides WASI 0.3, native async, concurrent stores, and generated
 component bindings. Litehouse enables Component Model async and concurrency, and
 invokes native async exports through `StoreContextMut::run_concurrent`.
 
-Rust `std` cannot yet target `wasm32-wasip3` in the selected nightly: the target
-is unavailable and a build-std attempt fails because Rust's WASI sysroot
-currently accepts only p1/p2 environments. Therefore the transition is
-intentionally hybrid:
+V1 uses the signed runtime profile defined by issue 23 rather than a temporary
+Preview-1 packaging bridge:
 
-- **Litehouse contract:** WASI 0.3/native async now.
-- **Rust standard library imports:** Preview 1/2 compatibility adapter
-  temporarily.
-- **Packaging:** compile guest core modules for `wasm32-wasip1`, componentize
-  with Wasmtime 46's versioned reactor adapter, and validate resulting
-  components.
-- **Exit condition:** move to direct p3 Rust targets when upstream `std` support
-  is usable and all required guest dependencies support it.
+- **Litehouse contract:** official WASI 0.3/native async plus Litehouse typed host
+  interfaces.
+- **Rust standard library imports:** exact official WASI 0.2.12 imports produced
+  by `wasm32-wasip2`/`std` and linked by the host only under explicit grants.
+- **Packaging:** build guest components directly for `wasm32-wasip2` and validate
+  their exact imports and Component Model async exports.
+- **Evolution:** additive profile minors retain prior imports; removing an
+  interface requires a new profile major. Direct Rust `wasip3` `std` is not a V1
+  gate.
 
 Async host call wrappers for synchronous WIT exports are an embedding
 requirement of Wasmtime's async-enabled store; they do not make guest
@@ -494,17 +500,20 @@ will prove success before execution.
 
 ## 8. Functional requirements
 
-- **FR1:** Host supports WASI 0.3 interfaces and native async guest exports
-  while temporarily hosting Preview 1/2 imports needed by Rust `std`.
+- **FR1:** Host supports Wasmtime Component Model async/concurrency, official
+  WASI 0.3 native-async interfaces, and native async guest exports while the
+  pinned runtime profile also supplies exact WASI 0.2.12 imports produced by
+  Rust `wasm32-wasip2`/`std`; no Preview-1 reactor packaging path remains.
 - **FR2:** Runtime identifies contracts by exact namespace/name/major and
   permits concurrent majors.
 - **FR3:** Providers register typed endpoint descriptors independent of concrete
   plugin Rust types.
 - **FR4:** Consumers receive host-owned typed proxies; raw Wasmtime resources
   never cross stores.
-- **FR5:** One provider instance can expose multiple devices and any number of
-  facets per device, including repeated instances of the same exact-major
-  contract, while sharing the appropriate state owner and lifecycle.
+- **FR5:** One configured provider instance represents one physical device and
+  can expose any number of independently bindable facets, including repeated
+  instances of the same exact-major contract, while sharing its private device
+  connection/cache/state owner and lifecycle.
 - **FR6:** Dispatch enforces queue bounds, deadlines, cancellation, stale
   generations, isolation, and authorization.
 - **FR7:** Plugin manifests declare provided/required contracts and requested
@@ -513,18 +522,24 @@ will prove success before execution.
   explainable, and validatable before activation.
 - **FR9:** Rules compile to a versioned typed IR using the same service
   contracts as native plugins.
-- **FR10:** Registry publishes separate contract, plugin release, and
-  installation-lock entities with immutable digests.
-- **FR11:** Registry queries run in supported JavaScript server environments
-  with S3/CDN-friendly caching.
+- **FR10:** The R2 registry publishes separate immutable contract packages and
+  signed complete plugin release records; local `ActivationSet` records pin exact
+  installed artifacts and one predecessor rather than creating a registry lock
+  entity.
+- **FR11:** One Rust registry query core runs natively and through Wasm in
+  supported JavaScript Worker/browser environments using R2/CDN GET/HEAD cache
+  semantics; V1 has no N-API or S3 backend.
 - **FR12:** Website returns durable authorized server inventory independent of
   current Cockpit presence.
 - **FR13:** WebRTC management protocol is version-negotiated, structured,
   cancellable, resumable where applicable, and backpressured.
 - **FR14:** Mutating remote operations use scoped authorization, revision
-  checks, idempotency, and audit records.
-- **FR15:** Appliance supports install, pair, update, health-gated rollback,
-  backup/restore, local fallback, and redacted diagnostics.
+  checks, idempotency, durable mutation receipts, and bounded structured tracing;
+  V1 adds no separate audit database.
+- **FR15:** The portable container supports install, pair, update, health-gated
+  rollback, local fallback, and redacted diagnostics; backup/restore is an
+  operator-managed stopped-directory procedure whose receipt guard blocks
+  destructive restore while post-copy ambiguity remains.
 - **FR16:** Structured inspection and plan/apply APIs support safe AI operation
   without requiring shell scraping.
 
@@ -549,9 +564,10 @@ will prove success before execution.
 
 ## 10. Acceptance scenarios
 
-1. Build a Rust Preview 1 core module, adapt it with the Wasmtime 46 reactor
-    adapter, validate it, inspect metadata, instantiate it, and execute native
-    async `update` and `outputs` through Litehouse.
+1. Build a Rust plugin directly for `wasm32-wasip2`, validate its exact runtime-
+    profile imports and Component Model async exports, inspect metadata,
+    instantiate it, and execute native async lifecycle/service calls through
+    Litehouse without a Preview-1 reactor adapter.
 2. Expose three typed light facets from one provider state owner; bind separate
     consumers; restart the provider; observe explicit stale proxies and
     successful policy-driven rebind.
@@ -575,8 +591,9 @@ will prove success before execution.
 9. Trigger a plugin trap and a queue-overload condition; show isolation,
     bounded failure, structured diagnostics, restart behavior, and no lost
     server control.
-10. Stage an appliance update, fail health checks, roll back automatically, and
-    restore backed-up configuration/artifact locks.
+10. Stage a digest-pinned container update, fail health checks, select the
+    declared N-1 rollback path, and prove that stopped-copy restore fails closed
+    while any post-copy `outcome-unknown` receipt remains.
 11. Have an AI client inspect a failure, create a dry-run remediation plan,
     request only required authorization, apply with an idempotency key, and
     report validation evidence.
@@ -600,11 +617,9 @@ will prove success before execution.
 wasm-tools component wit crates/plugin-macro/wit -t
 cargo check -p litehouse
 cargo test -p litehouse
-cargo build -Zbuild-std=panic_abort,std --target wasm32-wasip1 -p noop
-wasm-tools component new target/wasm32-wasip1/debug/noop.wasm \
-  --adapt <wasmtime-46-preview1-reactor-adapter> -o noop.component.wasm
-wasm-tools validate noop.component.wasm
-litehouse inspect noop.component.wasm --no-cache
+cargo build --target wasm32-wasip2 -p noop
+wasm-tools validate --features cm-async target/wasm32-wasip2/debug/noop.wasm
+litehouse inspect target/wasm32-wasip2/debug/noop.wasm --no-cache
 litehouse build noop <temp-dir> --debug --no-optimise
 ```
 
@@ -615,10 +630,11 @@ and `runner.outputs`. A real host invocation, not only compilation, is required.
 
 - Rust: diagnostics on changed files, targeted package tests, then repository
   canonical Rust workflow.
-- Site/control plane: `bun --filter site typecheck`, `bun --filter site lint`,
-  targeted tests, and production build when environment dependencies are
-  available.
-- Registry JS: package-native typecheck/tests and N-API workflow.
+- Web/control plane: greenfield `pnpm --dir web check`, targeted Worker/D1/
+  browser tests, and production build when environment dependencies are
+  available; legacy `site/` code is not a migration input.
+- Registry: native/Wasm byte-parity, R2 fixture/cache tests, and supported
+  JavaScript-runtime wrapper tests; no N-API workflow.
 - Protocol: cross-version golden fixtures, fuzz/property tests for envelopes and
   sequencing, and simulated disconnect/backpressure.
 - Appliance: reproducible image build, clean VM first boot, upgrade/rollback,
@@ -628,7 +644,12 @@ and `runner.outputs`. A real host invocation, not only compilation, is required.
 
 ## 12. Delivery phases and gates
 
-### Phase 0 — Runtime foundation (active)
+> Historical planning only. The resolved implementation tranches in Wayfinder
+> issue 40 supersede this section; these phases authorize no legacy `site/`,
+> N-API/S3 registry, Preview-1 adapter, VM appliance, sharing-role, or deployment
+> work.
+
+### Phase 0 — Runtime foundation (historical)
 
 - Wasmtime 46 upgrade.
 - WASI 0.3 WIT dependency graph.
