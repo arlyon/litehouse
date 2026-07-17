@@ -384,3 +384,16 @@ configuration.
   and legacy N-API workflows are manual guards; all external actions use locked
   full commit SHAs; workflow, policy, and installer bytes are digest-locked.
 - **Evidence:** T0 baseline checks and final correctness/risk PASS.
+
+### R-003 — T4 isolated frontend capability gate
+
+- **Resolution:** keep `web/` as a self-contained TanStack Start and Cloudflare
+  Worker package with its own pnpm workspace and lockfile. Render the nine V1
+  exact-major capability facets from local fixtures only, and keep legacy
+  `site/`, authentication, transport, persistence, and deployment integration
+  outside T4. Consume Open Design only through the reviewed static bundle whose
+  verified digest is
+  `d9e80a366af1b97f58bbb79be34990f739b4292b66df0d500c01670282cb2c62`.
+- **Evidence:** bundle-integrity verification, TypeScript checking, 13 jsdom
+  behavior tests, a built-Worker workerd test, production build/prerender, and a
+  Wrangler dry run under the pinned Node 24 and pnpm 10 toolchain.

@@ -1,0 +1,48 @@
+{
+  "name": "@litehouse/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": "10.33.2"
+  },
+  "scripts": {
+    "dev": "vite dev --port 3000",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "test:worker": "pnpm build && vitest run --config vitest.worker.config.ts",
+    "bundle:check": "node scripts/check-design-system-bundle.mjs",
+    "bundle:write": "node scripts/check-design-system-bundle.mjs --write",
+    "deploy:dry-run": "WRANGLER_SEND_METRICS=false wrangler deploy --dry-run",
+    "check": "pnpm bundle:check && pnpm typecheck && pnpm test && pnpm test:worker && pnpm deploy:dry-run"
+  },
+  "dependencies": {
+    "@tanstack/react-router": "1.170.18",
+    "@tanstack/react-start": "1.168.28",
+    "lucide-react": "1.24.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.45.0",
+    "@cloudflare/vitest-pool-workers": "0.18.5",
+    "@cloudflare/workers-types": "5.20260710.1",
+    "@testing-library/dom": "10.4.1",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "24.13.3",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.3",
+    "jsdom": "29.1.1",
+    "typescript": "5.9.3",
+    "vite": "8.1.5",
+    "vitest": "4.1.10",
+    "wrangler": "4.111.0"
+  }
+}

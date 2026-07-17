@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Litehouse phone controls</title>
+  <meta name="description" content="Responsive Litehouse phone controls built from typed capability facets." />
+  <link rel="stylesheet" href="../tokens.css" />
+  <link rel="stylesheet" href="./control-surfaces.css" />
+</head>
+<body class="phone-page">
+  <a class="skip-link" href="#devices">Skip to controls</a>
+  <main class="phone-shell">
+    <div class="phone-system-row">
+      <a class="wordmark" href="#top">Litehouse <span>System</span></a>
+      <span class="badge badge-success">Connected</span>
+    </div>
+
+    <nav class="phone-tabs" aria-label="Server sections">
+      <a href="#top" aria-current="page">Home</a>
+      <a href="#devices">Devices</a>
+      <a href="#states">Runs</a>
+    </nav>
+
+    <header id="top" class="phone-title stack-2">
+      <h1>Daily control</h1>
+      <p class="muted">Kitchen server · checked 18:29</p>
+    </header>
+
+    <section class="phone-card phone-context" aria-labelledby="context-heading">
+      <div class="row-between"><h2 id="context-heading" class="eyebrow">Context summary</h2><button type="button">Details</button></div>
+      <div class="stack-4">
+        <div class="phone-context-line"><span class="icon-frame icon-frame-active"><img class="icon" src="../assets/lucide/clock-3.svg" alt="" /></span><div><strong class="reading">18:29</strong><p>Good evening</p></div></div>
+        <div class="phone-context-line"><span class="icon-frame icon-frame-active"><img class="icon" src="../assets/lucide/lightbulb.svg" alt="" /></span><p>Six lights and one climate zone are active</p></div>
+        <div class="phone-context-line"><span class="icon-frame icon-frame-active"><img class="icon" src="../assets/lucide/cloud-sun.svg" alt="" /></span><p>23 °C · relative humidity 46%</p></div>
+      </div>
+    </section>
+
+    <section id="devices" class="phone-section" aria-labelledby="quick-heading">
+      <h2 id="quick-heading" class="eyebrow">Quick controls</h2>
+
+      <article class="phone-card">
+        <header class="phone-card-header">
+          <div class="entity-main"><span class="icon-frame icon-frame-active"><img class="icon" src="../assets/lucide/lamp-ceiling.svg" alt="" /></span><div class="entity-copy"><strong>Standing lamp</strong><span>Living room · 3 facets</span></div></div>
+          <span class="badge badge-success">On</span>
+        </header>
+        <div class="phone-control">
+          <strong>Power</strong>
+          <fieldset class="segmented"><legend class="sr-only">Standing lamp power</legend><label><input type="radio" name="phone-lamp" checked />On</label><label><input type="radio" name="phone-lamp" />Off</label></fieldset>
+        </div>
+        <div class="phone-control">
+          <label for="phone-brightness"><strong>Brightness</strong></label>
+          <div class="range"><input id="phone-brightness" type="range" min="0" max="100" value="72" /><output>72%</output></div>
+        </div>
+        <div class="phone-control">
+          <div><strong>Color temperature</strong><p class="meta">Color control</p></div>
+          <button type="button" class="row-between"><span class="reading">2700 K</span><span>Warm white</span></button>
+        </div>
+        <div class="phone-control">
+          <span class="muted small">Last operation</span>
+          <span class="status status-pending">Accepted for delivery</span>
+        </div>
+      </article>
+
+      <article class="phone-card">
+        <header class="phone-card-header">
+          <div class="entity-main"><span class="icon-frame icon-frame-active"><img class="icon" src="../assets/lucide/thermometer.svg" alt="" /></span><div class="entity-copy"><strong>Hall climate</strong><span>Hallway · Thermostat</span></div></div>
+          <span class="active-text">Heat</span>
+        </header>
+        <div class="phone-control">
+          <div><strong>Set temperature</strong><p class="reading">21.5 °C</p></div>
+          <div class="stepper"><button type="button" aria-label="Decrease target temperature">−</button><output>21.5</output><button type="button" aria-label="Increase target temperature">+</button></div>
+        </div>
+        <div class="phone-control">
+          <strong>Ambient</strong>
+          <div><span class="reading">20.9 °C</span><p class="meta">Source reported · current</p></div>
+        </div>
+      </article>
+
+      <article class="phone-card">
+        <header class="phone-card-header">
+          <div class="entity-main"><span class="icon-frame"><img class="icon" src="../assets/lucide/blinds.svg" alt="" /></span><div class="entity-copy"><strong>Bedroom blind</strong><span>Window covering · Lift</span></div></div>
+          <span class="status status-unavailable">Unavailable</span>
+        </header>
+        <div class="phone-control">
+          <strong>Last known lift</strong>
+          <div class="range"><input type="range" min="0" max="100" value="38" disabled aria-label="Bedroom blind last known lift" /><output>38%</output></div>
+        </div>
+        <div class="phone-control">
+          <strong>Tilt</strong>
+          <span class="status status-unknown">Unknown</span>
+        </div>
+      </article>
+
+      <article class="phone-card">
+        <header class="phone-card-header">
+          <div class="entity-main"><span class="icon-frame"><img class="icon" src="../assets/lucide/door-closed.svg" alt="" /></span><div class="entity-copy"><strong>Front door</strong><span>Entrance · Boolean state</span></div></div>
+          <span class="badge">Closed</span>
+        </header>
+      </article>
+    </section>
+
+    <section class="phone-section" aria-labelledby="actions-heading">
+      <h2 id="actions-heading" class="eyebrow">House actions</h2>
+      <article class="phone-card">
+        <div class="phone-control phone-action-row">
+          <div class="entity-main"><span class="icon-frame"><img class="icon" src="../assets/lucide/mouse-pointer-click.svg" alt="" /></span><div class="entity-copy"><strong>Identify server</strong><span>Momentary action</span></div></div>
+          <button type="button">Invoke</button>
+        </div>
+        <div class="phone-control phone-action-row">
+          <div class="entity-main"><span class="icon-frame"><img class="icon" src="../assets/lucide/bell-ring.svg" alt="" /></span><div class="entity-copy"><strong>House notifications</strong><span>Notification sink</span></div></div>
+          <button class="primary" type="button">Compose</button>
+        </div>
+      </article>
+    </section>
+
+    <section id="states" class="phone-section" aria-labelledby="state-heading">
+      <h2 id="state-heading" class="eyebrow">State vocabulary</h2>
+      <div class="state-vocabulary">
+        <span class="badge badge-success">Current</span>
+        <span class="badge badge-warning">Stale</span>
+        <span class="badge">Unknown</span>
+        <span class="badge">Unavailable</span>
+        <span class="badge badge-warning">Accepted</span>
+        <span class="badge badge-danger">Outcome unknown</span>
+      </div>
+    </section>
+  </main>
+
+  <nav class="phone-nav" aria-label="Primary navigation">
+    <a href="#top" aria-current="page"><img class="icon" src="../assets/lucide/house.svg" alt="" />Home</a>
+    <a href="#states"><img class="icon" src="../assets/lucide/clock-3.svg" alt="" />History</a>
+    <a href="#actions-heading"><img class="icon" src="../assets/lucide/bell-ring.svg" alt="" />Notify</a>
+    <a href="#devices"><img class="icon" src="../assets/lucide/server.svg" alt="" />Server</a>
+  </nav>
+</body>
+</html>

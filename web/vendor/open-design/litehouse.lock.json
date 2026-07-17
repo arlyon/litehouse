@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 2,
+  "generatedBy": "check-design-system-bundle.mjs@1",
+  "source": {
+    "project": "open-design",
+    "designSystem": "litehouse",
+    "provenance": "closed-reviewed-export",
+    "packageSha256": "a89667c2c1ed7ebfb7f23ac1acb03310706581810a1a0b14fa7c663827c63105"
+  },
+  "bundleSha256": "d9e80a366af1b97f58bbb79be34990f739b4292b66df0d500c01670282cb2c62",
+  "files": [
+    {
+      "path": "DESIGN.md",
+      "bytes": 11306,
+      "sha256": "65cc918ac7958c7d0d6f8e179987a19efa664ee572ab472e75bb86e4cf61d495"
+    },
+    {
+      "path": "USAGE.md",
+      "bytes": 2693,
+      "sha256": "39476bdc9c222cfde7c2078744e861a2a42b06f5fa58c3d3d81ed944c3295823"
+    },
+    {
+      "path": "assets/lucide/LICENSE.txt",
+      "bytes": 3208,
+      "sha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57"
+    },
+    {
+      "path": "assets/lucide/bell-ring.svg",
+      "bytes": 549,
+      "sha256": "47ab594030c127caaf9b9f6108238d8bad3ada15cb0a93d9121e5068d779570e"
+    },
+    {
+      "path": "assets/lucide/blinds.svg",
+      "bytes": 461,
+      "sha256": "5882412b543c2ae682208c7c35c3e146023b08ef54b2545da96629eb71b37948"
+    },
+    {
+      "path": "assets/lucide/chevron-down.svg",
+      "bytes": 319,
+      "sha256": "a796fcdceda7a72ab4b7673301e0eeb068e84462c1082f93ee435e1c2d8adf25"
+    },
+    {
+      "path": "assets/lucide/circle-check.svg",
+      "bytes": 356,
+      "sha256": "61e8cd39e4477ed56c5946b02c18020c82c23e3d7ff5a8265a1cf69e68022677"
+    },
+    {
+      "path": "assets/lucide/circle-help.svg",
+      "bytes": 404,
+      "sha256": "66ba7ecf8ede53abf3984707261cf2daad8355173bc10a286af9d71ae07bf781"
+    },
+    {
+      "path": "assets/lucide/circle-x.svg",
+      "bytes": 372,
+      "sha256": "ed81b3af6881ca93cd99b8c75e5a831bb030cda7df2f575eb5ff0c5b1b8c5294"
+    },
+    {
+      "path": "assets/lucide/clock-3.svg",
+      "bytes": 347,
+      "sha256": "d4c2ff66029f929e117b9b7f6358a4f44d2cd886c318670a6846d9cbb021ad93"
+    },
+    {
+      "path": "assets/lucide/cloud-sun.svg",
+      "bytes": 517,
+      "sha256": "8b6ee3d933ffb1f7388481f7cb4702be38ffc539b8fd680c485d927daf20c679"
+    },
+    {
+      "path": "assets/lucide/door-closed.svg",
+      "bytes": 397,
+      "sha256": "546e0528f335b18c0a8740b954731dc93cf9c99e77910c5443629ded48f5319f"
+    },
+    {
+      "path": "assets/lucide/droplets.svg",
+      "bytes": 551,
+      "sha256": "e68e10e8f7ebfe3ca5d7854ace47e3ad32fde7535c8469b19f9c0fabfc5c22bc"
+    },
+    {
+      "path": "assets/lucide/gauge.svg",
+      "bytes": 354,
+      "sha256": "6658fbab5efb85ebab90099ae4b291250b5eb896c61b2ddd9ed672a337dc5e05"
+    },
+    {
+      "path": "assets/lucide/hard-drive.svg",
+      "bytes": 540,
+      "sha256": "3f0b666ff5583adc51f55dd4e75534883d536a88b30a60bcfaec68ed59a01122"
+    },
+    {
+      "path": "assets/lucide/house.svg",
+      "bytes": 459,
+      "sha256": "6e0cc2d188d7c950ef77dff9e2a155649cbef86d6f365a740e98e3ff0db74cea"
+    },
+    {
+      "path": "assets/lucide/lamp-ceiling.svg",
+      "bytes": 469,
+      "sha256": "1aa51a069f45cd9a8bca3d5860f1b256ebce68f80ffc2c45bd4aa7f8e0378a6f"
+    },
+    {
+      "path": "assets/lucide/lightbulb.svg",
+      "bytes": 451,
+      "sha256": "e7599beac101994fda07db9281794e7f4a5f663e491ab63281e493cc526f0e7d"
+    },
+    {
+      "path": "assets/lucide/loader-circle.svg",
+      "bytes": 335,
+      "sha256": "6499508a3d1e694905e36e7d009ebbfeeb2d41712ef93de5b4e6d7bfce8267b5"
+    },
+    {
+      "path": "assets/lucide/monitor.svg",
+      "bytes": 424,
+      "sha256": "b82fdd349a89265e9e0d9862f6ff03be3474720617025904ec50d7f06542a134"
+    },
+    {
+      "path": "assets/lucide/mouse-pointer-click.svg",
+      "bytes": 553,
+      "sha256": "95cb8db541d216fa35d612f9c67ad1b94ccce6d6d407db85c2ba84f5418a21c7"
+    },
+    {
+      "path": "assets/lucide/palette.svg",
+      "bytes": 649,
+      "sha256": "7ea4cd4cf53b9cb52eb4d5ece5834ad2d59bb13a514f43bd748c78d0b331833c"
+    },
+    {
+      "path": "assets/lucide/power.svg",
+      "bytes": 352,
+      "sha256": "970965bdaa5b0d6f89eec97d8c888a69257e5140cc32402fac7907262495fd05"
+    },
+    {
+      "path": "assets/lucide/radio.svg",
+      "bytes": 513,
+      "sha256": "242bd7eaafd0aed8c0dfdf466821abe850b480d46c53c3c16df1d0ecc1c7f509"
+    },
+    {
+      "path": "assets/lucide/refresh-cw.svg",
+      "bytes": 473,
+      "sha256": "02b93a40cc7222d570e5dde8a5d172f3b9b6e2e98dfaebfbac8c72acdc3ddf06"
+    },
+    {
+      "path": "assets/lucide/router.svg",
+      "bytes": 505,
+      "sha256": "edc9558027ff38031f8cc0d9afc41f4ce6de1d49c30394cb66e037dfe66f166d"
+    },
+    {
+      "path": "assets/lucide/server.svg",
+      "bytes": 490,
+      "sha256": "2a4bb82f14ccce103e878fffcd4a6cebd8de340220bc338e52486928eeda5ce8"
+    },
+    {
+      "path": "assets/lucide/sliders-horizontal.svg",
+      "bytes": 511,
+      "sha256": "c32a8a68cd4380942fa464c0b6fcdccc832a7ad1b83ef6f3f9ad591f5d9841da"
+    },
+    {
+      "path": "assets/lucide/smartphone.svg",
+      "bytes": 375,
+      "sha256": "75b1aedefa823e35341fb3ed9ebdfb09d321e2820fc7a2ee1ddda647b2ec7116"
+    },
+    {
+      "path": "assets/lucide/sun.svg",
+      "bytes": 559,
+      "sha256": "9d41b469f14df0aef6ae3924b9a17c00638e08830bb0708bf183ce12153a166b"
+    },
+    {
+      "path": "assets/lucide/thermometer.svg",
+      "bytes": 348,
+      "sha256": "55ccdba99e2f89652a967cc8ea5ab2e2ee1cdb2000644063b714de74b2b0d172"
+    },
+    {
+      "path": "assets/lucide/triangle-alert.svg",
+      "bytes": 430,
+      "sha256": "d36e1a6cc99e4b5f3ce7444f9f3bd1c3180373a13d185b6a473858d79e19cabd"
+    },
+    {
+      "path": "assets/lucide/volume-2.svg",
+      "bytes": 555,
+      "sha256": "982c0f587ae4c31a0c76db1f8e0ba7ef7943083c7c4f0d4217fca87f022268f1"
+    },
+    {
+      "path": "assets/lucide/wifi.svg",
+      "bytes": 432,
+      "sha256": "289619e4860675866decd4c76f13537e1e585686dfcc70adb01d649bb3a86ebd"
+    },
+    {
+      "path": "assets/lucide/wind.svg",
+      "bytes": 411,
+      "sha256": "6fdbdb37ad8869663accfe24f8dcc935b3c9eb1966e30b54a0c2ccec95cac5f4"
+    },
+    {
+      "path": "assets/lucide/zap.svg",
+      "bytes": 453,
+      "sha256": "40a4bae62c6cb7c21a7306b91ad1f75e50bdf4083e08c604cf912a7271bb8da0"
+    },
+    {
+      "path": "components.html",
+      "bytes": 31589,
+      "sha256": "f6b0c55de63fde812336eaf460825ef57738e63a643b05bdc1973063942b8480"
+    },
+    {
+      "path": "components.manifest.json",
+      "bytes": 14591,
+      "sha256": "c3c1aea5c25ae9efd83612be14c0ece271884da3b7393c684b525b51656f2a56"
+    },
+    {
+      "path": "design-tokens.json",
+      "bytes": 20668,
+      "sha256": "1a87c1a608d412167fbe3a86d443833d492bc65ac3436e7c7f72952de3684441"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 1949,
+      "sha256": "cce52b81d1ae99679c970a0de6884ad43c1300f724f70dab61d70b1210ae3b3d"
+    },
+    {
+      "path": "preview/capability-facets.html",
+      "bytes": 7150,
+      "sha256": "bca1e9a517ac8b2ea7c3a9b164b67f13fb1e1d8c88923999de28af432bfcd140"
+    },
+    {
+      "path": "preview/colors.html",
+      "bytes": 2712,
+      "sha256": "f4419c7afdad6aa7bce6164ccf1652e847f920eb53e1195121f67f0072548897"
+    },
+    {
+      "path": "preview/control-surfaces.css",
+      "bytes": 20992,
+      "sha256": "82d4329504390d99d1bef4e16f1121bcdfa2fe989ecbdb029929eb5034b996d5"
+    },
+    {
+      "path": "preview/device-detail.html",
+      "bytes": 7460,
+      "sha256": "7316c899e931f8ce05eadb709e824bbf7c031a599f4f07fe9c108d10407f695c"
+    },
+    {
+      "path": "preview/phone-controls.html",
+      "bytes": 7666,
+      "sha256": "c1b1422d1bc760e5d7331fc7f2aa6268aa267386e63c4456d413579a18040e88"
+    },
+    {
+      "path": "preview/spacing.html",
+      "bytes": 2284,
+      "sha256": "8dd4d95ceca20518f51405b90319ed397cffbc68b2db58f56a3ac9dcd1899557"
+    },
+    {
+      "path": "preview/typography.html",
+      "bytes": 1788,
+      "sha256": "c0f49ff28caac24bf24f5d5cbec37d1bc7bb4b950607a4eab23b4ffdaf432ce1"
+    },
+    {
+      "path": "preview/wallboard.html",
+      "bytes": 10505,
+      "sha256": "84db54198893032b3c86085e29fcc1b7c3894f44788aca3e9f587414f5166bef"
+    },
+    {
+      "path": "source/evidence.md",
+      "bytes": 5537,
+      "sha256": "4615268ce4024a791e5e00b9de914d011ff9c4859a938793b9b92bbc600055e1"
+    },
+    {
+      "path": "source/token-contract.report.json",
+      "bytes": 19140,
+      "sha256": "0aff5639acf21a43968299925aca4ae184dac10eddbc9c05cc61bf1d774e4b94"
+    },
+    {
+      "path": "source/tokens.source.json",
+      "bytes": 7755,
+      "sha256": "0b0c98c0e3057b0601209190128c3890009577ee1ffaa63eec7ee3e353e4eff1"
+    },
+    {
+      "path": "tailwind-v4.css",
+      "bytes": 2235,
+      "sha256": "a7b994dcb47b5b3e53f25f2b1de2bac12e2db95e8d09237a3d115e26806ece0b"
+    },
+    {
+      "path": "tokens.css",
+      "bytes": 2180,
+      "sha256": "b2931246b80ce9cf9e9d2e603280a3ed7807193d395cb87c61298d13e257e129"
+    }
+  ]
+}

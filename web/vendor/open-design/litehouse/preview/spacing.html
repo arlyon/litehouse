@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Litehouse spacing</title>
+  <link rel="stylesheet" href="../tokens.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); line-height: var(--leading-body); }
+    main { max-width: var(--container-max); margin-inline: auto; padding: var(--section-y-tablet) var(--container-gutter-desktop); }
+    h1 { margin: 0 0 var(--space-6); font-size: var(--text-2xl); }
+    .stack { display: grid; gap: var(--space-3); margin-bottom: var(--space-8); }
+    .row { display: grid; grid-template-columns: 112px 1fr; align-items: center; gap: var(--space-4); color: var(--muted); font: var(--text-sm) var(--font-mono); }
+    .bar { height: var(--space-3); min-width: 2px; background: var(--accent); }
+    .radii { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+    .radii div { min-height: 88px; display: grid; place-items: center; border: 1px solid var(--border); background: var(--surface); font-size: var(--text-sm); }
+    @media (max-width: 639px) { main { padding-inline: var(--container-gutter-phone); } .radii { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Spacing and radius</h1>
+    <section class="stack" aria-label="Spacing scale">
+      <div class="row"><span>--space-2</span><div class="bar" style="width: var(--space-2)"></div></div>
+      <div class="row"><span>--space-4</span><div class="bar" style="width: var(--space-4)"></div></div>
+      <div class="row"><span>--space-6</span><div class="bar" style="width: var(--space-6)"></div></div>
+      <div class="row"><span>--space-8</span><div class="bar" style="width: var(--space-8)"></div></div>
+      <div class="row"><span>--space-12</span><div class="bar" style="width: var(--space-12)"></div></div>
+    </section>
+    <section class="radii" aria-label="Radius scale">
+      <div style="border-radius: var(--radius-sm)">6px compact</div>
+      <div style="border-radius: var(--radius-md)">8px controls</div>
+      <div style="border-radius: var(--radius-lg)">14px surfaces</div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Litehouse typography</title>
+  <link rel="stylesheet" href="../tokens.css" />
+  <style>
+    body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); line-height: var(--leading-body); }
+    main { max-width: var(--container-max); margin-inline: auto; padding: var(--section-y-tablet) var(--container-gutter-desktop); }
+    .stack { display: grid; gap: var(--space-5); max-width: 68ch; }
+    .meta { margin: 0; color: var(--success); font: 600 var(--text-xs)/1.4 var(--font-mono); letter-spacing: .05em; text-transform: uppercase; }
+    h1 { margin: 0; font: 700 var(--text-4xl)/var(--leading-tight) var(--font-display); letter-spacing: var(--tracking-display); }
+    h2 { margin: 0; font-size: var(--text-2xl); line-height: var(--leading-tight); }
+    .lead { margin: 0; color: var(--fg-2); font-size: var(--text-lg); }
+    .body { margin: 0; color: var(--muted); font-size: var(--text-base); }
+    code { font-family: var(--font-mono); font-size: var(--text-sm); }
+    @media (max-width: 639px) { main { padding-inline: var(--container-gutter-phone); } h1 { font-size: var(--text-3xl); } }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="stack">
+      <p class="meta">Connected directly</p>
+      <h1>Dependable automation without the stack.</h1>
+      <p class="lead">Public clarity and operational precision share one type system at two densities.</p>
+      <h2>Automation health</h2>
+      <p class="body">Inter carries readable product copy. Use <code>node.local:3478</code> and other monospace values only where exact comparison or copying matters.</p>
+    </section>
+  </main>
+</body>
+</html>

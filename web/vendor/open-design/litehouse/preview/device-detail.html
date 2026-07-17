@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Litehouse device detail</title>
+  <meta name="description" content="In-page Litehouse device controls, state, relationships, and known operation results." />
+  <link rel="stylesheet" href="../tokens.css" />
+  <link rel="stylesheet" href="./control-surfaces.css" />
+</head>
+<body>
+  <a class="skip-link" href="#top">Skip to controls</a>
+  <header class="site-header">
+    <div class="container">
+      <a class="wordmark" href="#top">Litehouse <span>System</span></a>
+      <nav class="top-nav" aria-label="Device detail navigation">
+        <a href="./wallboard.html">Wallboard</a>
+        <a href="#top" aria-current="page">Device</a>
+        <a href="#known-results">Known results</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top" class="detail-page">
+    <div class="container">
+      <p class="detail-breadcrumb"><a href="./wallboard.html">Living room</a> / Standing lamp</p>
+      <header class="detail-header">
+        <div class="detail-header-main">
+          <span class="icon-frame icon-frame-active"><img class="icon-lg" src="../assets/lucide/lamp-ceiling.svg" alt="" /></span>
+          <div class="stack-2"><h1>Standing lamp</h1><p class="muted">ESPHome · Living room · 3 capability facets</p></div>
+        </div>
+        <div class="stack-2"><span class="badge badge-success">Connected directly</span><span class="meta">Observed 8 seconds ago</span></div>
+      </header>
+
+      <div class="detail-layout">
+        <div class="detail-primary">
+          <section class="detail-section" aria-labelledby="control-heading">
+            <header class="detail-section-header"><p class="eyebrow">Control</p><h2 id="control-heading">Capability controls</h2></header>
+            <div class="detail-section-body">
+              <div class="detail-control">
+                <div class="stack-2"><strong>Power</strong><span class="meta">on-off@1 · absolute set</span></div>
+                <fieldset class="segmented"><legend class="sr-only">Standing lamp power</legend><label><input type="radio" name="detail-power" checked />On</label><label><input type="radio" name="detail-power" />Off</label></fieldset>
+              </div>
+              <div class="detail-control">
+                <div class="stack-2"><strong>Brightness</strong><span class="meta">level-control@1 · ratio</span></div>
+                <label class="range"><span class="sr-only">Standing lamp brightness</span><input type="range" min="0" max="100" value="72" /><output>72%</output></label>
+              </div>
+              <div class="detail-control">
+                <div class="stack-2"><strong>Color temperature</strong><span class="meta">color-control@1 · advertised model</span></div>
+                <div class="stack-3">
+                  <div class="range"><input type="range" min="2200" max="6500" value="2700" aria-label="Standing lamp color temperature" /><output>2700 K</output></div>
+                  <div class="row"><span class="badge">Warm white</span><button type="button">2200 K</button><button class="primary" type="button">2700 K</button><button type="button">4000 K</button></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="known-results" class="detail-section" aria-labelledby="results-heading">
+            <header class="detail-section-header"><p class="eyebrow">Known results</p><h2 id="results-heading">Current browser operations</h2></header>
+            <div class="trace-scroll" tabindex="0" aria-label="Current browser operations, scroll horizontally for all columns">
+              <table class="trace-table">
+                <caption class="sr-only">Known operation results for Standing lamp</caption>
+                <thead><tr><th scope="col">Time</th><th scope="col">Operation</th><th scope="col">Detail</th><th scope="col">Result</th><th scope="col">Source</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">18:28:52</td><td>Set level</td><td class="mono">72%</td><td><span class="badge badge-warning">Accepted for delivery</span></td><td>Local UI</td></tr>
+                  <tr><td class="mono">18:28:53</td><td>State observation</td><td class="mono">72%</td><td><span class="badge badge-success">Current</span></td><td>Provider</td></tr>
+                  <tr><td class="mono">18:29:00</td><td>Color observation</td><td class="mono">2700 K</td><td><span class="badge">Unchanged</span></td><td>Provider</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <aside class="detail-secondary" aria-label="Device state and relationships">
+          <section class="detail-section" aria-labelledby="state-heading">
+            <header class="detail-section-header"><p class="eyebrow">State</p><h2 id="state-heading">Current observation</h2></header>
+            <div class="detail-section-body">
+              <table class="state-table">
+                <caption class="sr-only">Current observed state for Standing lamp</caption>
+                <tbody>
+                  <tr><th scope="row">Power</th><td>On</td></tr>
+                  <tr><th scope="row">Level</th><td class="mono">72%</td></tr>
+                  <tr><th scope="row">Color</th><td class="mono">2700 K</td></tr>
+                  <tr><th scope="row">Source</th><td>Reported</td></tr>
+                  <tr><th scope="row">Freshness</th><td>8 seconds</td></tr>
+                  <tr><th scope="row">Quality</th><td><span class="status status-current">Current</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="detail-section" aria-labelledby="relationships-heading">
+            <header class="detail-section-header"><p class="eyebrow">Bindings and automations</p><h2 id="relationships-heading">Active relationships</h2></header>
+            <div class="detail-section-body">
+              <div class="relationship"><div><strong>Hall motion → lights</strong><p class="meta">Active rule revision 4</p></div><span class="badge badge-success">Enabled</span></div>
+              <div class="relationship"><div><strong>Night scene</strong><p class="meta">Brightness and color</p></div><span class="badge badge-warning">Last run accepted</span></div>
+              <div class="relationship"><div><strong>On / Off consumer</strong><p class="meta">Exact-major binding</p></div><span class="badge">Bound</span></div>
+            </div>
+          </section>
+
+          <section class="detail-section" aria-labelledby="diagnostic-heading">
+            <header class="detail-section-header"><p class="eyebrow">Technical detail</p><h2 id="diagnostic-heading">Identity and health</h2></header>
+            <div class="detail-section-body stack-4">
+              <div class="row-between"><span class="muted small">Facet generation</span><code>7</code></div>
+              <div class="row-between"><span class="muted small">Config revision</span><code>12</code></div>
+              <div class="row-between"><span class="muted small">Availability</span><span class="status status-current">Available</span></div>
+              <button type="button">Open bounded diagnostics</button>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

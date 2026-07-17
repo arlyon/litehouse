@@ -1,0 +1,48 @@
+@import "../vendor/open-design/litehouse/tokens.css";
+
+:root {
+  --lh-color-background: var(--bg);
+  --lh-color-foreground: var(--fg);
+  --lh-color-foreground-secondary: var(--fg-2);
+  --lh-color-surface: var(--surface);
+  --lh-color-surface-warm: var(--surface-warm);
+  --lh-color-border: var(--border);
+  --lh-color-muted: var(--muted);
+  --lh-color-accent: var(--accent);
+  --lh-color-on-accent: var(--accent-on);
+  --lh-color-success: var(--success);
+  --lh-color-warning: var(--warn);
+  --lh-color-danger: var(--danger);
+
+  --lh-font-body: var(--font-body);
+  --lh-font-mono: var(--font-mono);
+  --lh-leading-body: var(--leading-body);
+  --lh-leading-tight: var(--leading-tight);
+  --lh-tracking-display: var(--tracking-display);
+  --lh-text-xs: var(--text-xs);
+  --lh-text-sm: var(--text-sm);
+  --lh-text-base: var(--text-base);
+  --lh-text-lg: var(--text-lg);
+  --lh-text-2xl: var(--text-2xl);
+  --lh-text-3xl: var(--text-3xl);
+
+  --lh-space-1: var(--space-1);
+  --lh-space-2: var(--space-2);
+  --lh-space-3: var(--space-3);
+  --lh-space-4: var(--space-4);
+  --lh-space-5: var(--space-5);
+  --lh-space-6: var(--space-6);
+  --lh-space-8: var(--space-8);
+
+  --lh-radius-md: var(--radius-md);
+  --lh-radius-lg: var(--radius-lg);
+  --lh-radius-pill: var(--radius-pill);
+
+  --lh-container-max: var(--container-max);
+  --lh-gutter-desktop: var(--container-gutter-desktop);
+  --lh-gutter-tablet: var(--container-gutter-tablet);
+  --lh-gutter-phone: var(--container-gutter-phone);
+  --lh-section-y-desktop: var(--section-y-desktop);
+  --lh-section-y-tablet: var(--section-y-tablet);
+  --lh-section-y-phone: var(--section-y-phone);
+}

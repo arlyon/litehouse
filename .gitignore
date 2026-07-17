@@ -5,7 +5,15 @@
 schema.json
 settings.json
 
-# site
+# site and greenfield web
+/web/dist/
+/web/.tanstack/
+/web/.wrangler/
+/web/.dev.vars
+/web/.dev.vars.*
+/web/.env
+/web/.env.*
+!/web/.env.example
 
 # deps
 node_modules
