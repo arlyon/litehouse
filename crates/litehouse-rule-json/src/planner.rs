@@ -7,8 +7,9 @@ use thiserror::Error;
 use crate::{
     compile::{CompiledNode, CompiledRule, CompiledScalar},
     model::{
-        CompareOperator, EndOutcome, HARD_MAX_NODES, Selector, ValueType, valid_hex_32,
-        valid_hex_64, valid_id,
+        CompareOperator, EndOutcome, HARD_MAX_EFFECT_INTENTS, HARD_MAX_NODES,
+        HARD_MAX_PLAN_INPUT_BYTES, HARD_MAX_STRING_BYTES, RebindPolicy, Selector,
+        SelectorCardinality, ValueType, valid_contract_part, valid_hex_32, valid_hex_64, valid_id,
     },
 };
 
@@ -45,6 +46,7 @@ pub enum ScalarValue {
     Bool { value: bool },
     String { value: String },
     I64 { value: i64 },
+    U64 { value: u64 },
     Quantity { value: Quantity },
 }
 
@@ -54,6 +56,7 @@ impl ScalarValue {
             Self::Bool { .. } => ValueType::Bool,
             Self::String { .. } => ValueType::String,
             Self::I64 { .. } => ValueType::I64,
+            Self::U64 { .. } => ValueType::U64,
             Self::Quantity { value } => ValueType::Quantity {
                 profile: value.profile_id().as_str().to_owned(),
             },
@@ -94,7 +97,7 @@ pub enum Freshness {
     Stale,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct StateObservationInput {
     selector: Selector,
     provider_generation: u64,
@@ -112,6 +115,7 @@ impl StateObservationInput {
         if provider_generation == 0 || facet_revision == 0 {
             return Err(InputError::ZeroGenerationOrRevision);
         }
+        validate_input_selector(&selector)?;
         Ok(Self {
             selector,
             provider_generation,
@@ -125,7 +129,7 @@ impl StateObservationInput {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SnapshotInput {
     node_id: String,
     selector: Selector,
@@ -160,6 +164,8 @@ impl SnapshotInput {
         if provider_generation == 0 || facet_revision == 0 {
             return Err(InputError::ZeroGenerationOrRevision);
         }
+        validate_input_selector(&selector)?;
+        validate_observation_value(&value)?;
         Ok(Self {
             node_id,
             selector,
@@ -173,7 +179,7 @@ impl SnapshotInput {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct TargetInput {
     selector: Selector,
     provider_generation: u64,
@@ -193,6 +199,7 @@ impl TargetInput {
         if provider_generation == 0 || facet_revision == 0 || grant_revision == 0 {
             return Err(InputError::ZeroGenerationOrRevision);
         }
+        validate_input_selector(&selector)?;
         Ok(Self {
             selector,
             provider_generation,
@@ -203,7 +210,7 @@ impl TargetInput {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct EvaluationInput {
     rule_id: String,
     rule_revision: u64,
@@ -212,6 +219,8 @@ pub struct EvaluationInput {
     trigger: StateObservationInput,
     snapshots: Vec<SnapshotInput>,
     targets: Vec<TargetInput>,
+    #[serde(skip)]
+    encoded_bytes: usize,
 }
 
 impl EvaluationInput {
@@ -236,6 +245,18 @@ impl EvaluationInput {
         if !valid_hex_64(&profile_sha256) {
             return Err(InputError::InvalidProfileDigest);
         }
+        if snapshots.len() > HARD_MAX_NODES {
+            return Err(InputError::TooManySnapshots {
+                actual: snapshots.len(),
+                maximum: HARD_MAX_NODES,
+            });
+        }
+        if targets.len() > HARD_MAX_EFFECT_INTENTS {
+            return Err(InputError::TooManyTargets {
+                actual: targets.len(),
+                maximum: HARD_MAX_EFFECT_INTENTS,
+            });
+        }
         if trigger.observed_at > evaluation_time
             || snapshots
                 .iter()
@@ -249,15 +270,13 @@ impl EvaluationInput {
                 return Err(InputError::DuplicateSnapshot(snapshot.node_id.clone()));
             }
         }
-        for (index, target) in targets.iter().enumerate() {
-            if targets[..index]
-                .iter()
-                .any(|candidate| candidate.selector == target.selector)
-            {
+        let mut target_selectors = std::collections::BTreeSet::new();
+        for target in &targets {
+            if !target_selectors.insert(selector_identity(&target.selector)) {
                 return Err(InputError::DuplicateTarget);
             }
         }
-        Ok(Self {
+        let mut input = Self {
             rule_id,
             rule_revision,
             profile_sha256,
@@ -265,7 +284,18 @@ impl EvaluationInput {
             trigger,
             snapshots,
             targets,
-        })
+            encoded_bytes: 0,
+        };
+        input.encoded_bytes = serde_json::to_vec(&input)
+            .expect("closed evaluation input must serialize")
+            .len();
+        if input.encoded_bytes > HARD_MAX_PLAN_INPUT_BYTES {
+            return Err(InputError::InputTooLarge {
+                actual: input.encoded_bytes,
+                maximum: HARD_MAX_PLAN_INPUT_BYTES,
+            });
+        }
+        Ok(input)
     }
 
     pub fn evaluation_time(&self) -> Timestamp {
@@ -283,6 +313,65 @@ impl EvaluationInput {
     pub fn targets(&self) -> &[TargetInput] {
         &self.targets
     }
+
+    pub(crate) fn encoded_bytes(&self) -> usize {
+        self.encoded_bytes
+    }
+}
+
+fn validate_input_selector(selector: &Selector) -> Result<(), InputError> {
+    if valid_hex_32(&selector.provider_instance_id)
+        && valid_id(&selector.facet_key)
+        && valid_contract_part(&selector.contract.namespace)
+        && valid_contract_part(&selector.contract.package)
+        && valid_contract_part(&selector.contract.interface)
+        && selector.contract.major != 0
+        && selector.cardinality == SelectorCardinality::One
+        && matches!(
+            selector.rebind,
+            RebindPolicy::Never | RebindPolicy::SameIdentity
+        )
+    {
+        Ok(())
+    } else {
+        Err(InputError::InvalidSelector)
+    }
+}
+
+fn validate_observation_value(value: &ObservationValue) -> Result<(), InputError> {
+    if let ObservationValue::Known {
+        value: ScalarValue::String { value },
+    } = value
+        && value.len() > HARD_MAX_STRING_BYTES
+    {
+        return Err(InputError::ValueTooLarge {
+            actual: value.len(),
+            maximum: HARD_MAX_STRING_BYTES,
+        });
+    }
+    let encoded = serde_json::to_vec(value)
+        .expect("closed observation value must serialize")
+        .len();
+    if encoded > HARD_MAX_STRING_BYTES {
+        Err(InputError::ValueTooLarge {
+            actual: encoded,
+            maximum: HARD_MAX_STRING_BYTES,
+        })
+    } else {
+        Ok(())
+    }
+}
+
+fn selector_identity(selector: &Selector) -> String {
+    format!(
+        "{}:{}:{}:{}:{}:{}",
+        selector.provider_instance_id,
+        selector.facet_key,
+        selector.contract.namespace,
+        selector.contract.package,
+        selector.contract.interface,
+        selector.contract.major,
+    )
 }
 
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
@@ -307,6 +396,16 @@ pub enum InputError {
     DuplicateSnapshot(String),
     #[error("duplicate resolved target selector")]
     DuplicateTarget,
+    #[error("evaluation selector is invalid")]
+    InvalidSelector,
+    #[error("evaluation scalar value is {actual} bytes; the maximum is {maximum}")]
+    ValueTooLarge { actual: usize, maximum: usize },
+    #[error("evaluation has {actual} snapshots; the maximum is {maximum}")]
+    TooManySnapshots { actual: usize, maximum: usize },
+    #[error("evaluation has {actual} targets; the maximum is {maximum}")]
+    TooManyTargets { actual: usize, maximum: usize },
+    #[error("encoded evaluation input is {actual} bytes; the maximum is {maximum}")]
+    InputTooLarge { actual: usize, maximum: usize },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -379,6 +478,7 @@ impl TransitionPlan {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PlanOutcome {
+    AwaitingReceipt,
     Success,
     Noop,
     Unknown,
@@ -392,6 +492,7 @@ impl From<EndOutcome> for PlanOutcome {
             EndOutcome::Noop => Self::Noop,
             EndOutcome::Unknown => Self::Unknown,
             EndOutcome::Error => Self::Error,
+            EndOutcome::Cancelled | EndOutcome::CapacityRejected => Self::Error,
         }
     }
 }
@@ -475,6 +576,10 @@ pub enum PlanError {
     MissingTarget { node: String },
     #[error("effect target for node {node:?} does not support absolute set")]
     MissingAbsoluteSet { node: String },
+    #[error("encoded evaluation input is {actual} bytes; compiled maximum is {maximum}")]
+    InputTooLarge { actual: usize, maximum: usize },
+    #[error("encoded planner trace is {actual} bytes; compiled maximum is {maximum}")]
+    TraceTooLarge { actual: usize, maximum: usize },
     #[error("compiled graph invariant failed at {node:?}: {reason}")]
     InvalidCompiledGraph { node: String, reason: String },
     #[error("planner exceeded the compiled node bound")]
@@ -490,9 +595,16 @@ enum ComparisonOutcome {
 }
 
 pub fn plan(compiled: &CompiledRule, input: &EvaluationInput) -> Result<TransitionPlan, PlanError> {
+    if input.encoded_bytes() > compiled.max_plan_input_bytes {
+        return Err(PlanError::InputTooLarge {
+            actual: input.encoded_bytes(),
+            maximum: compiled.max_plan_input_bytes,
+        });
+    }
     validate_input_identity(compiled, input)?;
 
     let mut visited_nodes = vec![compiled.trigger_id.clone()];
+    validate_trace_size(compiled, &visited_nodes)?;
     let mut intents = Vec::new();
     let mut assumptions = Vec::new();
     let mut snapshots: BTreeMap<String, ObservationValue> = BTreeMap::new();
@@ -501,6 +613,7 @@ pub fn plan(compiled: &CompiledRule, input: &EvaluationInput) -> Result<Transiti
 
     for _ in 0..HARD_MAX_NODES {
         visited_nodes.push(current.clone());
+        validate_trace_size(compiled, &visited_nodes)?;
         let node = compiled
             .nodes
             .get(&current)
@@ -552,11 +665,12 @@ pub fn plan(compiled: &CompiledRule, input: &EvaluationInput) -> Result<Transiti
                 current = next(compiled, &current, "next")?;
             }
             CompiledNode::Compare {
+                input_port,
                 value_type,
                 operator,
                 right,
             } => {
-                let (source, source_port) = data_source(compiled, &current, "left")?;
+                let (source, source_port) = data_source(compiled, &current, input_port)?;
                 if source_port != "value" {
                     return Err(PlanError::InvalidCompiledGraph {
                         node: current,
@@ -577,7 +691,7 @@ pub fn plan(compiled: &CompiledRule, input: &EvaluationInput) -> Result<Transiti
                 current = next(compiled, &current, "next")?;
             }
             CompiledNode::Branch => {
-                let (source, source_port) = data_source(compiled, &current, "condition")?;
+                let (source, source_port) = data_source(compiled, &current, "predicate")?;
                 if source_port != "result" {
                     return Err(PlanError::InvalidCompiledGraph {
                         node: current,
@@ -636,7 +750,23 @@ pub fn plan(compiled: &CompiledRule, input: &EvaluationInput) -> Result<Transiti
                     expected_facet_revision: target.facet_revision,
                     grant_revision: target.grant_revision,
                 });
-                current = next(compiled, &current, "next")?;
+                return Ok(TransitionPlan {
+                    rule_id: compiled.rule_id.clone(),
+                    rule_revision: compiled.revision,
+                    evaluation_time: input.evaluation_time,
+                    outcome: PlanOutcome::AwaitingReceipt,
+                    intents,
+                    assumptions,
+                    visited_nodes,
+                });
+            }
+            CompiledNode::ReceiptBranch => {
+                return Err(PlanError::InvalidCompiledGraph {
+                    node: current,
+                    reason:
+                        "receipt branches require a later typed receipt microstep owned by T8.1c"
+                            .to_owned(),
+                });
             }
             CompiledNode::End { outcome } => {
                 return Ok(TransitionPlan {
@@ -652,6 +782,20 @@ pub fn plan(compiled: &CompiledRule, input: &EvaluationInput) -> Result<Transiti
         }
     }
     Err(PlanError::StepLimit)
+}
+
+fn validate_trace_size(compiled: &CompiledRule, visited_nodes: &[String]) -> Result<(), PlanError> {
+    let actual = serde_json::to_vec(visited_nodes)
+        .expect("closed trace must serialize")
+        .len();
+    if actual > compiled.max_trace_bytes {
+        Err(PlanError::TraceTooLarge {
+            actual,
+            maximum: compiled.max_trace_bytes,
+        })
+    } else {
+        Ok(())
+    }
 }
 
 fn validate_input_identity(
@@ -722,6 +866,7 @@ fn compare_observation(
         (ScalarValue::Bool { value: left }, CompiledScalar::Bool(right)) => left.cmp(right),
         (ScalarValue::String { value: left }, CompiledScalar::String(right)) => left.cmp(right),
         (ScalarValue::I64 { value: left }, CompiledScalar::I64(right)) => left.cmp(right),
+        (ScalarValue::U64 { value: left }, CompiledScalar::U64(right)) => left.cmp(right),
         (ScalarValue::Quantity { value: left }, CompiledScalar::Quantity(right)) => {
             match left.checked_cmp(right) {
                 Ok(ordering) => ordering,

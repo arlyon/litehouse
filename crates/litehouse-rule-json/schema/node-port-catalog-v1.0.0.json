@@ -1,145 +1,4617 @@
 {
   "$id": "https://schemas.litehouse.dev/rule-ir/v1.0.0/node-port-catalog.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "nodes": [
+  "capability_operations": [
     {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "type": "boolean"
+          },
+          "name": "on",
+          "required": true,
+          "type_ref": {
+            "kind": "bool"
+          }
+        }
+      ],
+      "operation": "capability.on-off.set@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "definitely_pre_dispatch_with_matching_provider_deduplication",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "on-off"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "set",
+        "package": "litehouse:on-off@1.0.0",
+        "projection": "boolean-value"
+      }
+    },
+    {
+      "arguments": [],
+      "operation": "capability.on-off.toggle@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "never",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "on-off"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "toggle",
+        "package": "litehouse:on-off@1.0.0",
+        "projection": "direct"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+            "type": "string"
+          },
+          "name": "level",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+          }
+        }
+      ],
+      "operation": "capability.level.set@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "definitely_pre_dispatch_with_matching_provider_deduplication",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "level-control"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "set-level",
+        "package": "litehouse:level-control@1.0.0",
+        "projection": "quantity-level"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+            "type": "string"
+          },
+          "name": "step",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+          }
+        }
+      ],
+      "operation": "capability.level.step@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "never",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "level-control"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "step",
+        "package": "litehouse:level-control@1.0.0",
+        "projection": "signed-step"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "enum": [
+              "up",
+              "down"
+            ],
+            "type": "string"
+          },
+          "name": "direction",
+          "required": true,
+          "type_ref": {
+            "kind": "string"
+          }
+        },
+        {
+          "canonical_schema": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+            "type": "string"
+          },
+          "name": "rate_per_second",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+          }
+        }
+      ],
+      "operation": "capability.level.move@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "never",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "level-control"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "move",
+        "package": "litehouse:level-control@1.0.0",
+        "projection": "directional-rate"
+      }
+    },
+    {
+      "arguments": [],
+      "operation": "capability.level.stop@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "never",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "level-control"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "stop",
+        "package": "litehouse:level-control@1.0.0",
+        "projection": "direct"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+            "type": "string"
+          },
+          "name": "level",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+          }
+        },
+        {
+          "canonical_schema": {
+            "maximum": 30000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "name": "duration_ms",
+          "required": true,
+          "type_ref": {
+            "kind": "u64"
+          }
+        }
+      ],
+      "operation": "capability.level.transition@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "definitely_pre_dispatch_with_matching_provider_deduplication",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "level-control"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "set-level",
+        "package": "litehouse:level-control@1.0.0",
+        "projection": "quantity-level-transition"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+            "type": "string"
+          },
+          "name": "level",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+          }
+        },
+        {
+          "canonical_schema": {
+            "type": "boolean"
+          },
+          "name": "on_when_nonzero",
+          "required": true,
+          "type_ref": {
+            "kind": "bool"
+          }
+        }
+      ],
+      "operation": "capability.level.set-coupled@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "definitely_pre_dispatch_with_matching_provider_deduplication",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "level-control"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "set-level-with-on-off",
+        "package": "litehouse:level-control@1.0.0",
+        "projection": "quantity-level-coupled"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+            "type": "string"
+          },
+          "name": "step",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+          }
+        },
+        {
+          "canonical_schema": {
+            "type": "boolean"
+          },
+          "name": "on_when_nonzero",
+          "required": true,
+          "type_ref": {
+            "kind": "bool"
+          }
+        }
+      ],
+      "operation": "capability.level.step-coupled@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "never",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "level-control"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "step-with-on-off",
+        "package": "litehouse:level-control@1.0.0",
+        "projection": "signed-step-coupled"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "enum": [
+              "up",
+              "down"
+            ],
+            "type": "string"
+          },
+          "name": "direction",
+          "required": true,
+          "type_ref": {
+            "kind": "string"
+          }
+        },
+        {
+          "canonical_schema": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+            "type": "string"
+          },
+          "name": "rate_per_second",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+          }
+        },
+        {
+          "canonical_schema": {
+            "type": "boolean"
+          },
+          "name": "on_when_nonzero",
+          "required": true,
+          "type_ref": {
+            "kind": "bool"
+          }
+        }
+      ],
+      "operation": "capability.level.move-coupled@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "never",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "level-control"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "move-with-on-off",
+        "package": "litehouse:level-control@1.0.0",
+        "projection": "directional-rate-coupled"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+            "type": "string"
+          },
+          "name": "level",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+          }
+        },
+        {
+          "canonical_schema": {
+            "maximum": 30000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "name": "duration_ms",
+          "required": true,
+          "type_ref": {
+            "kind": "u64"
+          }
+        },
+        {
+          "canonical_schema": {
+            "type": "boolean"
+          },
+          "name": "on_when_nonzero",
+          "required": true,
+          "type_ref": {
+            "kind": "bool"
+          }
+        }
+      ],
+      "operation": "capability.level.transition-coupled@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "definitely_pre_dispatch_with_matching_provider_deduplication",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "level-control"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "set-level-with-on-off",
+        "package": "litehouse:level-control@1.0.0",
+        "projection": "quantity-level-transition-coupled"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "hue_degrees": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "hue-saturation",
+                    "type": "string"
+                  },
+                  "saturation": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "hue_degrees",
+                  "saturation"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "model": {
+                    "const": "cie-xy",
+                    "type": "string"
+                  },
+                  "x": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "y": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "x",
+                  "y"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "kelvin": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "color-temperature",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "kelvin"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "blue": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "color_space": {
+                    "enum": [
+                      "srgb",
+                      "display-p3"
+                    ],
+                    "type": "string"
+                  },
+                  "green": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "calibrated-rgb",
+                    "type": "string"
+                  },
+                  "red": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "red",
+                  "green",
+                  "blue",
+                  "color_space"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "blue": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "green": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "uncalibrated-rgb",
+                    "type": "string"
+                  },
+                  "red": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "red",
+                  "green",
+                  "blue"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "cold_white": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "native-white-channels",
+                    "type": "string"
+                  },
+                  "warm_white": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "white": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "white"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "name": "color",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:color-control/types@1/color-value"
+          }
+        }
+      ],
+      "operation": "capability.color.set@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "definitely_pre_dispatch_with_matching_provider_deduplication",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "color-control"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "set-color",
+        "package": "litehouse:color-control@1.0.0",
+        "projection": "color-value"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "hue_degrees": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "hue-saturation",
+                    "type": "string"
+                  },
+                  "saturation": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "hue_degrees",
+                  "saturation"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "model": {
+                    "const": "cie-xy",
+                    "type": "string"
+                  },
+                  "x": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "y": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "x",
+                  "y"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "kelvin": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "color-temperature",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "kelvin"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "blue": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "color_space": {
+                    "enum": [
+                      "srgb",
+                      "display-p3"
+                    ],
+                    "type": "string"
+                  },
+                  "green": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "calibrated-rgb",
+                    "type": "string"
+                  },
+                  "red": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "red",
+                  "green",
+                  "blue",
+                  "color_space"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "blue": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "green": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "uncalibrated-rgb",
+                    "type": "string"
+                  },
+                  "red": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "red",
+                  "green",
+                  "blue"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "cold_white": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "native-white-channels",
+                    "type": "string"
+                  },
+                  "warm_white": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "white": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "white"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "name": "color",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:color-control/types@1/color-value"
+          }
+        },
+        {
+          "canonical_schema": {
+            "enum": [
+              "increase",
+              "decrease"
+            ],
+            "type": "string"
+          },
+          "name": "direction",
+          "required": true,
+          "type_ref": {
+            "kind": "string"
+          }
+        }
+      ],
+      "operation": "capability.color.step@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "never",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "color-control"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "step-color",
+        "package": "litehouse:color-control@1.0.0",
+        "projection": "directional-color-delta"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "hue_degrees": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "hue-saturation",
+                    "type": "string"
+                  },
+                  "saturation": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "hue_degrees",
+                  "saturation"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "model": {
+                    "const": "cie-xy",
+                    "type": "string"
+                  },
+                  "x": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "y": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "x",
+                  "y"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "kelvin": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "color-temperature",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "kelvin"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "blue": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "color_space": {
+                    "enum": [
+                      "srgb",
+                      "display-p3"
+                    ],
+                    "type": "string"
+                  },
+                  "green": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "calibrated-rgb",
+                    "type": "string"
+                  },
+                  "red": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "red",
+                  "green",
+                  "blue",
+                  "color_space"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "blue": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "green": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "uncalibrated-rgb",
+                    "type": "string"
+                  },
+                  "red": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "red",
+                  "green",
+                  "blue"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "cold_white": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "native-white-channels",
+                    "type": "string"
+                  },
+                  "warm_white": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "white": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "white"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "name": "color",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:color-control/types@1/color-value"
+          }
+        },
+        {
+          "canonical_schema": {
+            "enum": [
+              "increase",
+              "decrease"
+            ],
+            "type": "string"
+          },
+          "name": "direction",
+          "required": true,
+          "type_ref": {
+            "kind": "string"
+          }
+        }
+      ],
+      "operation": "capability.color.move@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "never",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "color-control"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "move-color",
+        "package": "litehouse:color-control@1.0.0",
+        "projection": "directional-color-rate"
+      }
+    },
+    {
+      "arguments": [],
+      "operation": "capability.color.stop@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "never",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "color-control"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "stop",
+        "package": "litehouse:color-control@1.0.0",
+        "projection": "direct"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "hue_degrees": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "hue-saturation",
+                    "type": "string"
+                  },
+                  "saturation": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "hue_degrees",
+                  "saturation"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "model": {
+                    "const": "cie-xy",
+                    "type": "string"
+                  },
+                  "x": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "y": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "x",
+                  "y"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "kelvin": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "color-temperature",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "kelvin"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "blue": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "color_space": {
+                    "enum": [
+                      "srgb",
+                      "display-p3"
+                    ],
+                    "type": "string"
+                  },
+                  "green": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "calibrated-rgb",
+                    "type": "string"
+                  },
+                  "red": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "red",
+                  "green",
+                  "blue",
+                  "color_space"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "blue": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "green": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "uncalibrated-rgb",
+                    "type": "string"
+                  },
+                  "red": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "red",
+                  "green",
+                  "blue"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "cold_white": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "model": {
+                    "const": "native-white-channels",
+                    "type": "string"
+                  },
+                  "warm_white": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  },
+                  "white": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "model",
+                  "white"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "name": "color",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:color-control/types@1/color-value"
+          }
+        },
+        {
+          "canonical_schema": {
+            "maximum": 30000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "name": "duration_ms",
+          "required": true,
+          "type_ref": {
+            "kind": "u64"
+          }
+        }
+      ],
+      "operation": "capability.color.transition@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "definitely_pre_dispatch_with_matching_provider_deduplication",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "color-control"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "set-color",
+        "package": "litehouse:color-control@1.0.0",
+        "projection": "color-value-transition"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "enum": [
+              "off",
+              "heat",
+              "cool",
+              "auto",
+              "dry",
+              "fan-only"
+            ],
+            "type": "string"
+          },
+          "name": "mode",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:thermostat/types@1/mode"
+          }
+        }
+      ],
+      "operation": "capability.thermostat.set-mode@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "definitely_pre_dispatch_with_matching_provider_deduplication",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "set-mode",
+        "package": "litehouse:thermostat@1.0.0",
+        "projection": "thermostat-mode"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+            "type": "string"
+          },
+          "name": "target_celsius",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+          }
+        }
+      ],
+      "operation": "capability.thermostat.set-single-target@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "definitely_pre_dispatch_with_matching_provider_deduplication",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "set-single-target",
+        "package": "litehouse:thermostat@1.0.0",
+        "projection": "celsius-single-target"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+            "type": "string"
+          },
+          "name": "heat_target_celsius",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+          }
+        },
+        {
+          "canonical_schema": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+            "type": "string"
+          },
+          "name": "cool_target_celsius",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+          }
+        }
+      ],
+      "operation": "capability.thermostat.set-dual-target@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "definitely_pre_dispatch_with_matching_provider_deduplication",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "set-dual-target",
+        "package": "litehouse:thermostat@1.0.0",
+        "projection": "celsius-dual-target"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": "fan_choice",
+          "required": true,
+          "type_ref": {
+            "kind": "string"
+          }
+        }
+      ],
+      "operation": "capability.thermostat.set-fan@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "definitely_pre_dispatch_with_matching_provider_deduplication",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "set-fan",
+        "package": "litehouse:thermostat@1.0.0",
+        "projection": "choice-value"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": "swing_choice",
+          "required": true,
+          "type_ref": {
+            "kind": "string"
+          }
+        }
+      ],
+      "operation": "capability.thermostat.set-swing@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "definitely_pre_dispatch_with_matching_provider_deduplication",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "set-swing",
+        "package": "litehouse:thermostat@1.0.0",
+        "projection": "choice-value"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": "preset_choice",
+          "required": true,
+          "type_ref": {
+            "kind": "string"
+          }
+        }
+      ],
+      "operation": "capability.thermostat.set-preset@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "definitely_pre_dispatch_with_matching_provider_deduplication",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "set-preset",
+        "package": "litehouse:thermostat@1.0.0",
+        "projection": "choice-value"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "enum": [
+              "lift",
+              "tilt"
+            ],
+            "type": "string"
+          },
+          "name": "axis",
+          "required": true,
+          "type_ref": {
+            "kind": "string"
+          }
+        }
+      ],
+      "operation": "capability.covering.open@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "never",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "open",
+        "package": "litehouse:window-covering@1.0.0",
+        "projection": "axis-value"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "enum": [
+              "lift",
+              "tilt"
+            ],
+            "type": "string"
+          },
+          "name": "axis",
+          "required": true,
+          "type_ref": {
+            "kind": "string"
+          }
+        }
+      ],
+      "operation": "capability.covering.close@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "never",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "close",
+        "package": "litehouse:window-covering@1.0.0",
+        "projection": "axis-value"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "enum": [
+              "lift",
+              "tilt"
+            ],
+            "type": "string"
+          },
+          "name": "axis",
+          "required": true,
+          "type_ref": {
+            "kind": "string"
+          }
+        }
+      ],
+      "operation": "capability.covering.stop@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "never",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "stop",
+        "package": "litehouse:window-covering@1.0.0",
+        "projection": "axis-value"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+            "type": "string"
+          },
+          "name": "position",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+          }
+        }
+      ],
+      "operation": "capability.covering.set-lift@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "definitely_pre_dispatch_with_matching_provider_deduplication",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "set-position",
+        "package": "litehouse:window-covering@1.0.0",
+        "projection": "fixed-lift-position"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+            "type": "string"
+          },
+          "name": "position",
+          "required": true,
+          "type_ref": {
+            "kind": "contract",
+            "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+          }
+        }
+      ],
+      "operation": "capability.covering.set-tilt@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "definitely_pre_dispatch_with_matching_provider_deduplication",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "set-position",
+        "package": "litehouse:window-covering@1.0.0",
+        "projection": "fixed-tilt-position"
+      }
+    },
+    {
+      "arguments": [],
+      "operation": "capability.momentary.invoke@1",
+      "required_receipt": "accepted_for_delivery_only",
+      "retry": "never",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "momentary-action"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "invoke",
+        "package": "litehouse:momentary-action@1.0.0",
+        "projection": "direct"
+      }
+    },
+    {
+      "arguments": [
+        {
+          "canonical_schema": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+            "type": "string"
+          },
+          "name": "notification_template_id",
+          "required": true,
+          "type_ref": {
+            "kind": "string"
+          }
+        },
+        {
+          "canonical_schema": {
+            "enum": [
+              "low",
+              "normal",
+              "high",
+              "urgent"
+            ],
+            "type": "string"
+          },
+          "name": "priority",
+          "required": true,
+          "type_ref": {
+            "kind": "string"
+          }
+        },
+        {
+          "canonical_schema": {
+            "maximum": 86400000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "name": "expires_in_ms",
+          "required": false,
+          "type_ref": {
+            "item": {
+              "kind": "u64"
+            },
+            "kind": "optional"
+          }
+        }
+      ],
+      "operation": "capability.notification.send@1",
+      "required_receipt": "notification_advertised_maximum",
+      "retry": "never",
+      "returned_receipts": [
+        "accepted_for_delivery",
+        "protocol_or_target_acknowledged",
+        "completed",
+        "observed_completed"
+      ],
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "notification-sink"
+      },
+      "service_binding": {
+        "interface": "capability",
+        "operation": "send",
+        "package": "litehouse:notification-sink@1.0.0",
+        "projection": "notification-template-expansion"
+      }
+    }
+  ],
+  "contract_events": [
+    {
+      "event": {
+        "contract": "litehouse:on-off@1.0.0",
+        "event": "state-observation"
+      },
+      "payload_type": {
+        "kind": "contract",
+        "type_ref": "litehouse:on-off/types@1/state"
+      },
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "on-off"
+      },
+      "wit_event_kind": "state-observation"
+    },
+    {
+      "event": {
+        "contract": "litehouse:boolean-state@1.0.0",
+        "event": "state-observation"
+      },
+      "payload_type": {
+        "kind": "contract",
+        "type_ref": "litehouse:boolean-state/types@1/state"
+      },
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "boolean-state"
+      },
+      "wit_event_kind": "state-observation"
+    },
+    {
+      "event": {
+        "contract": "litehouse:boolean-state@1.0.0",
+        "event": "occurrence"
+      },
+      "payload_type": {
+        "kind": "contract",
+        "type_ref": "litehouse:boolean-state/types@1/occurrence"
+      },
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "boolean-state"
+      },
+      "wit_event_kind": "occurrence"
+    },
+    {
+      "event": {
+        "contract": "litehouse:level-control@1.0.0",
+        "event": "state-observation"
+      },
+      "payload_type": {
+        "kind": "contract",
+        "type_ref": "litehouse:level-control/types@1/state"
+      },
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "level-control"
+      },
+      "wit_event_kind": "state-observation"
+    },
+    {
+      "event": {
+        "contract": "litehouse:color-control@1.0.0",
+        "event": "state-observation"
+      },
+      "payload_type": {
+        "kind": "contract",
+        "type_ref": "litehouse:color-control/types@1/state"
+      },
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "color-control"
+      },
+      "wit_event_kind": "state-observation"
+    },
+    {
+      "event": {
+        "contract": "litehouse:measurement@1.0.0",
+        "event": "observation"
+      },
+      "payload_type": {
+        "kind": "contract",
+        "type_ref": "litehouse:measurement/types@1/state"
+      },
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "wit_event_kind": "observation"
+    },
+    {
+      "event": {
+        "contract": "litehouse:thermostat@1.0.0",
+        "event": "state-observation"
+      },
+      "payload_type": {
+        "kind": "contract",
+        "type_ref": "litehouse:thermostat/types@1/state"
+      },
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "wit_event_kind": "state-observation"
+    },
+    {
+      "event": {
+        "contract": "litehouse:window-covering@1.0.0",
+        "event": "state-observation"
+      },
+      "payload_type": {
+        "kind": "contract",
+        "type_ref": "litehouse:window-covering/types@1/state"
+      },
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "wit_event_kind": "state-observation"
+    }
+  ],
+  "desired_patch_paths": [
+    {
+      "mutability": "required",
+      "operations": [
+        "test",
+        "add",
+        "replace"
+      ],
+      "path": "/on",
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "on-off"
+      },
+      "type_ref": {
+        "kind": "bool"
+      }
+    },
+    {
+      "mutability": "optional",
+      "operations": [
+        "test",
+        "add",
+        "replace",
+        "remove"
+      ],
+      "path": "/level",
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "level-control"
+      },
+      "type_ref": {
+        "kind": "contract",
+        "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+      }
+    },
+    {
+      "mutability": "optional",
+      "operations": [
+        "test",
+        "add",
+        "replace",
+        "remove"
+      ],
+      "path": "/color",
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "color-control"
+      },
+      "type_ref": {
+        "kind": "contract",
+        "type_ref": "litehouse:color-control/types@1/color-value"
+      }
+    },
+    {
+      "mutability": "required",
+      "operations": [
+        "test",
+        "add",
+        "replace"
+      ],
+      "path": "/thermostat/mode",
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "type_ref": {
+        "kind": "contract",
+        "type_ref": "litehouse:thermostat/types@1/mode"
+      }
+    },
+    {
+      "mutability": "optional",
+      "operations": [
+        "test",
+        "add",
+        "replace",
+        "remove"
+      ],
+      "path": "/thermostat/single_target",
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "type_ref": {
+        "kind": "contract",
+        "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+      }
+    },
+    {
+      "mutability": "optional",
+      "operations": [
+        "test",
+        "add",
+        "replace",
+        "remove"
+      ],
+      "path": "/thermostat/heat_target",
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "type_ref": {
+        "kind": "contract",
+        "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+      }
+    },
+    {
+      "mutability": "optional",
+      "operations": [
+        "test",
+        "add",
+        "replace",
+        "remove"
+      ],
+      "path": "/thermostat/cool_target",
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "type_ref": {
+        "kind": "contract",
+        "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+      }
+    },
+    {
+      "mutability": "optional",
+      "operations": [
+        "test",
+        "add",
+        "replace",
+        "remove"
+      ],
+      "path": "/thermostat/fan",
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "type_ref": {
+        "kind": "string"
+      }
+    },
+    {
+      "mutability": "optional",
+      "operations": [
+        "test",
+        "add",
+        "replace",
+        "remove"
+      ],
+      "path": "/thermostat/swing",
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "type_ref": {
+        "kind": "string"
+      }
+    },
+    {
+      "mutability": "optional",
+      "operations": [
+        "test",
+        "add",
+        "replace",
+        "remove"
+      ],
+      "path": "/thermostat/preset",
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "type_ref": {
+        "kind": "string"
+      }
+    },
+    {
+      "mutability": "optional",
+      "operations": [
+        "test",
+        "add",
+        "replace",
+        "remove"
+      ],
+      "path": "/covering/lift",
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "type_ref": {
+        "kind": "contract",
+        "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+      }
+    },
+    {
+      "mutability": "optional",
+      "operations": [
+        "test",
+        "add",
+        "replace",
+        "remove"
+      ],
+      "path": "/covering/tilt",
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "type_ref": {
+        "kind": "contract",
+        "type_ref": "litehouse:quantity/types@1/canonical-decimal"
+      }
+    }
+  ],
+  "entries": [
+    {
+      "class": "trigger",
+      "dynamic_ports": [],
       "kind": "state_observation",
       "ports": [
         {
-          "cardinality": "exactly-one",
+          "cardinality": "zero_or_one",
           "direction": "output",
           "name": "next",
-          "type_ref": "control"
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "context",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "trigger_context",
+              "trigger": "state_observation"
+            }
+          }
         }
       ],
+      "runtime_state": {
+        "fields": [
+          {
+            "maximum_items": 16,
+            "name": "queued_inputs",
+            "type_ref": {
+              "kind": "fixed",
+              "type_ref": {
+                "item": {
+                  "kind": "trigger_context",
+                  "trigger": "state_observation"
+                },
+                "kind": "list",
+                "max_items": 16
+              }
+            }
+          }
+        ],
+        "initial": "empty",
+        "max_encoded_bytes": 65536,
+        "restart": "discard",
+        "scope": "process_epoch_local"
+      },
       "version": 1
     },
     {
+      "class": "trigger",
+      "dynamic_ports": [],
+      "kind": "discrete_event",
+      "ports": [
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "next",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "context",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "trigger_context",
+              "trigger": "discrete_event"
+            }
+          }
+        }
+      ],
+      "runtime_state": {
+        "fields": [
+          {
+            "maximum_items": 1024,
+            "name": "recent_event_ids",
+            "type_ref": {
+              "kind": "fixed",
+              "type_ref": {
+                "item": {
+                  "kind": "string"
+                },
+                "kind": "list",
+                "max_items": 1024
+              }
+            }
+          },
+          {
+            "maximum_items": 16,
+            "name": "queued_inputs",
+            "type_ref": {
+              "kind": "fixed",
+              "type_ref": {
+                "item": {
+                  "kind": "trigger_context",
+                  "trigger": "discrete_event"
+                },
+                "kind": "list",
+                "max_items": 16
+              }
+            }
+          }
+        ],
+        "initial": "empty",
+        "max_encoded_bytes": 65536,
+        "restart": "discard",
+        "scope": "process_epoch_local"
+      },
+      "version": 1
+    },
+    {
+      "class": "trigger",
+      "dynamic_ports": [],
+      "kind": "time_schedule",
+      "ports": [
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "next",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "context",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "trigger_context",
+              "trigger": "time_schedule"
+            }
+          }
+        }
+      ],
+      "runtime_state": {
+        "fields": [
+          {
+            "maximum_items": null,
+            "name": "next_occurrence",
+            "type_ref": {
+              "kind": "fixed",
+              "type_ref": {
+                "kind": "timestamp"
+              }
+            }
+          },
+          {
+            "maximum_items": null,
+            "name": "occurrence_id",
+            "type_ref": {
+              "kind": "fixed",
+              "type_ref": {
+                "kind": "string"
+              }
+            }
+          }
+        ],
+        "initial": "empty",
+        "max_encoded_bytes": 1024,
+        "restart": "discard",
+        "scope": "process_epoch_local"
+      },
+      "version": 1
+    },
+    {
+      "class": "node",
+      "dynamic_ports": [],
       "kind": "snapshot",
       "ports": [
         {
-          "cardinality": "one-or-more",
+          "cardinality": "one_or_more",
           "direction": "input",
           "name": "in",
-          "type_ref": "control"
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
         },
         {
-          "cardinality": "exactly-one",
+          "cardinality": "zero_or_one",
           "direction": "output",
           "name": "next",
-          "type_ref": "control"
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
         },
         {
-          "cardinality": "exactly-one",
+          "cardinality": "zero_or_one",
           "direction": "output",
           "name": "value",
-          "type_ref": "$node.value_type"
+          "type_ref": {
+            "field_property": "field",
+            "kind": "state_field"
+          }
         }
       ],
+      "runtime_state": {
+        "fields": [],
+        "initial": "null",
+        "max_encoded_bytes": 0,
+        "restart": "none",
+        "scope": "stateless"
+      },
       "version": 1
     },
     {
-      "kind": "compare",
+      "class": "node",
+      "dynamic_ports": [
+        {
+          "cardinality": "exactly_one",
+          "direction": "input",
+          "kind": "condition_inputs",
+          "name_property": "name",
+          "source_property": "expression.inputs",
+          "type_property": "type_ref"
+        }
+      ],
+      "kind": "condition",
       "ports": [
         {
-          "cardinality": "one-or-more",
+          "cardinality": "one_or_more",
           "direction": "input",
           "name": "in",
-          "type_ref": "control"
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
         },
         {
-          "cardinality": "exactly-one",
-          "direction": "input",
-          "name": "left",
-          "type_ref": "$node.value_type"
-        },
-        {
-          "cardinality": "exactly-one",
+          "cardinality": "zero_or_one",
           "direction": "output",
           "name": "next",
-          "type_ref": "control"
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
         },
         {
-          "cardinality": "exactly-one",
+          "cardinality": "zero_or_one",
           "direction": "output",
           "name": "result",
-          "type_ref": "comparison-outcome"
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "predicate_outcome"
+            }
+          }
         }
       ],
+      "runtime_state": {
+        "fields": [],
+        "initial": "null",
+        "max_encoded_bytes": 0,
+        "restart": "none",
+        "scope": "stateless"
+      },
       "version": 1
     },
     {
+      "class": "node",
+      "dynamic_ports": [],
+      "kind": "quantity",
+      "ports": [
+        {
+          "cardinality": "one_or_more",
+          "direction": "input",
+          "name": "in",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "exactly_one",
+          "direction": "input",
+          "name": "value",
+          "type_ref": {
+            "kind": "quantity_input",
+            "optional": true,
+            "profile_property": "input_profile"
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "next",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "result",
+          "type_ref": {
+            "kind": "quantity_result",
+            "operation_property": "operation",
+            "profile_property": "input_profile"
+          }
+        }
+      ],
+      "runtime_state": {
+        "fields": [],
+        "initial": "null",
+        "max_encoded_bytes": 0,
+        "restart": "none",
+        "scope": "stateless"
+      },
+      "version": 1
+    },
+    {
+      "class": "node",
+      "dynamic_ports": [],
       "kind": "branch",
       "ports": [
         {
-          "cardinality": "one-or-more",
+          "cardinality": "one_or_more",
           "direction": "input",
           "name": "in",
-          "type_ref": "control"
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
         },
         {
-          "cardinality": "exactly-one",
+          "cardinality": "exactly_one",
           "direction": "input",
-          "name": "condition",
-          "type_ref": "comparison-outcome"
+          "name": "predicate",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "predicate_outcome"
+            }
+          }
         },
         {
-          "cardinality": "exactly-one",
+          "cardinality": "zero_or_one",
           "direction": "output",
           "name": "true",
-          "type_ref": "control"
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
         },
         {
-          "cardinality": "exactly-one",
+          "cardinality": "zero_or_one",
           "direction": "output",
           "name": "false",
-          "type_ref": "control"
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
         },
         {
-          "cardinality": "exactly-one",
+          "cardinality": "zero_or_one",
           "direction": "output",
           "name": "unknown",
-          "type_ref": "control"
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
         },
         {
-          "cardinality": "exactly-one",
+          "cardinality": "zero_or_one",
           "direction": "output",
           "name": "error",
-          "type_ref": "control"
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
         }
       ],
+      "runtime_state": {
+        "fields": [],
+        "initial": "null",
+        "max_encoded_bytes": 0,
+        "restart": "none",
+        "scope": "stateless"
+      },
       "version": 1
     },
     {
-      "kind": "on_off_set",
+      "class": "node",
+      "dynamic_ports": [],
+      "kind": "desired_patch",
       "ports": [
         {
-          "cardinality": "one-or-more",
+          "cardinality": "one_or_more",
           "direction": "input",
           "name": "in",
-          "type_ref": "control"
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
         },
         {
-          "cardinality": "exactly-one",
+          "cardinality": "zero_or_one",
           "direction": "output",
           "name": "next",
-          "type_ref": "control"
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "patch",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "desired_patch"
+            }
+          }
         }
       ],
+      "runtime_state": {
+        "fields": [],
+        "initial": "null",
+        "max_encoded_bytes": 0,
+        "restart": "none",
+        "scope": "stateless"
+      },
       "version": 1
     },
     {
+      "class": "node",
+      "dynamic_ports": [],
+      "kind": "effect_intent",
+      "ports": [
+        {
+          "cardinality": "one_or_more",
+          "direction": "input",
+          "name": "in",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "intent",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "effect_intent"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "receipt",
+          "type_ref": {
+            "kind": "capability_receipt",
+            "operation_property": "operation"
+          }
+        }
+      ],
+      "runtime_state": {
+        "fields": [
+          {
+            "maximum_items": null,
+            "name": "pending_intent_id",
+            "type_ref": {
+              "kind": "fixed",
+              "type_ref": {
+                "kind": "string"
+              }
+            }
+          },
+          {
+            "maximum_items": null,
+            "name": "continuation_node_id",
+            "type_ref": {
+              "kind": "fixed",
+              "type_ref": {
+                "kind": "string"
+              }
+            }
+          }
+        ],
+        "initial": "empty",
+        "max_encoded_bytes": 4096,
+        "restart": "discard",
+        "scope": "process_epoch_local"
+      },
+      "version": 1
+    },
+    {
+      "class": "node",
+      "dynamic_ports": [],
+      "kind": "delay",
+      "ports": [
+        {
+          "cardinality": "one_or_more",
+          "direction": "input",
+          "name": "in",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "next",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        }
+      ],
+      "runtime_state": {
+        "fields": [
+          {
+            "maximum_items": null,
+            "name": "scheduled_at",
+            "type_ref": {
+              "kind": "fixed",
+              "type_ref": {
+                "kind": "timestamp"
+              }
+            }
+          },
+          {
+            "maximum_items": null,
+            "name": "continuation_node_id",
+            "type_ref": {
+              "kind": "fixed",
+              "type_ref": {
+                "kind": "string"
+              }
+            }
+          }
+        ],
+        "initial": "empty",
+        "max_encoded_bytes": 2048,
+        "restart": "discard",
+        "scope": "process_epoch_local"
+      },
+      "version": 1
+    },
+    {
+      "class": "node",
+      "dynamic_ports": [],
+      "kind": "debounce_throttle",
+      "ports": [
+        {
+          "cardinality": "one_or_more",
+          "direction": "input",
+          "name": "in",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "admitted",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "dropped",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        }
+      ],
+      "runtime_state": {
+        "fields": [
+          {
+            "maximum_items": null,
+            "name": "window_ends_at",
+            "type_ref": {
+              "kind": "fixed",
+              "type_ref": {
+                "kind": "timestamp"
+              }
+            }
+          },
+          {
+            "maximum_items": null,
+            "name": "winning_input",
+            "type_ref": {
+              "kind": "trigger_context",
+              "optional": true,
+              "trigger_property": "trigger"
+            }
+          },
+          {
+            "maximum_items": null,
+            "name": "dropped_count",
+            "type_ref": {
+              "kind": "fixed",
+              "type_ref": {
+                "kind": "u64"
+              }
+            }
+          },
+          {
+            "maximum_items": null,
+            "name": "coalesced_count",
+            "type_ref": {
+              "kind": "fixed",
+              "type_ref": {
+                "kind": "u64"
+              }
+            }
+          }
+        ],
+        "initial": "empty",
+        "max_encoded_bytes": 65536,
+        "restart": "discard",
+        "scope": "process_epoch_local"
+      },
+      "version": 1
+    },
+    {
+      "class": "node",
+      "dynamic_ports": [
+        {
+          "fork_input": "in",
+          "fork_input_cardinality": "one_or_more",
+          "fork_input_direction": "input",
+          "fork_output_cardinality": "zero_or_one",
+          "fork_output_direction": "output",
+          "fork_output_prefix": "branch:",
+          "join_input_cardinality": "exactly_one",
+          "join_input_direction": "input",
+          "join_input_prefix": "arrival:",
+          "join_output": "next",
+          "join_output_cardinality": "zero_or_one",
+          "join_output_direction": "output",
+          "kind": "fork_join_phases",
+          "name_property": "id",
+          "phase_property": "phase.kind",
+          "source_property": "phase.branches",
+          "type_ref": {
+            "kind": "control"
+          }
+        }
+      ],
+      "kind": "fork_join",
+      "ports": [],
+      "runtime_state": {
+        "fields": [
+          {
+            "maximum_items": 4,
+            "name": "arrivals",
+            "type_ref": {
+              "kind": "fixed",
+              "type_ref": {
+                "item": {
+                  "kind": "fork_token"
+                },
+                "kind": "list",
+                "max_items": 4
+              }
+            }
+          }
+        ],
+        "initial": "empty",
+        "max_encoded_bytes": 4096,
+        "restart": "discard",
+        "scope": "process_epoch_local"
+      },
+      "version": 1
+    },
+    {
+      "class": "node",
+      "dynamic_ports": [],
+      "kind": "receipt_branch",
+      "ports": [
+        {
+          "cardinality": "exactly_one",
+          "direction": "input",
+          "name": "receipt",
+          "type_ref": {
+            "effect_node_property": "effect_node_id",
+            "kind": "referenced_effect_receipt"
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "accepted_for_delivery",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "protocol_or_target_acknowledged",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "completed",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "observed_completed",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "rejected",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "error",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "cancelled",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        },
+        {
+          "cardinality": "zero_or_one",
+          "direction": "output",
+          "name": "outcome_unknown",
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
+        }
+      ],
+      "runtime_state": {
+        "fields": [
+          {
+            "maximum_items": null,
+            "name": "pending_receipt",
+            "type_ref": {
+              "effect_node_property": "effect_node_id",
+              "kind": "referenced_effect_receipt"
+            }
+          }
+        ],
+        "initial": "empty",
+        "max_encoded_bytes": 4096,
+        "restart": "discard",
+        "scope": "process_epoch_local"
+      },
+      "version": 1
+    },
+    {
+      "class": "node",
+      "dynamic_ports": [],
       "kind": "end",
       "ports": [
         {
-          "cardinality": "one-or-more",
+          "cardinality": "one_or_more",
           "direction": "input",
           "name": "in",
-          "type_ref": "control"
+          "type_ref": {
+            "kind": "fixed",
+            "type_ref": {
+              "kind": "control"
+            }
+          }
         }
       ],
+      "runtime_state": {
+        "fields": [],
+        "initial": "null",
+        "max_encoded_bytes": 0,
+        "restart": "none",
+        "scope": "stateless"
+      },
       "version": 1
     }
   ],
-  "schema_version": "1.0.0"
+  "execution_state": {
+    "activation_binding_boundary": "provider_generations_facet_revisions_and_grant_revisions_are_resolved_activation_record_fields_not_authored_rule_json",
+    "effect_continuation_policy": "suspend_after_intent_and_resume_only_from_the_exact_typed_receipt",
+    "process_epoch_local": true,
+    "restart_discards": [
+      "runs",
+      "delays",
+      "debounce_throttle_windows",
+      "trigger_queues",
+      "pending_effects",
+      "receipt_continuations",
+      "timers",
+      "event_deduplication",
+      "cursors"
+    ],
+    "restart_rehydrates_dependencies_before_arming": true,
+    "retry_deadline_policy": "all_attempts_and_backoff_share_one_absolute_effect_deadline",
+    "schedule_restart_policy": "next_strictly_future_occurrence_without_catch_up"
+  },
+  "schema_version": "1.0.0",
+  "state_fields": [
+    {
+      "field": {
+        "kind": "on_off_current"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "on-off"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "bool"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "on-off",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "boolean_current"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "boolean-state"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "bool"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "boolean-state",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "level_current_level"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "level-control"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "contract",
+          "type_ref": "litehouse:quantity/types@1/quantity"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "level-control",
+        "state_field": "current-level",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "level_target_level"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "level-control"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "contract",
+          "type_ref": "litehouse:quantity/types@1/quantity"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "level-control",
+        "state_field": "target-level",
+        "state_record_path": "target"
+      }
+    },
+    {
+      "field": {
+        "kind": "level_transition_remaining"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "level-control"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "u64"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "level-control",
+        "state_field": "transition-remaining",
+        "state_record_path": "transition-remaining-milliseconds"
+      }
+    },
+    {
+      "field": {
+        "kind": "color_current_color"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "color-control"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "contract",
+          "type_ref": "litehouse:color-control/types@1/color-value"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "color-control",
+        "state_field": "current-color",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "color_target_color"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "color-control"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "contract",
+          "type_ref": "litehouse:color-control/types@1/color-value"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "color-control",
+        "state_field": "target-color",
+        "state_record_path": "target"
+      }
+    },
+    {
+      "field": {
+        "kind": "color_active_model"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "color-control"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "contract",
+          "type_ref": "litehouse:color-control/types@1/color-model"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "color-control",
+        "state_field": "active-model",
+        "state_record_path": "active-model"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_native_representation"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "contract",
+          "type_ref": "litehouse:quantity/types@1/native-representation"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "native-representation",
+        "state_record_path": "native"
+      }
+    },
+    {
+      "field": {
+        "kind": "thermostat_current_mode"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "contract",
+          "type_ref": "litehouse:thermostat/types@1/mode"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "thermostat",
+        "state_field": "current-mode",
+        "state_record_path": "current-mode"
+      }
+    },
+    {
+      "field": {
+        "kind": "thermostat_target_mode"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "contract",
+          "type_ref": "litehouse:thermostat/types@1/mode"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "thermostat",
+        "state_field": "target-mode",
+        "state_record_path": "target-mode"
+      }
+    },
+    {
+      "field": {
+        "kind": "thermostat_action"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "contract",
+          "type_ref": "litehouse:thermostat/types@1/action"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "thermostat",
+        "state_field": "action",
+        "state_record_path": "current-action"
+      }
+    },
+    {
+      "field": {
+        "kind": "thermostat_running"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "bool"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "thermostat",
+        "state_field": "running",
+        "state_record_path": "running"
+      }
+    },
+    {
+      "field": {
+        "kind": "thermostat_targets"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "contract",
+          "type_ref": "litehouse:thermostat/types@1/targets"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "thermostat",
+        "state_field": "targets",
+        "state_record_path": "targets"
+      }
+    },
+    {
+      "field": {
+        "kind": "thermostat_fan"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "string"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "thermostat",
+        "state_field": "fan",
+        "state_record_path": "fan"
+      }
+    },
+    {
+      "field": {
+        "kind": "thermostat_swing"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "string"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "thermostat",
+        "state_field": "swing",
+        "state_record_path": "swing"
+      }
+    },
+    {
+      "field": {
+        "kind": "thermostat_preset"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "string"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "thermostat",
+        "state_field": "preset",
+        "state_record_path": "preset"
+      }
+    },
+    {
+      "field": {
+        "axis": "lift",
+        "kind": "covering_current_position"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "contract",
+          "type_ref": "litehouse:quantity/types@1/quantity"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "window-covering",
+        "state_field": "current-position",
+        "state_record_path": "axes[lift].current"
+      }
+    },
+    {
+      "field": {
+        "axis": "tilt",
+        "kind": "covering_current_position"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "contract",
+          "type_ref": "litehouse:quantity/types@1/quantity"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "window-covering",
+        "state_field": "current-position",
+        "state_record_path": "axes[tilt].current"
+      }
+    },
+    {
+      "field": {
+        "axis": "lift",
+        "kind": "covering_target_position"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "contract",
+          "type_ref": "litehouse:quantity/types@1/quantity"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "window-covering",
+        "state_field": "target-position",
+        "state_record_path": "axes[lift].target"
+      }
+    },
+    {
+      "field": {
+        "axis": "tilt",
+        "kind": "covering_target_position"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "contract",
+          "type_ref": "litehouse:quantity/types@1/quantity"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "window-covering",
+        "state_field": "target-position",
+        "state_record_path": "axes[tilt].target"
+      }
+    },
+    {
+      "field": {
+        "axis": "lift",
+        "kind": "covering_movement"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "contract",
+          "type_ref": "litehouse:window-covering/types@1/movement"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "window-covering",
+        "state_field": "movement",
+        "state_record_path": "axes[lift].movement"
+      }
+    },
+    {
+      "field": {
+        "axis": "tilt",
+        "kind": "covering_movement"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "contract",
+          "type_ref": "litehouse:window-covering/types@1/movement"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "window-covering",
+        "state_field": "movement",
+        "state_record_path": "axes[tilt].movement"
+      }
+    },
+    {
+      "field": {
+        "kind": "covering_safety_status"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "string"
+        },
+        "kind": "list",
+        "max_items": 64
+      },
+      "wit_evidence": {
+        "package": "window-covering",
+        "state_field": "safety-status",
+        "state_record_path": "safety-status"
+      }
+    },
+    {
+      "field": {
+        "kind": "covering_fault_status"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "type_ref": {
+        "item": {
+          "kind": "string"
+        },
+        "kind": "list",
+        "max_items": 64
+      },
+      "wit_evidence": {
+        "package": "window-covering",
+        "state_field": "fault-status",
+        "state_record_path": "fault-status"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/temperature-absolute@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/temperature-absolute@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/temperature-difference@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/temperature-difference@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/relative-humidity@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/relative-humidity@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/ratio@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/ratio@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/wmo-weather-code@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/wmo-weather-code@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/pressure@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/pressure@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/illuminance@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/illuminance@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/power@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/power@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/energy@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/energy@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/voltage@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/voltage@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/electric-current@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/electric-current@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/frequency@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/frequency@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/battery-ratio@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/battery-ratio@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/signal-strength@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/signal-strength@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/carbon-dioxide@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/carbon-dioxide@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/carbon-monoxide@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/carbon-monoxide@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/volatile-organic-compounds@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/volatile-organic-compounds@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/particulate-matter-pm1@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/particulate-matter-pm1@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/particulate-matter-pm2-5@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/particulate-matter-pm2-5@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/particulate-matter-pm10@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/particulate-matter-pm10@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/distance@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/distance@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/speed@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/speed@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/volume@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/volume@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "kind": "measurement_current",
+        "profile": "litehouse:quantity/volumetric-flow@1"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "item": {
+          "catalog": "litehouse:quantity-catalog@1",
+          "kind": "quantity",
+          "profile": "litehouse:quantity/volumetric-flow@1"
+        },
+        "kind": "optional"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "current",
+        "state_record_path": "current"
+      }
+    },
+    {
+      "field": {
+        "contract": "on-off",
+        "kind": "observation_revision"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "on-off"
+      },
+      "type_ref": {
+        "kind": "u64"
+      },
+      "wit_evidence": {
+        "package": "on-off",
+        "state_field": "observation-meta.revision",
+        "state_record_path": "meta.revision"
+      }
+    },
+    {
+      "field": {
+        "contract": "boolean-state",
+        "kind": "observation_revision"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "boolean-state"
+      },
+      "type_ref": {
+        "kind": "u64"
+      },
+      "wit_evidence": {
+        "package": "boolean-state",
+        "state_field": "observation-meta.revision",
+        "state_record_path": "meta.revision"
+      }
+    },
+    {
+      "field": {
+        "contract": "level-control",
+        "kind": "observation_revision"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "level-control"
+      },
+      "type_ref": {
+        "kind": "u64"
+      },
+      "wit_evidence": {
+        "package": "level-control",
+        "state_field": "observation-meta.revision",
+        "state_record_path": "meta.revision"
+      }
+    },
+    {
+      "field": {
+        "contract": "color-control",
+        "kind": "observation_revision"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "color-control"
+      },
+      "type_ref": {
+        "kind": "u64"
+      },
+      "wit_evidence": {
+        "package": "color-control",
+        "state_field": "observation-meta.revision",
+        "state_record_path": "meta.revision"
+      }
+    },
+    {
+      "field": {
+        "contract": "measurement",
+        "kind": "observation_revision"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "measurement"
+      },
+      "type_ref": {
+        "kind": "u64"
+      },
+      "wit_evidence": {
+        "package": "measurement",
+        "state_field": "observation-meta.revision",
+        "state_record_path": "meta.revision"
+      }
+    },
+    {
+      "field": {
+        "contract": "thermostat",
+        "kind": "observation_revision"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "thermostat"
+      },
+      "type_ref": {
+        "kind": "u64"
+      },
+      "wit_evidence": {
+        "package": "thermostat",
+        "state_field": "observation-meta.revision",
+        "state_record_path": "meta.revision"
+      }
+    },
+    {
+      "field": {
+        "contract": "window-covering",
+        "kind": "observation_revision"
+      },
+      "observed_only": true,
+      "selector_contract": {
+        "interface": "capability",
+        "major": 1,
+        "namespace": "litehouse",
+        "package": "window-covering"
+      },
+      "type_ref": {
+        "kind": "u64"
+      },
+      "wit_evidence": {
+        "package": "window-covering",
+        "state_field": "observation-meta.revision",
+        "state_record_path": "meta.revision"
+      }
+    }
+  ]
 }

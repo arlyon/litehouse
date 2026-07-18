@@ -1,0 +1,1792 @@
+{
+  "editor": {
+    "groups": {},
+    "nodes": {
+      "trigger": {
+        "collapsed": false,
+        "group": null,
+        "presentation": "emphasized",
+        "x": -120,
+        "y": 40
+      }
+    },
+    "revision": 1,
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "zoom_milli": 1000
+    }
+  },
+  "revision": 1,
+  "rule_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "schema": {
+    "profile_sha256": "f4139ae1e4389838da0b2a05da50688d8600c3447b5e14ace6d0d07ed7e4307f",
+    "sha256": "3e911d83383ced436a24ad24dd5b044149625ffce9ffddff34196d688c41202d",
+    "url": "https://schemas.litehouse.dev/rule-ir/v1.0.0/schema.json",
+    "version": "1.0.0"
+  },
+  "semantic": {
+    "annotations": {
+      "litehouse:fixture": "generated"
+    },
+    "description": "Deterministically generated Rule JSON V1 fixture.",
+    "edges": [
+      {
+        "from": {
+          "node": "effect_00",
+          "port": "receipt"
+        },
+        "id": "e_00_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_00",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_01",
+          "port": "receipt"
+        },
+        "id": "e_01_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_01",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_02",
+          "port": "receipt"
+        },
+        "id": "e_02_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_02",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_03",
+          "port": "receipt"
+        },
+        "id": "e_03_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_03",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_04",
+          "port": "receipt"
+        },
+        "id": "e_04_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_04",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_05",
+          "port": "receipt"
+        },
+        "id": "e_05_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_05",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_06",
+          "port": "receipt"
+        },
+        "id": "e_06_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_06",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_07",
+          "port": "receipt"
+        },
+        "id": "e_07_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_07",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_08",
+          "port": "receipt"
+        },
+        "id": "e_08_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_08",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_09",
+          "port": "receipt"
+        },
+        "id": "e_09_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_09",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_10",
+          "port": "receipt"
+        },
+        "id": "e_10_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_10",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_11",
+          "port": "receipt"
+        },
+        "id": "e_11_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_11",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_12",
+          "port": "receipt"
+        },
+        "id": "e_12_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_12",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_13",
+          "port": "receipt"
+        },
+        "id": "e_13_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_13",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_14",
+          "port": "receipt"
+        },
+        "id": "e_14_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_14",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_15",
+          "port": "receipt"
+        },
+        "id": "e_15_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_15",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_16",
+          "port": "receipt"
+        },
+        "id": "e_16_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_16",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_17",
+          "port": "receipt"
+        },
+        "id": "e_17_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_17",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_18",
+          "port": "receipt"
+        },
+        "id": "e_18_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_18",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_19",
+          "port": "receipt"
+        },
+        "id": "e_19_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_19",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_20",
+          "port": "receipt"
+        },
+        "id": "e_20_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_20",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_21",
+          "port": "receipt"
+        },
+        "id": "e_21_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_21",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_22",
+          "port": "receipt"
+        },
+        "id": "e_22_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_22",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_23",
+          "port": "receipt"
+        },
+        "id": "e_23_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_23",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_24",
+          "port": "receipt"
+        },
+        "id": "e_24_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_24",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_25",
+          "port": "receipt"
+        },
+        "id": "e_25_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_25",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_26",
+          "port": "receipt"
+        },
+        "id": "e_26_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_26",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_27",
+          "port": "receipt"
+        },
+        "id": "e_27_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_27",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "effect_28",
+          "port": "receipt"
+        },
+        "id": "e_28_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt_28",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "trigger",
+          "port": "next"
+        },
+        "id": "e_trigger_effect",
+        "order": 0,
+        "to": {
+          "node": "effect_00",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_00",
+          "port": "accepted_for_delivery"
+        },
+        "id": "e_00_01_route",
+        "order": 0,
+        "to": {
+          "node": "effect_01",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_00",
+          "port": "protocol_or_target_acknowledged"
+        },
+        "id": "e_00_02_route",
+        "order": 0,
+        "to": {
+          "node": "effect_02",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_00",
+          "port": "completed"
+        },
+        "id": "e_00_03_route",
+        "order": 0,
+        "to": {
+          "node": "effect_03",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_00",
+          "port": "observed_completed"
+        },
+        "id": "e_00_04_route",
+        "order": 0,
+        "to": {
+          "node": "effect_04",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_00",
+          "port": "rejected"
+        },
+        "id": "e_00_05_route",
+        "order": 0,
+        "to": {
+          "node": "effect_05",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_00",
+          "port": "error"
+        },
+        "id": "e_00_06_route",
+        "order": 0,
+        "to": {
+          "node": "effect_06",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_00",
+          "port": "cancelled"
+        },
+        "id": "e_00_07_route",
+        "order": 0,
+        "to": {
+          "node": "effect_07",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_00",
+          "port": "outcome_unknown"
+        },
+        "id": "e_00_08_route",
+        "order": 0,
+        "to": {
+          "node": "effect_08",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_01",
+          "port": "accepted_for_delivery"
+        },
+        "id": "e_01_09_route",
+        "order": 0,
+        "to": {
+          "node": "effect_09",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_01",
+          "port": "protocol_or_target_acknowledged"
+        },
+        "id": "e_01_10_route",
+        "order": 0,
+        "to": {
+          "node": "effect_10",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_01",
+          "port": "completed"
+        },
+        "id": "e_01_11_route",
+        "order": 0,
+        "to": {
+          "node": "effect_11",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_01",
+          "port": "observed_completed"
+        },
+        "id": "e_01_12_route",
+        "order": 0,
+        "to": {
+          "node": "effect_12",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_01",
+          "port": "rejected"
+        },
+        "id": "e_01_13_route",
+        "order": 0,
+        "to": {
+          "node": "effect_13",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_01",
+          "port": "error"
+        },
+        "id": "e_01_14_route",
+        "order": 0,
+        "to": {
+          "node": "effect_14",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_01",
+          "port": "cancelled"
+        },
+        "id": "e_01_15_route",
+        "order": 0,
+        "to": {
+          "node": "effect_15",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_01",
+          "port": "outcome_unknown"
+        },
+        "id": "e_01_16_route",
+        "order": 0,
+        "to": {
+          "node": "effect_16",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_02",
+          "port": "accepted_for_delivery"
+        },
+        "id": "e_02_17_route",
+        "order": 0,
+        "to": {
+          "node": "effect_17",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_02",
+          "port": "protocol_or_target_acknowledged"
+        },
+        "id": "e_02_18_route",
+        "order": 0,
+        "to": {
+          "node": "effect_18",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_02",
+          "port": "completed"
+        },
+        "id": "e_02_19_route",
+        "order": 0,
+        "to": {
+          "node": "effect_19",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_02",
+          "port": "observed_completed"
+        },
+        "id": "e_02_20_route",
+        "order": 0,
+        "to": {
+          "node": "effect_20",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_02",
+          "port": "rejected"
+        },
+        "id": "e_02_21_route",
+        "order": 0,
+        "to": {
+          "node": "effect_21",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_02",
+          "port": "error"
+        },
+        "id": "e_02_22_route",
+        "order": 0,
+        "to": {
+          "node": "effect_22",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_02",
+          "port": "cancelled"
+        },
+        "id": "e_02_23_route",
+        "order": 0,
+        "to": {
+          "node": "effect_23",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_02",
+          "port": "outcome_unknown"
+        },
+        "id": "e_02_24_route",
+        "order": 0,
+        "to": {
+          "node": "effect_24",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_03",
+          "port": "accepted_for_delivery"
+        },
+        "id": "e_03_25_route",
+        "order": 0,
+        "to": {
+          "node": "effect_25",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_03",
+          "port": "protocol_or_target_acknowledged"
+        },
+        "id": "e_03_26_route",
+        "order": 0,
+        "to": {
+          "node": "effect_26",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_03",
+          "port": "completed"
+        },
+        "id": "e_03_27_route",
+        "order": 0,
+        "to": {
+          "node": "effect_27",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_03",
+          "port": "observed_completed"
+        },
+        "id": "e_03_28_route",
+        "order": 0,
+        "to": {
+          "node": "effect_28",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt_04",
+          "port": "accepted_for_delivery"
+        },
+        "id": "e_receipt_end",
+        "order": 0,
+        "to": {
+          "node": "end",
+          "port": "in"
+        }
+      }
+    ],
+    "limits": {
+      "max_cel_eval_ms": 10,
+      "max_cel_memory_bytes": 1048576,
+      "max_cel_steps": 10000,
+      "max_condition_nodes": 32,
+      "max_depth": 32,
+      "max_edges": 256,
+      "max_effect_intents": 1,
+      "max_nodes": 128,
+      "max_parallel_branches": 4,
+      "max_patch_operations": 128,
+      "max_plan_input_bytes": 65536,
+      "max_queued_triggers": 16,
+      "max_timers": 32,
+      "max_trace_bytes": 32768
+    },
+    "locks": {
+      "cel": {
+        "id": "litehouse-cel@1",
+        "sha256": "872b983fde72f8577f35442f4df2c0323d6526e94714fedb19d6184391d5c61c"
+      },
+      "compiler": {
+        "id": "litehouse:rule-compiler@1",
+        "sha256": "f8468b18d42820126fe76b43ff168f5b0f66c8df7e5b95e1b0c888e2a9afb1e2"
+      },
+      "contract_catalog": {
+        "id": "litehouse:contract-catalog@1",
+        "sha256": "83dba0a132708b7c30ccf5db5f82fc4389a89985e432e711669b3a3bc565c983"
+      },
+      "management_operations": {
+        "id": "litehouse:management-operations@1",
+        "sha256": "dde0e6e363f894f6f967d18328ff501c09e728786915cb78b4feb01e035eb7c4"
+      },
+      "port_catalog": {
+        "id": "https://schemas.litehouse.dev/rule-ir/v1.0.0/node-port-catalog.json",
+        "sha256": "9c4350a65bf297aebd3e923c4046f7b4ef6632cfffae28a408a582099343f769"
+      },
+      "quantity_catalog": {
+        "id": "litehouse:quantity-catalog@1",
+        "sha256": "a627de236ab267644a3d78a41abec8e6583bc9d5d9518e4c2ea5e407c884a62a"
+      },
+      "runtime_profile": {
+        "id": "litehouse:rule-runtime@1",
+        "sha256": "f527cf2473f1070fd5ed94ea4a7c67b9539a44aea13cc64a4d160e26bf35a5a3"
+      },
+      "timezone_database": {
+        "id": "jiff-tzdb@0.1.8+2026c",
+        "sha256": "1fa05209f7938ef05d72f80d2441e1ae586364bf0bbfb4f85d959b360eb41f85"
+      }
+    },
+    "name": "All 29 exact capability operation shapes and typed receipt continuations",
+    "nodes": [
+      {
+        "deadline_ms": 30000,
+        "id": "effect_00",
+        "kind": "effect_intent",
+        "operation": {
+          "on": true,
+          "operation": "capability.on-off.set@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "on-off"
+          },
+          "facet_key": "facet_00",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_00",
+        "id": "receipt_00",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_01",
+        "kind": "effect_intent",
+        "operation": {
+          "operation": "capability.on-off.toggle@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "on-off"
+          },
+          "facet_key": "facet_01",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_01",
+        "id": "receipt_01",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_02",
+        "kind": "effect_intent",
+        "operation": {
+          "level": "0.5",
+          "operation": "capability.level.set@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "level-control"
+          },
+          "facet_key": "facet_02",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_02",
+        "id": "receipt_02",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_03",
+        "kind": "effect_intent",
+        "operation": {
+          "operation": "capability.level.step@1",
+          "step": "0.5"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "level-control"
+          },
+          "facet_key": "facet_03",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_03",
+        "id": "receipt_03",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_04",
+        "kind": "effect_intent",
+        "operation": {
+          "direction": "up",
+          "operation": "capability.level.move@1",
+          "rate_per_second": "0.5"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "level-control"
+          },
+          "facet_key": "facet_04",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_04",
+        "id": "receipt_04",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_05",
+        "kind": "effect_intent",
+        "operation": {
+          "operation": "capability.level.stop@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "level-control"
+          },
+          "facet_key": "facet_05",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_05",
+        "id": "receipt_05",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_06",
+        "kind": "effect_intent",
+        "operation": {
+          "duration_ms": 1000,
+          "level": "0.5",
+          "operation": "capability.level.transition@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "level-control"
+          },
+          "facet_key": "facet_06",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_06",
+        "id": "receipt_06",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_07",
+        "kind": "effect_intent",
+        "operation": {
+          "level": "0.5",
+          "on_when_nonzero": true,
+          "operation": "capability.level.set-coupled@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "level-control"
+          },
+          "facet_key": "facet_07",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_07",
+        "id": "receipt_07",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_08",
+        "kind": "effect_intent",
+        "operation": {
+          "on_when_nonzero": true,
+          "operation": "capability.level.step-coupled@1",
+          "step": "0.5"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "level-control"
+          },
+          "facet_key": "facet_08",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_08",
+        "id": "receipt_08",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_09",
+        "kind": "effect_intent",
+        "operation": {
+          "direction": "down",
+          "on_when_nonzero": false,
+          "operation": "capability.level.move-coupled@1",
+          "rate_per_second": "0.5"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "level-control"
+          },
+          "facet_key": "facet_09",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_09",
+        "id": "receipt_09",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_10",
+        "kind": "effect_intent",
+        "operation": {
+          "duration_ms": 2000,
+          "level": "0.5",
+          "on_when_nonzero": true,
+          "operation": "capability.level.transition-coupled@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "level-control"
+          },
+          "facet_key": "facet_10",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_10",
+        "id": "receipt_10",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_11",
+        "kind": "effect_intent",
+        "operation": {
+          "color": {
+            "blue": "0.3",
+            "color_space": "srgb",
+            "green": "0.2",
+            "model": "calibrated-rgb",
+            "red": "0.1"
+          },
+          "operation": "capability.color.set@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "color-control"
+          },
+          "facet_key": "facet_11",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_11",
+        "id": "receipt_11",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_12",
+        "kind": "effect_intent",
+        "operation": {
+          "color": {
+            "blue": "0.3",
+            "color_space": "srgb",
+            "green": "0.2",
+            "model": "calibrated-rgb",
+            "red": "0.1"
+          },
+          "direction": "increase",
+          "operation": "capability.color.step@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "color-control"
+          },
+          "facet_key": "facet_12",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_12",
+        "id": "receipt_12",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_13",
+        "kind": "effect_intent",
+        "operation": {
+          "color": {
+            "blue": "0.3",
+            "color_space": "srgb",
+            "green": "0.2",
+            "model": "calibrated-rgb",
+            "red": "0.1"
+          },
+          "direction": "decrease",
+          "operation": "capability.color.move@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "color-control"
+          },
+          "facet_key": "facet_13",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_13",
+        "id": "receipt_13",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_14",
+        "kind": "effect_intent",
+        "operation": {
+          "operation": "capability.color.stop@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "color-control"
+          },
+          "facet_key": "facet_14",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_14",
+        "id": "receipt_14",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_15",
+        "kind": "effect_intent",
+        "operation": {
+          "color": {
+            "blue": "0.3",
+            "color_space": "srgb",
+            "green": "0.2",
+            "model": "calibrated-rgb",
+            "red": "0.1"
+          },
+          "duration_ms": 1500,
+          "operation": "capability.color.transition@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "color-control"
+          },
+          "facet_key": "facet_15",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_15",
+        "id": "receipt_15",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_16",
+        "kind": "effect_intent",
+        "operation": {
+          "mode": "heat",
+          "operation": "capability.thermostat.set-mode@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "thermostat"
+          },
+          "facet_key": "facet_16",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_16",
+        "id": "receipt_16",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_17",
+        "kind": "effect_intent",
+        "operation": {
+          "operation": "capability.thermostat.set-single-target@1",
+          "target_celsius": "21.5"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "thermostat"
+          },
+          "facet_key": "facet_17",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_17",
+        "id": "receipt_17",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_18",
+        "kind": "effect_intent",
+        "operation": {
+          "cool_target_celsius": "24",
+          "heat_target_celsius": "20",
+          "operation": "capability.thermostat.set-dual-target@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "thermostat"
+          },
+          "facet_key": "facet_18",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_18",
+        "id": "receipt_18",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_19",
+        "kind": "effect_intent",
+        "operation": {
+          "fan_choice": "auto",
+          "operation": "capability.thermostat.set-fan@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "thermostat"
+          },
+          "facet_key": "facet_19",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_19",
+        "id": "receipt_19",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_20",
+        "kind": "effect_intent",
+        "operation": {
+          "operation": "capability.thermostat.set-swing@1",
+          "swing_choice": "vertical"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "thermostat"
+          },
+          "facet_key": "facet_20",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_20",
+        "id": "receipt_20",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_21",
+        "kind": "effect_intent",
+        "operation": {
+          "operation": "capability.thermostat.set-preset@1",
+          "preset_choice": "home"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "thermostat"
+          },
+          "facet_key": "facet_21",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_21",
+        "id": "receipt_21",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_22",
+        "kind": "effect_intent",
+        "operation": {
+          "axis": "lift",
+          "operation": "capability.covering.open@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "window-covering"
+          },
+          "facet_key": "facet_22",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_22",
+        "id": "receipt_22",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_23",
+        "kind": "effect_intent",
+        "operation": {
+          "axis": "tilt",
+          "operation": "capability.covering.close@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "window-covering"
+          },
+          "facet_key": "facet_23",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_23",
+        "id": "receipt_23",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_24",
+        "kind": "effect_intent",
+        "operation": {
+          "axis": "lift",
+          "operation": "capability.covering.stop@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "window-covering"
+          },
+          "facet_key": "facet_24",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_24",
+        "id": "receipt_24",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_25",
+        "kind": "effect_intent",
+        "operation": {
+          "operation": "capability.covering.set-lift@1",
+          "position": "0.5"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "window-covering"
+          },
+          "facet_key": "facet_25",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_25",
+        "id": "receipt_25",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_26",
+        "kind": "effect_intent",
+        "operation": {
+          "operation": "capability.covering.set-tilt@1",
+          "position": "0.5"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "window-covering"
+          },
+          "facet_key": "facet_26",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_26",
+        "id": "receipt_26",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_27",
+        "kind": "effect_intent",
+        "operation": {
+          "operation": "capability.momentary.invoke@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "momentary-action"
+          },
+          "facet_key": "facet_27",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_27",
+        "id": "receipt_27",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "effect_28",
+        "kind": "effect_intent",
+        "operation": {
+          "expires_in_ms": 60000,
+          "notification_template_id": "arrival",
+          "operation": "capability.notification.send@1",
+          "priority": "high"
+        },
+        "required_receipt": "notification_advertised_maximum",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "notification-sink"
+          },
+          "facet_key": "facet_28",
+          "provider_instance_id": "44444444444444444444444444444444",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "effect_28",
+        "id": "receipt_28",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "id": "end",
+        "kind": "end",
+        "outcome": "success",
+        "version": 1
+      }
+    ],
+    "policies": {
+      "activation": "explicit",
+      "dependency_hydration": "wait_until_hydrated_or_unavailable",
+      "trigger_queue": "coalesce"
+    },
+    "trigger": {
+      "deduplication": "process_epoch_at_least_once",
+      "event": {
+        "contract": "litehouse:boolean-state@1.0.0",
+        "event": "occurrence"
+      },
+      "id": "trigger",
+      "kind": "discrete_event",
+      "selector": {
+        "cardinality": "one",
+        "contract": {
+          "interface": "capability",
+          "major": 1,
+          "namespace": "litehouse",
+          "package": "boolean-state"
+        },
+        "facet_key": "occupancy",
+        "provider_instance_id": "33333333333333333333333333333333",
+        "rebind": "same_identity"
+      },
+      "version": 1
+    }
+  }
+}

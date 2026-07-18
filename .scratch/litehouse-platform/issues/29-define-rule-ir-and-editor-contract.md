@@ -30,6 +30,40 @@ plugin parity?
 > effect. Persisted authority is limited to authored rules, immutable revisions,
 > active/predecessor pointers, grants, and enabled state.
 
+### T8.1a completion evidence (2026-07-18)
+
+The unreleased V1 model is replaced in place by a closed typed Rust model,
+generated Draft 2020-12 schema, 14-entry trigger/node port catalog, exact
+29-operation argument inventory, WIT-faithful event/state mappings, closed
+desired paths, restart-clean state declarations, and deterministic coherent
+fixtures. Published kinds are exactly the three triggers and eleven post-trigger
+families decided below; retired T7 node spellings are invalid.
+
+Effect receipt outputs and receipt-branch inputs now resolve to the same exact
+closed `receipt<CapabilityOperationKind>` and optional unconnected outcomes halt.
+The compatibility planner emits an absolute On/Off intent and returns
+`AwaitingReceipt`; it never reaches success before a typed receipt. Operation
+selectors are checked before private lowering, so other valid operations return
+a precise planner-subset diagnostic. Desired target/path/value compatibility,
+fail-closed retry eligibility, one-deadline retry bounds, trigger-parameterized
+admission state, and narrow schema/model bounds are mandatory semantic checks.
+
+Authored semantic identity pins compiler, CEL, quantity, runtime, timezone,
+contract/WIT, management-operation, and port-catalog artifacts with single-valued IDs. Concrete
+provider generations, facet/grant revisions, and resolved handles remain later
+activation-record fields rather than fabricated authored JSON.
+
+T8.1a deliberately does not claim duplicate-key rejection, RFC 8785 digest or the
+exact 64-KiB canonical-semantic check, full CEL/Jiff/quantity compilation, full
+receipt/timer execution, or persisted activation binding revisions. Those remain
+T8.1b (#64), T8.1c, and T8.2 as applicable. Generator parity, bounded-memory
+native tests, formatting, management-contract tests, diagnostics, and source-only
+T0 checks provide the local completion seam; `litehouse:provider@1.0.0` remains
+byte-identical. The final `wasm32-wasip2` and Clippy reruns are environment-blocked
+because the synchronized local toolchain lacks those optional components; the
+immediately preceding repair passed both checks before the final fixture/catalog
+hardening.
+
 ### T8.0 implementation locks
 
 - Use Fjall `3.1.7` `SingleWriterTxDatabase` in a fresh Fjall V3 directory. Every

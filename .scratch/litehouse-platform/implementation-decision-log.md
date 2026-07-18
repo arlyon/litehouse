@@ -637,3 +637,28 @@ configuration.
   unsupported diagnostics, disconnect gaps, topology reincarnation, and the
   existing switch set/observe/restore regression. The expanded component passes
   Clippy, Component Model validation, and provider runtime-profile admission.
+
+### R-016 — Complete unreleased Rule JSON V1 before executor work
+
+- **Resolution:** replace the T7 wire subset in place with the exact three
+  triggers and eleven post-trigger V1 families. Rust owns closed typed selectors,
+  WIT events/state fields, values, schedules, effects, desired paths, exact
+  operation-parameterized receipts, editor data, policies, contract/WIT and other artifact locks,
+  limits, and all 29 capability operations. Effect planning suspends before a
+  typed receipt; desired path/value/target and retry/deduplication/deadline rules
+  fail closed before compatibility lowering. The T7 planner survives only for
+  supported comparisons and literal absolute On/Off set intents; other valid
+  families return precise subset diagnostics until T8.1b/c. Concrete provider
+  generations and facet/grant revisions remain activation-record data, not
+  authored JSON.
+- **Evidence:** the generator byte-checks the Draft 2020-12 schema, 14 catalog
+  entries, all manifest argument schemas and WIT service projections, exact
+  event/state/desired mappings, process-epoch state, and coherent minimal,
+  maximal, family, operation, schedule, and invalid fixtures. Targeted tests
+  cover receipt wiring, selector/contract ordering, all three retained trigger
+  contexts, fail-closed retry, and narrow model bounds. Duplicate-key/JCS digest
+  and the exact 64-KiB canonical bound remain explicitly deferred to T8.1b #64;
+  executor receipts/timers and persisted activation revisions remain T8.1c/T8.2.
+  Native checks pass without changing provider WIT. The immediately preceding
+  repair passed `wasm32-wasip2`; the final local rerun is blocked because the
+  synchronized toolchain no longer has that optional target component installed.

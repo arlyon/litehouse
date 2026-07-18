@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.litehouse.dev/rule-ir/v1.0.0/evaluation-artifacts-v1.json",
+  "version": 1,
+  "rule_schema": {
+    "id": "https://schemas.litehouse.dev/rule-ir/v1.0.0/schema.json",
+    "sha256": "3e911d83383ced436a24ad24dd5b044149625ffce9ffddff34196d688c41202d",
+    "source": "generated_rule_schema"
+  },
+  "entries": [
+    {
+      "id": "litehouse-cel@1",
+      "sha256": "872b983fde72f8577f35442f4df2c0323d6526e94714fedb19d6184391d5c61c",
+      "source": "explicit_versioned_profile"
+    },
+    {
+      "id": "litehouse:contract-catalog@1",
+      "sha256": "83dba0a132708b7c30ccf5db5f82fc4389a89985e432e711669b3a3bc565c983",
+      "source": "litehouse_contracts_generated_abi_manifest"
+    },
+    {
+      "id": "litehouse:management-operations@1",
+      "sha256": "dde0e6e363f894f6f967d18328ff501c09e728786915cb78b4feb01e035eb7c4",
+      "source": "management_operations_v1_json"
+    },
+    {
+      "id": "litehouse:rule-compiler@1",
+      "sha256": "f8468b18d42820126fe76b43ff168f5b0f66c8df7e5b95e1b0c888e2a9afb1e2",
+      "source": "explicit_versioned_profile"
+    },
+    {
+      "id": "litehouse:quantity-catalog@1",
+      "sha256": "a627de236ab267644a3d78a41abec8e6583bc9d5d9518e4c2ea5e407c884a62a",
+      "source": "quantity_profiles_v1_json"
+    },
+    {
+      "id": "litehouse:rule-runtime@1",
+      "sha256": "f527cf2473f1070fd5ed94ea4a7c67b9539a44aea13cc64a4d160e26bf35a5a3",
+      "source": "runtime_profile_v1_json"
+    },
+    {
+      "id": "https://schemas.litehouse.dev/rule-ir/v1.0.0/node-port-catalog.json",
+      "sha256": "9c4350a65bf297aebd3e923c4046f7b4ef6632cfffae28a408a582099343f769",
+      "source": "generated_node_port_catalog"
+    },
+    {
+      "id": "jiff-tzdb@0.1.8+2026c",
+      "sha256": "1fa05209f7938ef05d72f80d2441e1ae586364bf0bbfb4f85d959b360eb41f85",
+      "source": "explicit_versioned_profile"
+    }
+  ]
+}

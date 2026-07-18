@@ -1,0 +1,935 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/valid-minimal.json",
+      "schema_valid": true,
+      "semantic_valid": true,
+      "sha256": "8ffb56d696ef11bcb1613de736fa79784c65b6aac3cd7fb161eccf0de82aaba2"
+    },
+    {
+      "path": "fixtures/valid-planner-compat.json",
+      "schema_valid": true,
+      "semantic_valid": true,
+      "sha256": "6576376b4f30254c7b3df70f13ab611b2aaffb9ca081ca4ea3a2b288a61bf6da"
+    },
+    {
+      "path": "fixtures/valid-all-operations.json",
+      "schema_valid": true,
+      "semantic_valid": true,
+      "sha256": "8df52d74d75842a5ec347573c498f383d89dd2349f96e5e72234dfe6a13f0240"
+    },
+    {
+      "path": "fixtures/valid-all-node-families.json",
+      "schema_valid": true,
+      "semantic_valid": true,
+      "sha256": "feb741b32000cb0cda718c2361fe4f41bc9f0920c47f4af6a091d36704169df3"
+    },
+    {
+      "path": "fixtures/valid-all-desired-paths.json",
+      "schema_valid": true,
+      "semantic_valid": true,
+      "sha256": "e9a24b859dfafb4ec884f80c24e68b08c7152eacdae7d1caa6aeedf6a083693d"
+    },
+    {
+      "path": "fixtures/valid-time-one-shot.json",
+      "schema_valid": true,
+      "semantic_valid": true,
+      "sha256": "aed0f41b4fac5de8a9fa24cbe6677055038ae732fa11a66f161f213a27f11924"
+    },
+    {
+      "path": "fixtures/valid-time-fixed-interval.json",
+      "schema_valid": true,
+      "semantic_valid": true,
+      "sha256": "2ff828ce889e6fe20615aadcab36e3812fc1e99a148d597bca36a1bfd5c41261"
+    },
+    {
+      "path": "fixtures/valid-time-weekly.json",
+      "schema_valid": true,
+      "semantic_valid": true,
+      "sha256": "9ef6b19dc5cada781637139c2d182f4b40b3b0af0c8827b1d1af39ced3929b17"
+    },
+    {
+      "path": "fixtures/valid-maximal.json",
+      "schema_valid": true,
+      "semantic_valid": true,
+      "sha256": "464bde3864e9c17e41bc37b75c5f5b1439519da25efa3a8952d7ce218775a912"
+    },
+    {
+      "path": "fixtures/invalid-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "e3ecddd329c8e7943e007ad8a45b25252d030f4a4c219a255cae5d7c6f55b337"
+    },
+    {
+      "path": "fixtures/invalid-bound.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "e8e96958f1e91cad35b41331b3d756a60e5dc254d73c3755bd5b87aa9e8b2c18"
+    },
+    {
+      "path": "fixtures/invalid-legacy-compare.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "2305b7a2e65c288e79c3027d08283ad38c228de55c40e6b079a2f5465167e877"
+    },
+    {
+      "path": "fixtures/invalid-legacy-on-off-set.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "c16bd219bf89afc33d36e7699532d9277f9d8cc64278e0951926af3bb8051219"
+    },
+    {
+      "path": "fixtures/invalid/trigger-state-observation-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "a185747a6993cb82c16fccdbf400138fe45ff026b8d025c4a43053e80d20d56c"
+    },
+    {
+      "path": "fixtures/invalid/trigger-discrete-event-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "61fa3aaf63651c4f767637a3e07ec0d3b69fabfccec7afcb5135bfffa97a80a3"
+    },
+    {
+      "path": "fixtures/invalid/trigger-time-schedule-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "1536ecf25eda8a9c76e97583226f5f7bcde3309bc5ded2e009126a5d1e4352a7"
+    },
+    {
+      "path": "fixtures/invalid/node-snapshot-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "71b574a944b01e754f131b26d44d1db7ac7e09110bb6d27253f748da9fb93901"
+    },
+    {
+      "path": "fixtures/invalid/node-condition-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "fbda99509625ddc55816025913aaaadde3b2488127b7ce44ee7f0174fb3f88ad"
+    },
+    {
+      "path": "fixtures/invalid/node-quantity-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "7a90771a01074b1b0c04adb5ed2dac7786cd7cbf7dc57d65d45111aad9998a3a"
+    },
+    {
+      "path": "fixtures/invalid/node-branch-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "f42314ba869f57a76cc020daf9829c5707e0774899ac3b7a405e3eb034c241b3"
+    },
+    {
+      "path": "fixtures/invalid/node-desired-patch-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "bf728a1741c7dfab7760e5b31aa333cc6984b9f048eb8f57c6d2e8cfbb51d273"
+    },
+    {
+      "path": "fixtures/invalid/node-effect-intent-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "aae29be362c2c18f5c151906a9e355fceb94772fa007c0b0923d50b65273c231"
+    },
+    {
+      "path": "fixtures/invalid/node-delay-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "d073b366792a75783c79ce6f15dbc19af50e7d9dc996ac7ce9204bb948a5d397"
+    },
+    {
+      "path": "fixtures/invalid/node-debounce-throttle-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "08bfe7647ed34bdbe669c809e9be94567492ea348dd61fb4b7067f126d376c1a"
+    },
+    {
+      "path": "fixtures/invalid/node-fork-join-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "7b1525650df94520b3d8e23afd7ef1250f7066554aeeac1d495fdccf7cac6685"
+    },
+    {
+      "path": "fixtures/invalid/node-receipt-branch-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "8cf7eb273229df53b3b74dd4634fe85b574bc8ff2e193aa60cf3f5d481e5377c"
+    },
+    {
+      "path": "fixtures/invalid/node-end-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "e991006e6122727a673e10f5953c0ae449a1cc3b98b0b7943fa12a028267e8ed"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-on-off-set-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "b00d768a45c8e947e918883ad063c4f8f6a4d559d4380282176536b00eb6342d"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-on-off-toggle-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "da3d9bf45cdb37685bb9ca09800d56cb6e5e6a2f9cfb4da598f75e8aa983700a"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-level-set-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "27ed23fb301e48cf623ff0ba01fb74a739f178647b2e36062eb6c690e296b912"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-level-step-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "5babbd7a79d52228951b332fa2f2c61d7260b777c7337fd03614f74b740c647c"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-level-move-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "cc3e50ecd67e70f67d9bef25fa989a61cf082ecc7a98b7ccb4d20b6fa0e269bc"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-level-stop-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "3d0589d7f60014151f9467084ece5d1fb99eae0ef7d877bdd693b8ce5348fe41"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-level-transition-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "5a17e2549a0736cac50f45576cc2c76797fe2a9f78fe2165082bfcf7fcf56da6"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-level-set-coupled-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "7b3c54cf4266b52a5accbdaba6bed5fbe475345ef22b0b87446832de43da3d6c"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-level-step-coupled-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "6339ac85cfc18d0074543ad2c97faa3c7d25be121f7963eeb17777b2ec88095d"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-level-move-coupled-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "225c3c56927d60c356542cc51f663685ce960b83095c030dea66020e72f46ee6"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-level-transition-coupled-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "d2bdd9c3c747682f248035d9650c16fa31fb862340dd60b89d81dc582f522b81"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-color-set-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "8f57f9e87683c6937ce8aafb789d27da91f45ac01100e25d966f53801db02212"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-color-step-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "8de49cf0b9c754ef91c6ab1666d824901f548749f4b2722813e193e576505232"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-color-move-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "243d58a0426625e7cb57d1a3a075e7a0757b594202ccd1c61264d1ea0e0758f2"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-color-stop-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "738e2a3b36cea3efa9c0a06fa4782cea64574cf93a0922ea3cd01c2bb8e94c44"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-color-transition-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "d62a0c289472b3e596250bd6a0d05b35e6674a73edf0eb52df57133af5dcecbd"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-thermostat-set-mode-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "ba85d8d2b2877e2666ca30ba44b952f44af9ab2103c7c439db3b1ffc5990edb9"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-thermostat-set-single-target-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "9156b769229a401e0d4d58c0faab7876cabd2a99fa760277b69966f401ebeb67"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-thermostat-set-dual-target-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "5472f7fc19790ac28e8db05d9b0ae25ec1a63dd74bea49984766128892d7f6c2"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-thermostat-set-fan-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "6f5e8a3e9f4037976f59fed852f710c778ddd1727d1d4ab734e69f6a02463a0f"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-thermostat-set-swing-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "73fa014c9089cb179223c3cbef409500292627bc8472f52ecfc064c6a61ab6a3"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-thermostat-set-preset-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "981cba0f8001c6bdadc41f0727bbb5795c6779998b63ca4f9005aabe14e99045"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-covering-open-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "2e9983b8e756773b823221699515d9c51c0e4c1bf2cd7a57e2f359a69368500c"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-covering-close-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "ec6942602833a5820c4c8f79e64439de63e5ec7736d99d88e5419911dbe3c4ae"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-covering-stop-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "b4f2a9c888bfafdd582243affa4aada0c67fc0178f325dde6eeb12a7394d73e8"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-covering-set-lift-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "18be0af1346756b1588587e6b56a17a22db58910f1a9c2645044a6b503e75939"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-covering-set-tilt-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "b6bffd6d866c23f9b5fb0c19ebac6441126548c4fb66d0c6ae5336f0bb3d25c8"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-momentary-invoke-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "14a4253dfe4eb15bba9ec1788fba5fa461348e611bc06a71c88ec9fef85cb6fd"
+    },
+    {
+      "path": "fixtures/invalid/operation-capability-notification-send-1-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "43c07cfc81edbfca219da24107751ff0b4b9424735961da99965fd90ed8c49a9"
+    },
+    {
+      "path": "fixtures/invalid/schedule-one-shot-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "5fed5855806c2b7a544a1907630cd9a4dc6b76d9d4740b893f6520f1e378f425"
+    },
+    {
+      "path": "fixtures/invalid/schedule-fixed-interval-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "6c1942cd7955c1c551dc1750245a12e6885e8fb7aa17e7ff715e253f939b403e"
+    },
+    {
+      "path": "fixtures/invalid/schedule-weekly-civil-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "53b2c90013bc85ee64a9f4da8d93d1ec228e2b6153b00b082e66c3c1e75fec56"
+    },
+    {
+      "path": "fixtures/invalid/dst-nonexistent-skip-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "53b2c90013bc85ee64a9f4da8d93d1ec228e2b6153b00b082e66c3c1e75fec56"
+    },
+    {
+      "path": "fixtures/invalid/dst-nonexistent-shift-forward-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "f7c3313e3dda92e07f18f6a5c6cff5272f93e2c7db733d7318d103fd069b2380"
+    },
+    {
+      "path": "fixtures/invalid/dst-nonexistent-error-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "fa62dfafdf3876bfb14e97cdb1c553d08d06d902f2153eeaf2f273e9824cf36f"
+    },
+    {
+      "path": "fixtures/invalid/dst-duplicate-first-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "53b2c90013bc85ee64a9f4da8d93d1ec228e2b6153b00b082e66c3c1e75fec56"
+    },
+    {
+      "path": "fixtures/invalid/dst-duplicate-second-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "daf4ad6b1a5d1d9401641a68bccfb764a562d0855b84029ab6125728bbb61527"
+    },
+    {
+      "path": "fixtures/invalid/dst-duplicate-both-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "766b43c269529009eef2887c78be04ae7a46281b946052df98e03c60fab2362b"
+    },
+    {
+      "path": "fixtures/invalid/retry-none-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "aae29be362c2c18f5c151906a9e355fceb94772fa007c0b0923d50b65273c231"
+    },
+    {
+      "path": "fixtures/invalid/retry-definitely-pre-dispatch-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "f91e30c1407ac8b6c26aa8011e0da06b91d9f93242ea9e82837ac94c401b0975"
+    },
+    {
+      "path": "fixtures/invalid/receipt-requirement-accepted-for-delivery-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "aae29be362c2c18f5c151906a9e355fceb94772fa007c0b0923d50b65273c231"
+    },
+    {
+      "path": "fixtures/invalid/receipt-requirement-notification-advertised-maximum-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "fdc375cb409f6c6009cd197a7cbfe95acc9abad0989ae1dfa8924b0baa345952"
+    },
+    {
+      "path": "fixtures/invalid/receipt-outcome-accepted-for-delivery-edge-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "f9ff0e8512ffc3cf553e18fb8909aa82f5f3ade4d3a5bf9f030605abce6a5659"
+    },
+    {
+      "path": "fixtures/invalid/receipt-outcome-protocol-or-target-acknowledged-edge-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "5510b00603dfc8fd2063cf47c0700349c14b67b3a1f9ffa6b1f56d83a23bcdbb"
+    },
+    {
+      "path": "fixtures/invalid/receipt-outcome-completed-edge-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "d8131523d18c3f3788f5b6a43ab1b1ed77dab3b1e73a46ea2dc8cebb6e0adac5"
+    },
+    {
+      "path": "fixtures/invalid/receipt-outcome-observed-completed-edge-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "b54a69a0a54392ca7b9ffd1117fa81f4aabe93e054f504bd74a00f9474789c65"
+    },
+    {
+      "path": "fixtures/invalid/receipt-outcome-rejected-edge-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "a8da00acfd7358bd13c5ab243356f3e2781983eaedeb4095843f24ed6c5dd383"
+    },
+    {
+      "path": "fixtures/invalid/receipt-outcome-error-edge-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "7fa1779c960af8a7e14696c8ccc4f48da4ed3fadff32b74ed02ca593aa7eb773"
+    },
+    {
+      "path": "fixtures/invalid/receipt-outcome-cancelled-edge-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "8db8ec604380f9cd92276f49cd9b91115ca3a6946dacbe5b0549524b9174f2ce"
+    },
+    {
+      "path": "fixtures/invalid/receipt-outcome-outcome-unknown-edge-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "258031261d06d1a4edb6e2d4fabb01eebf74dcc246aaa824a16ca245a4e1562f"
+    },
+    {
+      "path": "fixtures/invalid/desired-path-color-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "7986c79b238a4f81bbc5712cc9e19dc1e6b72930c38b033fd825fef3352c6af0"
+    },
+    {
+      "path": "fixtures/invalid/desired-path-covering-lift-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "1cdec59f453c90e8cbf4db800ce46e0b7b96f28dcd0deadf11b541d5c1eb81c8"
+    },
+    {
+      "path": "fixtures/invalid/desired-path-covering-tilt-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "ed3ac0adbd635f96fcc72dbcebe27bef2bd1c8340f6e4c4b18ae825c860aa01a"
+    },
+    {
+      "path": "fixtures/invalid/desired-path-level-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "07b65ce45d7dcf3718c7ea895ad3c63f3fd827ca65f6de149a9c11993a14af87"
+    },
+    {
+      "path": "fixtures/invalid/desired-path-on-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "dfdfd7b8fb6afb26f333b4e46e64f9c2163fa791b67b41baa34a6791a30308d4"
+    },
+    {
+      "path": "fixtures/invalid/desired-path-thermostat-cool-target-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "cd81efcc2a4c3fc977a56d79155b09570cd79c43fefc2a48ac052c10d5b91edf"
+    },
+    {
+      "path": "fixtures/invalid/desired-path-thermostat-fan-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "dd13a834e2c6eefa7fa1f6f1495ca00912e91071899fad8f0b187863a4c53e08"
+    },
+    {
+      "path": "fixtures/invalid/desired-path-thermostat-heat-target-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "1b25726aecc6a066d5c8f8ad59c469bcb189d88c1e2815fd012167e14c661995"
+    },
+    {
+      "path": "fixtures/invalid/desired-path-thermostat-mode-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "e886056e58fdb31528237fa9ecd4c39316902c91e39899ee78454ca665b8cc22"
+    },
+    {
+      "path": "fixtures/invalid/desired-path-thermostat-preset-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "7c9c5bcd5a307fd763632d278dcce681523f4bed27d9f384dcfe6b153e0190ec"
+    },
+    {
+      "path": "fixtures/invalid/desired-path-thermostat-single-target-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "fce3dcfeefeee76e1802edba5538069c7ec679b2cc30a4c39e5f70f3d8085e83"
+    },
+    {
+      "path": "fixtures/invalid/desired-path-thermostat-swing-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "8b27cecac94bfe43a2390599d8f9b5ceb8590606454600447a2f13c86c33b05f"
+    },
+    {
+      "path": "fixtures/invalid/editor-presentation-standard-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "2b3b75b46500b5b506e0560da85530ad97ae1c9f1c0cc0bc3793fc6c308d22db"
+    },
+    {
+      "path": "fixtures/invalid/editor-presentation-compact-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "849953136a67f83296fd7e6ed6e8c8b84085de6cf0a4d6eb6fe041448cc67242"
+    },
+    {
+      "path": "fixtures/invalid/editor-presentation-emphasized-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "66e925ca70e9813498343125c4c5dd22bff0e5e8ee80fef8f7b8642fe0ec8189"
+    },
+    {
+      "path": "fixtures/invalid/editor-group-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "b75f811aa812f8bcba12ee8548d9fb79f2ce3737e545fe00f31dd70ddfa8beb5"
+    },
+    {
+      "path": "fixtures/invalid/editor-viewport-unknown-field.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "c78db14eaffeb60ca166f3c44bff6c95a7eebeb745c6c32ba2ad90e6dea95e10"
+    },
+    {
+      "path": "fixtures/invalid/noncurrent-lock-compiler.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "babf9ec627d9aad9195cfa062096d61b767e6898774c1b853c86282f5e35f14c"
+    },
+    {
+      "path": "fixtures/invalid/noncurrent-lock-cel.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "37586ec77f90e6fc6a93c96bf9e92bd0c5ae666e938948dd7fa637414896598e"
+    },
+    {
+      "path": "fixtures/invalid/noncurrent-lock-quantity-catalog.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "a062cf4acfc4904263c56a2613ca6ba526cc73716985280e8b0d6e967d904325"
+    },
+    {
+      "path": "fixtures/invalid/noncurrent-lock-runtime-profile.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "a9a0092f6073070a2ac9bbc41eaa5d0d4045003e655fab5ab007f2904ccb84e0"
+    },
+    {
+      "path": "fixtures/invalid/noncurrent-lock-timezone-database.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "8188fdc0d80188f0e51a6381ca739efdd70ac0381fc72f7e4c8efdaffc2de9a8"
+    },
+    {
+      "path": "fixtures/invalid/noncurrent-lock-contract-catalog.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "a1482eaeda05c089dff2e91fa559c687f9883f32652e6d84ca6f456e7e9af170"
+    },
+    {
+      "path": "fixtures/invalid/noncurrent-lock-management-operations.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "a79de6112d3176696cea6b736053c03bc5e9de6f90a8f69d54fc7908cc9ad0a6"
+    },
+    {
+      "path": "fixtures/invalid/noncurrent-lock-port-catalog.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "7c236253d029f4377d9ce64612edbae49ddf544d71ac1e130205634c49707b20"
+    },
+    {
+      "path": "fixtures/invalid/noncurrent-evaluation-profile.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "708e1168179b1dcfc47539d3b5de69d81bddd7ea97efcfd1e1952d6704affa17"
+    },
+    {
+      "path": "fixtures/invalid/bound-limit-max-nodes.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "84141807036980c1831d6c82824148f3846282acdfc8e3d498aa30beaf8c7125"
+    },
+    {
+      "path": "fixtures/invalid/bound-limit-max-edges.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "79fed45df6ac7f020df86fd62361abdc7f618688a0e2c9cc0ebdc05fc72944ee"
+    },
+    {
+      "path": "fixtures/invalid/bound-limit-max-depth.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "13e599ff4ff6c59f765280aa0e6c39311353ecbcc5f0b120778e140099c63174"
+    },
+    {
+      "path": "fixtures/invalid/bound-limit-max-parallel-branches.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "051d2edbe9e79d65fbf1eea4614ba71955ab2164f8be9050ecd3672dc647d841"
+    },
+    {
+      "path": "fixtures/invalid/bound-limit-max-queued-triggers.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "eda5eedfdd6333973e4f030db10c7baeb85b9a781c8866fa3b17d51972a17750"
+    },
+    {
+      "path": "fixtures/invalid/bound-limit-max-condition-nodes.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "29158b249480f5e676a3edba353b26a93d3357f64360f6c8e97a420e27bb913f"
+    },
+    {
+      "path": "fixtures/invalid/bound-limit-max-effect-intents.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "e2b6aa55a45ab0775270a3ca601bd60540def02657e5d1c888329d051288fe02"
+    },
+    {
+      "path": "fixtures/invalid/bound-limit-max-patch-operations.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "1d15c6874e1dfa9bed1961af1011207d0f14cda3746765f7f52281614028ca01"
+    },
+    {
+      "path": "fixtures/invalid/bound-limit-max-timers.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "346b6cd57835fde625c20a1094a314a13ef8ae8c0b47de6d1af621d935a1409d"
+    },
+    {
+      "path": "fixtures/invalid/bound-limit-max-cel-steps.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "78b7e7c0e5f8fdab971834ecd4974452243ecb8e713becd8180747be3a936edc"
+    },
+    {
+      "path": "fixtures/invalid/bound-limit-max-cel-memory-bytes.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "55e032c05ecdda30f5b7f4fe13ffd8ee28f1f62317911ab9e91d44b7f24f75f3"
+    },
+    {
+      "path": "fixtures/invalid/bound-limit-max-cel-eval-ms.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "c0edfc6ae3d4c3c9e1bd92e82ae6125b39baf733d90fddf6d1ae64a696520175"
+    },
+    {
+      "path": "fixtures/invalid/bound-limit-max-plan-input-bytes.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "fcb9b313075cde38f5ce8a11f464510c456dfffcf4076929583477578ae9fe9e"
+    },
+    {
+      "path": "fixtures/invalid/bound-limit-max-trace-bytes.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "4bc69a8b648680f6e98a5fc8a1b0f1e7ba8a3404f738b091d16ffef615bb9d53"
+    },
+    {
+      "path": "fixtures/invalid/bound-rule-id.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "b10ee808113d4f9c4d86405e40e3951a46be2838b49f5f8e40a007ad7e9caa9c"
+    },
+    {
+      "path": "fixtures/invalid/bound-rule-revision.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "dc727bcfc1363374cc4fe48f076792ba9b71301b5edf087ea188f2e93d86b833"
+    },
+    {
+      "path": "fixtures/invalid/bound-schema-digest-shape.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "007f8a6f8e1c7d1677a83a825012985d86eb5e67d3c32983a8d80bdb8a800c9c"
+    },
+    {
+      "path": "fixtures/invalid/bound-name-empty.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "a7f78f02d63a497915621c9603d5a68630ca4f747bcd4d663d6ca224a9e85c33"
+    },
+    {
+      "path": "fixtures/invalid/bound-name-bytes.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "5c1ea3c6713dd43599fff5db59ad1db114831334f746f93670c3181fb3b02eab"
+    },
+    {
+      "path": "fixtures/invalid/bound-description-bytes.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "96dea2dfc3da27a89670c39c325a2dbae3cd97b540bc8a5f72ff48fbbded12f9"
+    },
+    {
+      "path": "fixtures/invalid/bound-annotation-key.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "9c4b51050c78fedf48dcdc20b806e5369db2e1dd0a3b0f78534dbb7ecb51c2af"
+    },
+    {
+      "path": "fixtures/invalid/bound-annotation-value.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "ddd95a7afb9d81e86522f64a2136c0b1dc6dd5d36bfa972d84fcee9124214b18"
+    },
+    {
+      "path": "fixtures/invalid/bound-editor-revision.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "270cc92f2780cdb7ff3f8fa691e670e044239e67961997069338e7ef8f4ba601"
+    },
+    {
+      "path": "fixtures/invalid/bound-editor-viewport-zoom.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "4408521f0f871f324e0b7d0d30cf387bc0ec07c67716099c5baaa72cff5f766d"
+    },
+    {
+      "path": "fixtures/invalid/bound-one-shot-nanosecond.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "1a77239cca402233e2df6b1f4dfadececd04cdaeac505b69fbd32facebcb23c0"
+    },
+    {
+      "path": "fixtures/invalid/bound-fixed-interval.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "9749749d753ac8c5d6e15ea9cdc96b1064cb53fac55fc386711dc57e114491ee"
+    },
+    {
+      "path": "fixtures/invalid/bound-weekly-timezone.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "1f3698e2c96216b7c2f3fcbcc73506bb621a69866c988b2d2f035c765cea599f"
+    },
+    {
+      "path": "fixtures/invalid/bound-condition-inputs-empty.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "0c396bf889c63dfc8b3a7d388a752922c03affda2d47ae067ae44db9f68473bb"
+    },
+    {
+      "path": "fixtures/invalid/bound-condition-source-bytes.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "3cc9fbb434ea7ff4cf892b1be83bbfb1245405bbea13c2b5bf8b7eff71aab829"
+    },
+    {
+      "path": "fixtures/invalid/bound-delay-duration.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "df45619744cfffee6695519bf9048536c3e628b372cc044327296c338f549d2c"
+    },
+    {
+      "path": "fixtures/invalid/bound-admission-window.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "57bdaf319984cba0f94c11f2e7c8d6e42b17dccaf1db61c744cbd677b76de81d"
+    },
+    {
+      "path": "fixtures/invalid/bound-edge-order.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "d39fe3010bb38f307ea4bad54f1ef79d9dc39160f62aa49b0cf1207167703b25"
+    },
+    {
+      "path": "fixtures/invalid/bound-desired-operations-empty.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "7ba45a83613152b4f6eadeadf370ffcfd8d3d923d9a5fdeece27c4257be943d5"
+    },
+    {
+      "path": "fixtures/invalid/bound-operation-decimal.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "0ea43a7f5b86ef1eac6183d4932f0809c16525e68fa729b15d9c595737896a12"
+    },
+    {
+      "path": "fixtures/invalid/bound-operation-choice.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "0ea4ad19b7cf67ad8798858e5d09937eb30fddd51187fd175a846f720decf141"
+    },
+    {
+      "path": "fixtures/invalid/bound-operation-transition.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "9e7637af75349210a62eef2eb4b2f40e2e278d04f056541ca005e5ba576dd75b"
+    },
+    {
+      "path": "fixtures/invalid/bound-annotations-count.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "9a4fc1ef7baac18e0400b3a3401af1144fb8efe8074a3a67a9ccbbf720ecc3f5"
+    },
+    {
+      "path": "fixtures/invalid/bound-editor-nodes-count.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "0f900e4d80e7679580da04aa9031f5860ea50fdfe79c6bfb5960abe2ea8a5513"
+    },
+    {
+      "path": "fixtures/invalid/bound-editor-groups-count.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "0c38f895351ccf4ca3b62bc79af34208cee7530b85a8f000baf3605aa2da75ce"
+    },
+    {
+      "path": "fixtures/invalid/bound-weekly-days-count.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "ff0ec2c63a93cf9dd83487c3e960ff3a2663fd564dc23da529722c38b6a59352"
+    },
+    {
+      "path": "fixtures/invalid/bound-condition-inputs-count.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "2b158035db750714f84b239b335e36919fbd2029f11bb59343dc273f2a84bc90"
+    },
+    {
+      "path": "fixtures/invalid/bound-type-ref-list-items.json",
+      "schema_valid": false,
+      "semantic_valid": false,
+      "sha256": "d217843c3fcc51e9b30a307bb6db6a5d62b2f80b84c5f4cfc39f0bce1b9a801e"
+    },
+    {
+      "path": "fixtures/invalid/bound-configured-nodes.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "e542e5eca7d932c34992480f22641bf1bd43bf43299de362de444666da0ec41b"
+    },
+    {
+      "path": "fixtures/invalid/bound-configured-edges.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "c028bb9af37f53d41a4feeb533c5f2eb45fb891753a782b5ea0d2eea055b49c2"
+    },
+    {
+      "path": "fixtures/invalid/bound-configured-depth.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "51f9f94c045597cfd68995d8cfb78865beec33528426fac5b2d2c008f9eff1a8"
+    },
+    {
+      "path": "fixtures/invalid/bound-configured-patch-operations.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "3e1573b7f95d2fe3243fb8e524f731f9670dc188939a06c517ca4743e4f06c88"
+    },
+    {
+      "path": "fixtures/invalid/bound-configured-effect-intents.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "861718843b24888996d793a4483f9d08864459510f3a87dd0e7a271009264366"
+    },
+    {
+      "path": "fixtures/invalid/bound-configured-parallel-branches.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "c5971659fb33ab40d9b753411cb2bda482eeddbdb1e6047a83cbc548b453173e"
+    },
+    {
+      "path": "fixtures/invalid/bound-configured-condition-nodes.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "9c6797337d3ab9e37131a735570bfa55794b954e0e119cb7eb200d96acf66508"
+    },
+    {
+      "path": "fixtures/invalid/bound-configured-timers.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "718cab4c9ae6868acfe5e7084f8a6e52cd7e200cb5a5ec23ee7f67111d36ac5f"
+    },
+    {
+      "path": "fixtures/invalid/bound-json-depth.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "9348e7863f0357ecb36ca9d2511aa55e29755bc04bef0a5cf7193bdb2e1c371f"
+    },
+    {
+      "path": "fixtures/invalid/bound-schema-digest-noncurrent.json",
+      "schema_valid": true,
+      "semantic_valid": false,
+      "sha256": "5aba828456376eefc3c305ec52595181e5d4a3e336d662648eff8e25240a20ea"
+    }
+  ],
+  "version": 1
+}

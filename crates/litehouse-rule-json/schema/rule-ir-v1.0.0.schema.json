@@ -1,21 +1,955 @@
 {
   "$defs": {
-    "CompareExpression": {
+    "ActivationPolicy": {
+      "enum": [
+        "explicit"
+      ],
+      "type": "string"
+    },
+    "AdmissionKey": {
+      "enum": [
+        "rule_trigger",
+        "rule_trigger_and_endpoint"
+      ],
+      "type": "string"
+    },
+    "AdmissionPolicy": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "debounce_trailing",
+              "type": "string"
+            },
+            "window_ms": {
+              "format": "uint64",
+              "maximum": 86400000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "window_ms"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "throttle_leading",
+              "type": "string"
+            },
+            "trailing": {
+              "type": "boolean"
+            },
+            "window_ms": {
+              "format": "uint64",
+              "maximum": 86400000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "window_ms",
+            "trailing"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        }
+      ]
+    },
+    "AnnotationValue": {
+      "maxLength": 1024,
+      "type": "string"
+    },
+    "BooleanStateEventKind": {
+      "enum": [
+        "state-observation",
+        "occurrence"
+      ],
+      "type": "string"
+    },
+    "CapabilityOperation": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "on": {
+              "type": "boolean"
+            },
+            "operation": {
+              "const": "capability.on-off.set@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "on"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "capability.on-off.toggle@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "level": {
+              "$ref": "#/$defs/DecimalValue"
+            },
+            "operation": {
+              "const": "capability.level.set@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "level"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "capability.level.step@1",
+              "type": "string"
+            },
+            "step": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "operation",
+            "step"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "direction": {
+              "$ref": "#/$defs/LevelDirection"
+            },
+            "operation": {
+              "const": "capability.level.move@1",
+              "type": "string"
+            },
+            "rate_per_second": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "operation",
+            "direction",
+            "rate_per_second"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "capability.level.stop@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "duration_ms": {
+              "format": "uint32",
+              "maximum": 30000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "level": {
+              "$ref": "#/$defs/DecimalValue"
+            },
+            "operation": {
+              "const": "capability.level.transition@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "level",
+            "duration_ms"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "level": {
+              "$ref": "#/$defs/DecimalValue"
+            },
+            "on_when_nonzero": {
+              "type": "boolean"
+            },
+            "operation": {
+              "const": "capability.level.set-coupled@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "level",
+            "on_when_nonzero"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "on_when_nonzero": {
+              "type": "boolean"
+            },
+            "operation": {
+              "const": "capability.level.step-coupled@1",
+              "type": "string"
+            },
+            "step": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "operation",
+            "step",
+            "on_when_nonzero"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "direction": {
+              "$ref": "#/$defs/LevelDirection"
+            },
+            "on_when_nonzero": {
+              "type": "boolean"
+            },
+            "operation": {
+              "const": "capability.level.move-coupled@1",
+              "type": "string"
+            },
+            "rate_per_second": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "operation",
+            "direction",
+            "rate_per_second",
+            "on_when_nonzero"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "duration_ms": {
+              "format": "uint32",
+              "maximum": 30000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "level": {
+              "$ref": "#/$defs/DecimalValue"
+            },
+            "on_when_nonzero": {
+              "type": "boolean"
+            },
+            "operation": {
+              "const": "capability.level.transition-coupled@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "level",
+            "duration_ms",
+            "on_when_nonzero"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "color": {
+              "$ref": "#/$defs/ColorValue"
+            },
+            "operation": {
+              "const": "capability.color.set@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "color"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "color": {
+              "$ref": "#/$defs/ColorValue"
+            },
+            "direction": {
+              "$ref": "#/$defs/ColorDirection"
+            },
+            "operation": {
+              "const": "capability.color.step@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "color",
+            "direction"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "color": {
+              "$ref": "#/$defs/ColorValue"
+            },
+            "direction": {
+              "$ref": "#/$defs/ColorDirection"
+            },
+            "operation": {
+              "const": "capability.color.move@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "color",
+            "direction"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "capability.color.stop@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "color": {
+              "$ref": "#/$defs/ColorValue"
+            },
+            "duration_ms": {
+              "format": "uint32",
+              "maximum": 30000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "operation": {
+              "const": "capability.color.transition@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "color",
+            "duration_ms"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "$ref": "#/$defs/ThermostatMode"
+            },
+            "operation": {
+              "const": "capability.thermostat.set-mode@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "mode"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "capability.thermostat.set-single-target@1",
+              "type": "string"
+            },
+            "target_celsius": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "operation",
+            "target_celsius"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "cool_target_celsius": {
+              "$ref": "#/$defs/DecimalValue"
+            },
+            "heat_target_celsius": {
+              "$ref": "#/$defs/DecimalValue"
+            },
+            "operation": {
+              "const": "capability.thermostat.set-dual-target@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "heat_target_celsius",
+            "cool_target_celsius"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "fan_choice": {
+              "$ref": "#/$defs/ChoiceValue"
+            },
+            "operation": {
+              "const": "capability.thermostat.set-fan@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "fan_choice"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "capability.thermostat.set-swing@1",
+              "type": "string"
+            },
+            "swing_choice": {
+              "$ref": "#/$defs/ChoiceValue"
+            }
+          },
+          "required": [
+            "operation",
+            "swing_choice"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "capability.thermostat.set-preset@1",
+              "type": "string"
+            },
+            "preset_choice": {
+              "$ref": "#/$defs/ChoiceValue"
+            }
+          },
+          "required": [
+            "operation",
+            "preset_choice"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "axis": {
+              "$ref": "#/$defs/CoveringAxis"
+            },
+            "operation": {
+              "const": "capability.covering.open@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "axis"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "axis": {
+              "$ref": "#/$defs/CoveringAxis"
+            },
+            "operation": {
+              "const": "capability.covering.close@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "axis"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "axis": {
+              "$ref": "#/$defs/CoveringAxis"
+            },
+            "operation": {
+              "const": "capability.covering.stop@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "axis"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "capability.covering.set-lift@1",
+              "type": "string"
+            },
+            "position": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "operation",
+            "position"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "capability.covering.set-tilt@1",
+              "type": "string"
+            },
+            "position": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "operation",
+            "position"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "capability.momentary.invoke@1",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "expires_in_ms": {
+              "format": "uint32",
+              "maximum": 86400000,
+              "minimum": 1,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "notification_template_id": {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "type": "string"
+            },
+            "operation": {
+              "const": "capability.notification.send@1",
+              "type": "string"
+            },
+            "priority": {
+              "$ref": "#/$defs/NotificationPriority"
+            }
+          },
+          "required": [
+            "operation",
+            "notification_template_id",
+            "priority"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        }
+      ]
+    },
+    "CapabilityOperationKind": {
+      "enum": [
+        "capability.on-off.set@1",
+        "capability.on-off.toggle@1",
+        "capability.level.set@1",
+        "capability.level.step@1",
+        "capability.level.move@1",
+        "capability.level.stop@1",
+        "capability.level.transition@1",
+        "capability.level.set-coupled@1",
+        "capability.level.step-coupled@1",
+        "capability.level.move-coupled@1",
+        "capability.level.transition-coupled@1",
+        "capability.color.set@1",
+        "capability.color.step@1",
+        "capability.color.move@1",
+        "capability.color.stop@1",
+        "capability.color.transition@1",
+        "capability.thermostat.set-mode@1",
+        "capability.thermostat.set-single-target@1",
+        "capability.thermostat.set-dual-target@1",
+        "capability.thermostat.set-fan@1",
+        "capability.thermostat.set-swing@1",
+        "capability.thermostat.set-preset@1",
+        "capability.covering.open@1",
+        "capability.covering.close@1",
+        "capability.covering.stop@1",
+        "capability.covering.set-lift@1",
+        "capability.covering.set-tilt@1",
+        "capability.momentary.invoke@1",
+        "capability.notification.send@1"
+      ],
+      "type": "string"
+    },
+    "CelArtifactId": {
+      "enum": [
+        "litehouse-cel@1"
+      ],
+      "type": "string"
+    },
+    "CelArtifactLock": {
       "additionalProperties": false,
       "properties": {
-        "operator": {
-          "$ref": "#/$defs/CompareOperator"
+        "id": {
+          "$ref": "#/$defs/CelArtifactId"
         },
-        "right": {
-          "$ref": "#/$defs/ScalarLiteral"
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
         }
       },
       "required": [
-        "operator",
-        "right"
+        "id",
+        "sha256"
       ],
       "type": "object",
       "unevaluatedProperties": false
+    },
+    "CelCondition": {
+      "additionalProperties": false,
+      "properties": {
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/ConditionInput"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "type": "array"
+        },
+        "normalized_source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "normalized_source_sha256",
+        "inputs"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "ChoiceValue": {
+      "maxLength": 64,
+      "minLength": 1,
+      "type": "string"
+    },
+    "CivilTime": {
+      "additionalProperties": false,
+      "properties": {
+        "hour": {
+          "format": "uint8",
+          "maximum": 23,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "minute": {
+          "format": "uint8",
+          "maximum": 59,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "second": {
+          "format": "uint8",
+          "maximum": 59,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "hour",
+        "minute",
+        "second"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "ColorDirection": {
+      "enum": [
+        "increase",
+        "decrease"
+      ],
+      "type": "string"
+    },
+    "ColorSpace": {
+      "enum": [
+        "srgb",
+        "display-p3"
+      ],
+      "type": "string"
+    },
+    "ColorValue": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "hue_degrees": {
+              "$ref": "#/$defs/DecimalValue"
+            },
+            "model": {
+              "const": "hue-saturation",
+              "type": "string"
+            },
+            "saturation": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "model",
+            "hue_degrees",
+            "saturation"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "model": {
+              "const": "cie-xy",
+              "type": "string"
+            },
+            "x": {
+              "$ref": "#/$defs/DecimalValue"
+            },
+            "y": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "model",
+            "x",
+            "y"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kelvin": {
+              "$ref": "#/$defs/DecimalValue"
+            },
+            "model": {
+              "const": "color-temperature",
+              "type": "string"
+            }
+          },
+          "required": [
+            "model",
+            "kelvin"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "blue": {
+              "$ref": "#/$defs/DecimalValue"
+            },
+            "color_space": {
+              "$ref": "#/$defs/ColorSpace"
+            },
+            "green": {
+              "$ref": "#/$defs/DecimalValue"
+            },
+            "model": {
+              "const": "calibrated-rgb",
+              "type": "string"
+            },
+            "red": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "model",
+            "red",
+            "green",
+            "blue",
+            "color_space"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "blue": {
+              "$ref": "#/$defs/DecimalValue"
+            },
+            "green": {
+              "$ref": "#/$defs/DecimalValue"
+            },
+            "model": {
+              "const": "uncalibrated-rgb",
+              "type": "string"
+            },
+            "red": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "model",
+            "red",
+            "green",
+            "blue"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "cold_white": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/DecimalValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "model": {
+              "const": "native-white-channels",
+              "type": "string"
+            },
+            "warm_white": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/DecimalValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "white": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "model",
+            "white"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        }
+      ]
     },
     "CompareOperator": {
       "enum": [
@@ -28,6 +962,202 @@
       ],
       "type": "string"
     },
+    "CompilerArtifactId": {
+      "enum": [
+        "litehouse:rule-compiler@1"
+      ],
+      "type": "string"
+    },
+    "CompilerArtifactLock": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/CompilerArtifactId"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "sha256"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "ConditionInput": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "pattern": "^[a-z][a-z0-9_]{0,31}$",
+          "type": "string"
+        },
+        "type_ref": {
+          "$ref": "#/$defs/TypeRef"
+        }
+      },
+      "required": [
+        "name",
+        "type_ref"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "ContractCatalogArtifactId": {
+      "enum": [
+        "litehouse:contract-catalog@1"
+      ],
+      "type": "string"
+    },
+    "ContractCatalogArtifactLock": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ContractCatalogArtifactId"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "sha256"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "ContractEventRef": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "contract": {
+              "const": "litehouse:on-off@1.0.0",
+              "type": "string"
+            },
+            "event": {
+              "$ref": "#/$defs/OnOffEventKind"
+            }
+          },
+          "required": [
+            "contract",
+            "event"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "contract": {
+              "const": "litehouse:boolean-state@1.0.0",
+              "type": "string"
+            },
+            "event": {
+              "$ref": "#/$defs/BooleanStateEventKind"
+            }
+          },
+          "required": [
+            "contract",
+            "event"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "contract": {
+              "const": "litehouse:level-control@1.0.0",
+              "type": "string"
+            },
+            "event": {
+              "$ref": "#/$defs/StateObservationEventKind"
+            }
+          },
+          "required": [
+            "contract",
+            "event"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "contract": {
+              "const": "litehouse:color-control@1.0.0",
+              "type": "string"
+            },
+            "event": {
+              "$ref": "#/$defs/StateObservationEventKind"
+            }
+          },
+          "required": [
+            "contract",
+            "event"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "contract": {
+              "const": "litehouse:measurement@1.0.0",
+              "type": "string"
+            },
+            "event": {
+              "$ref": "#/$defs/MeasurementEventKind"
+            }
+          },
+          "required": [
+            "contract",
+            "event"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "contract": {
+              "const": "litehouse:thermostat@1.0.0",
+              "type": "string"
+            },
+            "event": {
+              "$ref": "#/$defs/StateObservationEventKind"
+            }
+          },
+          "required": [
+            "contract",
+            "event"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "contract": {
+              "const": "litehouse:window-covering@1.0.0",
+              "type": "string"
+            },
+            "event": {
+              "$ref": "#/$defs/StateObservationEventKind"
+            }
+          },
+          "required": [
+            "contract",
+            "event"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        }
+      ]
+    },
     "ContractRef": {
       "additionalProperties": false,
       "properties": {
@@ -38,7 +1168,7 @@
         "major": {
           "format": "uint16",
           "maximum": 65535,
-          "minimum": 0,
+          "minimum": 1,
           "type": "integer"
         },
         "namespace": {
@@ -59,6 +1189,367 @@
       "type": "object",
       "unevaluatedProperties": false
     },
+    "ContractTypeRef": {
+      "enum": [
+        "litehouse:quantity/types@1/canonical-decimal",
+        "litehouse:quantity/types@1/quantity",
+        "litehouse:quantity/types@1/native-representation",
+        "litehouse:on-off/types@1/state",
+        "litehouse:boolean-state/types@1/state",
+        "litehouse:boolean-state/types@1/occurrence",
+        "litehouse:level-control/types@1/state",
+        "litehouse:color-control/types@1/state",
+        "litehouse:color-control/types@1/color-value",
+        "litehouse:color-control/types@1/color-model",
+        "litehouse:measurement/types@1/state",
+        "litehouse:thermostat/types@1/state",
+        "litehouse:thermostat/types@1/mode",
+        "litehouse:thermostat/types@1/action",
+        "litehouse:thermostat/types@1/targets",
+        "litehouse:window-covering/types@1/state",
+        "litehouse:window-covering/types@1/movement"
+      ],
+      "type": "string"
+    },
+    "CoveringAxis": {
+      "enum": [
+        "lift",
+        "tilt"
+      ],
+      "type": "string"
+    },
+    "DecimalValue": {
+      "maxLength": 32,
+      "minLength": 1,
+      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+      "type": "string"
+    },
+    "DependencyHydrationPolicy": {
+      "enum": [
+        "wait_until_hydrated_or_unavailable"
+      ],
+      "type": "string"
+    },
+    "DesiredPatchOperation": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "expected": {
+              "$ref": "#/$defs/DesiredProjectionValue"
+            },
+            "op": {
+              "const": "test",
+              "type": "string"
+            }
+          },
+          "required": [
+            "op",
+            "expected"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "op": {
+              "const": "add",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/DesiredProjectionValue"
+            }
+          },
+          "required": [
+            "op",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "op": {
+              "const": "replace",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/DesiredProjectionValue"
+            }
+          },
+          "required": [
+            "op",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "op": {
+              "const": "remove",
+              "type": "string"
+            },
+            "path": {
+              "$ref": "#/$defs/OptionalDesiredProjectionPath"
+            }
+          },
+          "required": [
+            "op",
+            "path"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        }
+      ]
+    },
+    "DesiredProjectionValue": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "const": "/on",
+              "type": "string"
+            },
+            "value": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "path",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "const": "/level",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "path",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "const": "/color",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/ColorValue"
+            }
+          },
+          "required": [
+            "path",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "const": "/thermostat/mode",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/ThermostatMode"
+            }
+          },
+          "required": [
+            "path",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "const": "/thermostat/single_target",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "path",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "const": "/thermostat/heat_target",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "path",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "const": "/thermostat/cool_target",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "path",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "const": "/thermostat/fan",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/ChoiceValue"
+            }
+          },
+          "required": [
+            "path",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "const": "/thermostat/swing",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/ChoiceValue"
+            }
+          },
+          "required": [
+            "path",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "const": "/thermostat/preset",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/ChoiceValue"
+            }
+          },
+          "required": [
+            "path",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "const": "/covering/lift",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "path",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "const": "/covering/tilt",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/DecimalValue"
+            }
+          },
+          "required": [
+            "path",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        }
+      ]
+    },
+    "DuplicateTimePolicy": {
+      "enum": [
+        "first",
+        "second",
+        "both"
+      ],
+      "type": "string"
+    },
+    "DurationValue": {
+      "additionalProperties": false,
+      "properties": {
+        "milliseconds": {
+          "format": "uint64",
+          "maximum": 86400000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "milliseconds"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
     "Edge": {
       "additionalProperties": false,
       "properties": {
@@ -71,7 +1562,7 @@
         },
         "order": {
           "format": "uint16",
-          "maximum": 65535,
+          "maximum": 255,
           "minimum": 0,
           "type": "integer"
         },
@@ -96,7 +1587,7 @@
           "type": "string"
         },
         "port": {
-          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "pattern": "^[a-z][a-z0-9_:-]{0,63}$",
           "type": "string"
         }
       },
@@ -107,19 +1598,306 @@
       "type": "object",
       "unevaluatedProperties": false
     },
+    "EditorData": {
+      "additionalProperties": false,
+      "properties": {
+        "groups": {
+          "additionalProperties": false,
+          "maxProperties": 32,
+          "patternProperties": {
+            "^[a-z][a-z0-9_-]{0,63}$": {
+              "$ref": "#/$defs/EditorGroupData"
+            }
+          },
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        "nodes": {
+          "additionalProperties": false,
+          "maxProperties": 128,
+          "patternProperties": {
+            "^[a-z][a-z0-9_-]{0,63}$": {
+              "$ref": "#/$defs/EditorNodeData"
+            }
+          },
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        "revision": {
+          "format": "uint64",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "viewport": {
+          "$ref": "#/$defs/EditorViewport"
+        }
+      },
+      "required": [
+        "revision",
+        "nodes",
+        "groups",
+        "viewport"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "EditorGroupData": {
+      "additionalProperties": false,
+      "properties": {
+        "collapsed": {
+          "type": "boolean"
+        },
+        "height": {
+          "format": "uint32",
+          "maximum": 100000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "label": {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        "width": {
+          "format": "uint32",
+          "maximum": 100000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "x": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "y": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "label",
+        "x",
+        "y",
+        "width",
+        "height",
+        "collapsed"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "EditorGroupKey": {
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+      "type": "string"
+    },
+    "EditorNodeData": {
+      "additionalProperties": false,
+      "properties": {
+        "collapsed": {
+          "type": "boolean"
+        },
+        "group": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EditorGroupKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "presentation": {
+          "$ref": "#/$defs/EditorPresentation"
+        },
+        "x": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "y": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "collapsed",
+        "presentation"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "EditorPresentation": {
+      "enum": [
+        "standard",
+        "compact",
+        "emphasized"
+      ],
+      "type": "string"
+    },
+    "EditorViewport": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "y": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "zoom_milli": {
+          "format": "uint16",
+          "maximum": 4000,
+          "minimum": 100,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "zoom_milli"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
     "EndOutcome": {
       "enum": [
         "success",
         "noop",
         "unknown",
-        "error"
+        "error",
+        "cancelled",
+        "capacity_rejected"
       ],
       "type": "string"
+    },
+    "EventDeduplicationPolicy": {
+      "enum": [
+        "process_epoch_at_least_once"
+      ],
+      "type": "string"
+    },
+    "ForkBranch": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,31}$",
+          "type": "string"
+        },
+        "order": {
+          "format": "uint8",
+          "maximum": 3,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "order"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "ForkJoinPhase": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "branches": {
+              "items": {
+                "$ref": "#/$defs/ForkBranch"
+              },
+              "maxItems": 4,
+              "minItems": 2,
+              "type": "array"
+            },
+            "join_node_id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "fork",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "join_node_id",
+            "branches"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "branches": {
+              "items": {
+                "$ref": "#/$defs/ForkBranch"
+              },
+              "maxItems": 4,
+              "minItems": 2,
+              "type": "array"
+            },
+            "fork_node_id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "join",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "fork_node_id",
+            "branches"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        }
+      ]
     },
     "InitialObservationPolicy": {
       "enum": [
         "ignore",
         "run"
+      ],
+      "type": "string"
+    },
+    "LevelDirection": {
+      "enum": [
+        "up",
+        "down"
+      ],
+      "type": "string"
+    },
+    "ManagementOperationsArtifactId": {
+      "enum": [
+        "litehouse:management-operations@1"
+      ],
+      "type": "string"
+    },
+    "ManagementOperationsArtifactLock": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ManagementOperationsArtifactId"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "sha256"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "MeasurementEventKind": {
+      "enum": [
+        "observation"
       ],
       "type": "string"
     },
@@ -129,8 +1907,7 @@
           "additionalProperties": false,
           "properties": {
             "field": {
-              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
-              "type": "string"
+              "$ref": "#/$defs/StateFieldRef"
             },
             "id": {
               "pattern": "^[a-z][a-z0-9_-]{0,63}$",
@@ -142,9 +1919,6 @@
             },
             "selector": {
               "$ref": "#/$defs/Selector"
-            },
-            "value_type": {
-              "$ref": "#/$defs/ValueType"
             },
             "version": {
               "format": "uint8",
@@ -158,8 +1932,7 @@
             "id",
             "version",
             "selector",
-            "field",
-            "value_type"
+            "field"
           ],
           "type": "object",
           "unevaluatedProperties": false
@@ -168,18 +1941,15 @@
           "additionalProperties": false,
           "properties": {
             "expression": {
-              "$ref": "#/$defs/CompareExpression"
+              "$ref": "#/$defs/CelCondition"
             },
             "id": {
               "pattern": "^[a-z][a-z0-9_-]{0,63}$",
               "type": "string"
             },
             "kind": {
-              "const": "compare",
+              "const": "condition",
               "type": "string"
-            },
-            "value_type": {
-              "$ref": "#/$defs/ValueType"
             },
             "version": {
               "format": "uint8",
@@ -192,8 +1962,41 @@
             "kind",
             "id",
             "version",
-            "value_type",
             "expression"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "input_profile": {
+              "$ref": "#/$defs/QuantityProfileRef"
+            },
+            "kind": {
+              "const": "quantity",
+              "type": "string"
+            },
+            "operation": {
+              "$ref": "#/$defs/QuantityOperation"
+            },
+            "version": {
+              "format": "uint8",
+              "maximum": 1,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "version",
+            "input_profile",
+            "operation"
           ],
           "type": "object",
           "unevaluatedProperties": false
@@ -232,14 +2035,66 @@
               "type": "string"
             },
             "kind": {
-              "const": "on_off_set",
+              "const": "desired_patch",
               "type": "string"
+            },
+            "operations": {
+              "items": {
+                "$ref": "#/$defs/DesiredPatchOperation"
+              },
+              "maxItems": 128,
+              "minItems": 1,
+              "type": "array"
+            },
+            "snapshot_node_id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "version": {
+              "format": "uint8",
+              "maximum": 1,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "version",
+            "snapshot_node_id",
+            "operations"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "deadline_ms": {
+              "format": "uint32",
+              "maximum": 30000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "effect_intent",
+              "type": "string"
+            },
+            "operation": {
+              "$ref": "#/$defs/CapabilityOperation"
+            },
+            "required_receipt": {
+              "$ref": "#/$defs/ReceiptRequirement"
+            },
+            "retry": {
+              "$ref": "#/$defs/RetryPolicy"
             },
             "selector": {
               "$ref": "#/$defs/Selector"
-            },
-            "value": {
-              "type": "boolean"
             },
             "version": {
               "format": "uint8",
@@ -253,7 +2108,143 @@
             "id",
             "version",
             "selector",
-            "value"
+            "operation",
+            "deadline_ms",
+            "required_receipt",
+            "retry"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "duration": {
+              "$ref": "#/$defs/DurationValue"
+            },
+            "id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "delay",
+              "type": "string"
+            },
+            "version": {
+              "format": "uint8",
+              "maximum": 1,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "version",
+            "duration"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "key": {
+              "$ref": "#/$defs/AdmissionKey"
+            },
+            "kind": {
+              "const": "debounce_throttle",
+              "type": "string"
+            },
+            "policy": {
+              "$ref": "#/$defs/AdmissionPolicy"
+            },
+            "trigger": {
+              "$ref": "#/$defs/TriggerContextKind"
+            },
+            "version": {
+              "format": "uint8",
+              "maximum": 1,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "version",
+            "trigger",
+            "key",
+            "policy"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "conflict_policy": {
+              "$ref": "#/$defs/PatchConflictPolicy"
+            },
+            "id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "fork_join",
+              "type": "string"
+            },
+            "phase": {
+              "$ref": "#/$defs/ForkJoinPhase"
+            },
+            "version": {
+              "format": "uint8",
+              "maximum": 1,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "version",
+            "phase",
+            "conflict_policy"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "effect_node_id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "receipt_branch",
+              "type": "string"
+            },
+            "version": {
+              "format": "uint8",
+              "maximum": 1,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "version",
+            "effect_node_id"
           ],
           "type": "object",
           "unevaluatedProperties": false
@@ -290,10 +2281,290 @@
         }
       ]
     },
+    "NonexistentTimePolicy": {
+      "enum": [
+        "skip",
+        "shift_forward"
+      ],
+      "type": "string"
+    },
+    "NotificationPriority": {
+      "enum": [
+        "low",
+        "normal",
+        "high",
+        "urgent"
+      ],
+      "type": "string"
+    },
     "ObservationMode": {
       "enum": [
         "any_observation",
         "value_change"
+      ],
+      "type": "string"
+    },
+    "OnOffEventKind": {
+      "enum": [
+        "state-observation"
+      ],
+      "type": "string"
+    },
+    "OptionalDesiredProjectionPath": {
+      "enum": [
+        "/level",
+        "/color",
+        "/thermostat/single_target",
+        "/thermostat/heat_target",
+        "/thermostat/cool_target",
+        "/thermostat/fan",
+        "/thermostat/swing",
+        "/thermostat/preset",
+        "/covering/lift",
+        "/covering/tilt"
+      ],
+      "type": "string"
+    },
+    "PatchConflictPolicy": {
+      "enum": [
+        "reject_conflict",
+        "ordered_last_wins"
+      ],
+      "type": "string"
+    },
+    "PortCatalogArtifactId": {
+      "enum": [
+        "https://schemas.litehouse.dev/rule-ir/v1.0.0/node-port-catalog.json"
+      ],
+      "type": "string"
+    },
+    "PortCatalogArtifactLock": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/PortCatalogArtifactId"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "sha256"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "ProviderDeduplicationRequirement": {
+      "enum": [
+        "matching_provider_generation"
+      ],
+      "type": "string"
+    },
+    "QuantityCatalogArtifactId": {
+      "enum": [
+        "litehouse:quantity-catalog@1"
+      ],
+      "type": "string"
+    },
+    "QuantityCatalogArtifactLock": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/QuantityCatalogArtifactId"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "sha256"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "QuantityCatalogRef": {
+      "enum": [
+        "litehouse:quantity-catalog@1"
+      ],
+      "type": "string"
+    },
+    "QuantityOperation": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "convert",
+              "type": "string"
+            },
+            "target_unit": {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "target_unit"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "compare",
+              "type": "string"
+            },
+            "operator": {
+              "$ref": "#/$defs/CompareOperator"
+            },
+            "right": {
+              "$ref": "#/$defs/QuantityWire"
+            }
+          },
+          "required": [
+            "kind",
+            "operator",
+            "right"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "add",
+              "type": "string"
+            },
+            "right": {
+              "$ref": "#/$defs/QuantityWire"
+            }
+          },
+          "required": [
+            "kind",
+            "right"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "subtract",
+              "type": "string"
+            },
+            "right": {
+              "$ref": "#/$defs/QuantityWire"
+            }
+          },
+          "required": [
+            "kind",
+            "right"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "multiply",
+              "type": "string"
+            },
+            "result_profile": {
+              "$ref": "#/$defs/QuantityProfileRef"
+            },
+            "right": {
+              "$ref": "#/$defs/QuantityWire"
+            }
+          },
+          "required": [
+            "kind",
+            "right",
+            "result_profile"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "divide",
+              "type": "string"
+            },
+            "result_profile": {
+              "$ref": "#/$defs/QuantityProfileRef"
+            },
+            "right": {
+              "$ref": "#/$defs/QuantityWire"
+            }
+          },
+          "required": [
+            "kind",
+            "right",
+            "result_profile"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "quantize",
+              "type": "string"
+            },
+            "scale": {
+              "format": "uint8",
+              "maximum": 18,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "scale"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        }
+      ]
+    },
+    "QuantityProfileRef": {
+      "enum": [
+        "litehouse:quantity/temperature-absolute@1",
+        "litehouse:quantity/temperature-difference@1",
+        "litehouse:quantity/relative-humidity@1",
+        "litehouse:quantity/ratio@1",
+        "litehouse:quantity/wmo-weather-code@1",
+        "litehouse:quantity/pressure@1",
+        "litehouse:quantity/illuminance@1",
+        "litehouse:quantity/power@1",
+        "litehouse:quantity/energy@1",
+        "litehouse:quantity/voltage@1",
+        "litehouse:quantity/electric-current@1",
+        "litehouse:quantity/frequency@1",
+        "litehouse:quantity/battery-ratio@1",
+        "litehouse:quantity/signal-strength@1",
+        "litehouse:quantity/carbon-dioxide@1",
+        "litehouse:quantity/carbon-monoxide@1",
+        "litehouse:quantity/volatile-organic-compounds@1",
+        "litehouse:quantity/particulate-matter-pm1@1",
+        "litehouse:quantity/particulate-matter-pm2-5@1",
+        "litehouse:quantity/particulate-matter-pm10@1",
+        "litehouse:quantity/distance@1",
+        "litehouse:quantity/speed@1",
+        "litehouse:quantity/volume@1",
+        "litehouse:quantity/volumetric-flow@1"
       ],
       "type": "string"
     },
@@ -307,9 +2578,7 @@
           "type": "string"
         },
         "profile": {
-          "maxLength": 128,
-          "minLength": 1,
-          "type": "string"
+          "$ref": "#/$defs/QuantityProfileRef"
         },
         "unit": {
           "maxLength": 256,
@@ -325,9 +2594,97 @@
       "type": "object",
       "unevaluatedProperties": false
     },
+    "RebindPolicy": {
+      "enum": [
+        "never",
+        "same_identity"
+      ],
+      "type": "string"
+    },
+    "ReceiptRequirement": {
+      "enum": [
+        "accepted_for_delivery",
+        "notification_advertised_maximum"
+      ],
+      "type": "string"
+    },
+    "RetryPolicy": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "none",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "backoff_ms": {
+              "format": "uint32",
+              "maximum": 30000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "definitely_pre_dispatch",
+              "type": "string"
+            },
+            "max_attempts": {
+              "format": "uint8",
+              "maximum": 3,
+              "minimum": 2,
+              "type": "integer"
+            },
+            "provider_deduplication": {
+              "$ref": "#/$defs/ProviderDeduplicationRequirement"
+            }
+          },
+          "required": [
+            "kind",
+            "max_attempts",
+            "backoff_ms",
+            "provider_deduplication"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        }
+      ]
+    },
     "RuleLimits": {
       "additionalProperties": false,
       "properties": {
+        "max_cel_eval_ms": {
+          "format": "uint8",
+          "maximum": 10,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_cel_memory_bytes": {
+          "format": "uint32",
+          "maximum": 1048576,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_cel_steps": {
+          "format": "uint16",
+          "maximum": 10000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_condition_nodes": {
+          "format": "uint8",
+          "maximum": 32,
+          "minimum": 1,
+          "type": "integer"
+        },
         "max_depth": {
           "format": "uint8",
           "maximum": 32,
@@ -340,37 +2697,126 @@
           "minimum": 1,
           "type": "integer"
         },
+        "max_effect_intents": {
+          "format": "uint8",
+          "maximum": 32,
+          "minimum": 1,
+          "type": "integer"
+        },
         "max_nodes": {
           "format": "uint16",
           "maximum": 128,
           "minimum": 1,
+          "type": "integer"
+        },
+        "max_parallel_branches": {
+          "format": "uint8",
+          "maximum": 4,
+          "minimum": 2,
+          "type": "integer"
+        },
+        "max_patch_operations": {
+          "format": "uint8",
+          "maximum": 128,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_plan_input_bytes": {
+          "format": "uint32",
+          "maximum": 65536,
+          "minimum": 1024,
+          "type": "integer"
+        },
+        "max_queued_triggers": {
+          "format": "uint8",
+          "maximum": 16,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_timers": {
+          "format": "uint8",
+          "maximum": 32,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_trace_bytes": {
+          "format": "uint32",
+          "maximum": 32768,
+          "minimum": 1024,
           "type": "integer"
         }
       },
       "required": [
         "max_nodes",
         "max_edges",
-        "max_depth"
+        "max_depth",
+        "max_parallel_branches",
+        "max_queued_triggers",
+        "max_condition_nodes",
+        "max_effect_intents",
+        "max_patch_operations",
+        "max_timers",
+        "max_cel_steps",
+        "max_cel_memory_bytes",
+        "max_cel_eval_ms",
+        "max_plan_input_bytes",
+        "max_trace_bytes"
       ],
       "type": "object",
       "unevaluatedProperties": false
     },
-    "ScalarLiteral": {
+    "RuleSchemaUrl": {
+      "enum": [
+        "https://schemas.litehouse.dev/rule-ir/v1.0.0/schema.json"
+      ],
+      "type": "string"
+    },
+    "RuleSchemaVersion": {
+      "enum": [
+        "1.0.0"
+      ],
+      "type": "string"
+    },
+    "RuntimeProfileArtifactId": {
+      "enum": [
+        "litehouse:rule-runtime@1"
+      ],
+      "type": "string"
+    },
+    "RuntimeProfileArtifactLock": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/RuntimeProfileArtifactId"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "sha256"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "Schedule": {
       "oneOf": [
         {
           "additionalProperties": false,
           "properties": {
-            "kind": {
-              "const": "bool",
-              "type": "string"
+            "at": {
+              "$ref": "#/$defs/TimestampValue"
             },
-            "value": {
-              "type": "boolean"
+            "kind": {
+              "const": "one_shot",
+              "type": "string"
             }
           },
           "required": [
             "kind",
-            "value"
+            "at"
           ],
           "type": "object",
           "unevaluatedProperties": false
@@ -378,37 +2824,20 @@
         {
           "additionalProperties": false,
           "properties": {
-            "kind": {
-              "const": "string",
-              "type": "string"
-            },
-            "value": {
-              "maxLength": 16384,
-              "type": "string"
-            }
-          },
-          "required": [
-            "kind",
-            "value"
-          ],
-          "type": "object",
-          "unevaluatedProperties": false
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "kind": {
-              "const": "i64",
-              "type": "string"
-            },
-            "value": {
-              "format": "int64",
+            "interval_ms": {
+              "format": "uint64",
+              "maximum": 604800000,
+              "minimum": 1,
               "type": "integer"
+            },
+            "kind": {
+              "const": "fixed_interval",
+              "type": "string"
             }
           },
           "required": [
             "kind",
-            "value"
+            "interval_ms"
           ],
           "type": "object",
           "unevaluatedProperties": false
@@ -416,17 +2845,40 @@
         {
           "additionalProperties": false,
           "properties": {
+            "days": {
+              "items": {
+                "$ref": "#/$defs/Weekday"
+              },
+              "maxItems": 7,
+              "minItems": 1,
+              "type": "array"
+            },
+            "duplicate_time": {
+              "$ref": "#/$defs/DuplicateTimePolicy"
+            },
             "kind": {
-              "const": "quantity",
+              "const": "weekly_civil",
               "type": "string"
             },
-            "value": {
-              "$ref": "#/$defs/QuantityWire"
+            "nonexistent_time": {
+              "$ref": "#/$defs/NonexistentTimePolicy"
+            },
+            "time": {
+              "$ref": "#/$defs/CivilTime"
+            },
+            "timezone": {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
             }
           },
           "required": [
             "kind",
-            "value"
+            "days",
+            "time",
+            "timezone",
+            "nonexistent_time",
+            "duplicate_time"
           ],
           "type": "object",
           "unevaluatedProperties": false
@@ -445,14 +2897,10 @@
           "type": "string"
         },
         "url": {
-          "maxLength": 256,
-          "minLength": 1,
-          "type": "string"
+          "$ref": "#/$defs/RuleSchemaUrl"
         },
         "version": {
-          "maxLength": 16,
-          "minLength": 1,
-          "type": "string"
+          "$ref": "#/$defs/RuleSchemaVersion"
         }
       },
       "required": [
@@ -467,6 +2915,9 @@
     "Selector": {
       "additionalProperties": false,
       "properties": {
+        "cardinality": {
+          "$ref": "#/$defs/SelectorCardinality"
+        },
         "contract": {
           "$ref": "#/$defs/ContractRef"
         },
@@ -477,33 +2928,87 @@
         "provider_instance_id": {
           "pattern": "^[0-9a-f]{32}$",
           "type": "string"
+        },
+        "rebind": {
+          "$ref": "#/$defs/RebindPolicy"
         }
       },
       "required": [
         "provider_instance_id",
         "facet_key",
-        "contract"
+        "contract",
+        "cardinality",
+        "rebind"
       ],
       "type": "object",
       "unevaluatedProperties": false
     },
+    "SelectorCardinality": {
+      "enum": [
+        "one",
+        "optional",
+        "many"
+      ],
+      "type": "string"
+    },
     "SemanticLocks": {
       "additionalProperties": false,
       "properties": {
+        "cel": {
+          "$ref": "#/$defs/CelArtifactLock"
+        },
         "compiler": {
-          "maxLength": 64,
-          "minLength": 1,
-          "type": "string"
+          "$ref": "#/$defs/CompilerArtifactLock"
+        },
+        "contract_catalog": {
+          "$ref": "#/$defs/ContractCatalogArtifactLock"
+        },
+        "management_operations": {
+          "$ref": "#/$defs/ManagementOperationsArtifactLock"
+        },
+        "port_catalog": {
+          "$ref": "#/$defs/PortCatalogArtifactLock"
         },
         "quantity_catalog": {
-          "maxLength": 64,
-          "minLength": 1,
-          "type": "string"
+          "$ref": "#/$defs/QuantityCatalogArtifactLock"
+        },
+        "runtime_profile": {
+          "$ref": "#/$defs/RuntimeProfileArtifactLock"
+        },
+        "timezone_database": {
+          "$ref": "#/$defs/TimezoneDatabaseArtifactLock"
         }
       },
       "required": [
         "compiler",
-        "quantity_catalog"
+        "cel",
+        "quantity_catalog",
+        "runtime_profile",
+        "timezone_database",
+        "contract_catalog",
+        "management_operations",
+        "port_catalog"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "SemanticPolicies": {
+      "additionalProperties": false,
+      "properties": {
+        "activation": {
+          "$ref": "#/$defs/ActivationPolicy"
+        },
+        "dependency_hydration": {
+          "$ref": "#/$defs/DependencyHydrationPolicy"
+        },
+        "trigger_queue": {
+          "$ref": "#/$defs/TriggerQueuePolicy"
+        }
+      },
+      "required": [
+        "activation",
+        "dependency_hydration",
+        "trigger_queue"
       ],
       "type": "object",
       "unevaluatedProperties": false
@@ -511,6 +3016,17 @@
     "SemanticRule": {
       "additionalProperties": false,
       "properties": {
+        "annotations": {
+          "additionalProperties": false,
+          "maxProperties": 64,
+          "patternProperties": {
+            "^[a-z][a-z0-9-]{0,31}:[a-z][a-z0-9_.-]{0,62}$": {
+              "$ref": "#/$defs/AnnotationValue"
+            }
+          },
+          "type": "object",
+          "unevaluatedProperties": false
+        },
         "description": {
           "maxLength": 4096,
           "type": "string"
@@ -540,6 +3056,9 @@
           "maxItems": 127,
           "type": "array"
         },
+        "policies": {
+          "$ref": "#/$defs/SemanticPolicies"
+        },
         "trigger": {
           "$ref": "#/$defs/TriggerNode"
         }
@@ -548,13 +3067,457 @@
         "name",
         "description",
         "locks",
+        "policies",
         "limits",
+        "annotations",
         "trigger",
         "nodes",
         "edges"
       ],
       "type": "object",
       "unevaluatedProperties": false
+    },
+    "StateFieldRef": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "on_off_current",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "boolean_current",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "level_current_level",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "level_target_level",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "level_transition_remaining",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "color_current_color",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "color_target_color",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "color_active_model",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "measurement_current",
+              "type": "string"
+            },
+            "profile": {
+              "$ref": "#/$defs/QuantityProfileRef"
+            }
+          },
+          "required": [
+            "kind",
+            "profile"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "measurement_native_representation",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "thermostat_current_mode",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "thermostat_target_mode",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "thermostat_action",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "thermostat_running",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "thermostat_targets",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "thermostat_fan",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "thermostat_swing",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "thermostat_preset",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "axis": {
+              "$ref": "#/$defs/CoveringAxis"
+            },
+            "kind": {
+              "const": "covering_current_position",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "axis"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "axis": {
+              "$ref": "#/$defs/CoveringAxis"
+            },
+            "kind": {
+              "const": "covering_target_position",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "axis"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "axis": {
+              "$ref": "#/$defs/CoveringAxis"
+            },
+            "kind": {
+              "const": "covering_movement",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "axis"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "covering_safety_status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "covering_fault_status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "contract": {
+              "$ref": "#/$defs/StatefulContractKind"
+            },
+            "kind": {
+              "const": "observation_revision",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "contract"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        }
+      ]
+    },
+    "StateObservationEventKind": {
+      "enum": [
+        "state-observation"
+      ],
+      "type": "string"
+    },
+    "StatefulContractKind": {
+      "enum": [
+        "on-off",
+        "boolean-state",
+        "level-control",
+        "color-control",
+        "measurement",
+        "thermostat",
+        "window-covering"
+      ],
+      "type": "string"
+    },
+    "ThermostatMode": {
+      "enum": [
+        "off",
+        "heat",
+        "cool",
+        "auto",
+        "dry",
+        "fan-only"
+      ],
+      "type": "string"
+    },
+    "TimestampValue": {
+      "additionalProperties": false,
+      "properties": {
+        "nanosecond": {
+          "format": "uint32",
+          "maximum": 999999999,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "unix_seconds": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "unix_seconds",
+        "nanosecond"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "TimezoneDatabaseArtifactId": {
+      "enum": [
+        "jiff-tzdb@0.1.8+2026c"
+      ],
+      "type": "string"
+    },
+    "TimezoneDatabaseArtifactLock": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/TimezoneDatabaseArtifactId"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "sha256"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "TriggerContextKind": {
+      "enum": [
+        "state_observation",
+        "discrete_event",
+        "time_schedule"
+      ],
+      "type": "string"
     },
     "TriggerNode": {
       "oneOf": [
@@ -595,10 +3558,86 @@
           ],
           "type": "object",
           "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "deduplication": {
+              "$ref": "#/$defs/EventDeduplicationPolicy"
+            },
+            "event": {
+              "$ref": "#/$defs/ContractEventRef"
+            },
+            "id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "discrete_event",
+              "type": "string"
+            },
+            "selector": {
+              "$ref": "#/$defs/Selector"
+            },
+            "version": {
+              "format": "uint8",
+              "maximum": 1,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "version",
+            "selector",
+            "event",
+            "deduplication"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "time_schedule",
+              "type": "string"
+            },
+            "schedule": {
+              "$ref": "#/$defs/Schedule"
+            },
+            "version": {
+              "format": "uint8",
+              "maximum": 1,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "version",
+            "schedule"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
         }
       ]
     },
-    "ValueType": {
+    "TriggerQueuePolicy": {
+      "enum": [
+        "drop_newest",
+        "drop_oldest",
+        "coalesce"
+      ],
+      "type": "string"
+    },
+    "TypeRef": {
       "oneOf": [
         {
           "additionalProperties": false,
@@ -646,32 +3685,272 @@
           "additionalProperties": false,
           "properties": {
             "kind": {
-              "const": "quantity",
+              "const": "u64",
               "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "timestamp",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "duration",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "item": {
+              "$ref": "#/$defs/TypeRef"
             },
-            "profile": {
-              "maxLength": 128,
-              "minLength": 1,
+            "kind": {
+              "const": "optional",
               "type": "string"
             }
           },
           "required": [
             "kind",
+            "item"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "item": {
+              "$ref": "#/$defs/TypeRef"
+            },
+            "kind": {
+              "const": "list",
+              "type": "string"
+            },
+            "max_items": {
+              "format": "uint16",
+              "maximum": 1024,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "item",
+            "max_items"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "catalog": {
+              "$ref": "#/$defs/QuantityCatalogRef"
+            },
+            "kind": {
+              "const": "quantity",
+              "type": "string"
+            },
+            "profile": {
+              "$ref": "#/$defs/QuantityProfileRef"
+            }
+          },
+          "required": [
+            "kind",
+            "catalog",
             "profile"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "contract",
+              "type": "string"
+            },
+            "type_ref": {
+              "$ref": "#/$defs/ContractTypeRef"
+            }
+          },
+          "required": [
+            "kind",
+            "type_ref"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "trigger_context",
+              "type": "string"
+            },
+            "trigger": {
+              "$ref": "#/$defs/TriggerContextKind"
+            }
+          },
+          "required": [
+            "kind",
+            "trigger"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "receipt",
+              "type": "string"
+            },
+            "operation": {
+              "$ref": "#/$defs/CapabilityOperationKind"
+            }
+          },
+          "required": [
+            "kind",
+            "operation"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "control",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "predicate_outcome",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "desired_patch",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "effect_intent",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "fork_token",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "run_outcome",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
           ],
           "type": "object",
           "unevaluatedProperties": false
         }
       ]
+    },
+    "Weekday": {
+      "enum": [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday"
+      ],
+      "type": "string"
     }
   },
   "$id": "https://schemas.litehouse.dev/rule-ir/v1.0.0/schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
+    "editor": {
+      "$ref": "#/$defs/EditorData"
+    },
     "revision": {
       "format": "uint64",
-      "minimum": 0,
+      "minimum": 1,
       "type": "integer"
     },
     "rule_id": {
@@ -689,7 +3968,8 @@
     "schema",
     "rule_id",
     "revision",
-    "semantic"
+    "semantic",
+    "editor"
   ],
   "title": "RuleDocument",
   "type": "object",
