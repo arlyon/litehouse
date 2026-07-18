@@ -175,7 +175,7 @@ impl WeatherField {
             Self::Temperature => "litehouse:quantity/temperature-absolute@1",
             Self::RelativeHumidity => "litehouse:quantity/relative-humidity@1",
             Self::WindSpeed => "litehouse:quantity/speed@1",
-            Self::WeatherCode => "litehouse:quantity/ratio@1",
+            Self::WeatherCode => "litehouse:quantity/wmo-weather-code@1",
         }
     }
 

@@ -7,6 +7,7 @@
     { "id": "litehouse:quantity/temperature-difference@1", "canonicalUnit": "K", "kind": "temperature-difference" },
     { "id": "litehouse:quantity/relative-humidity@1", "canonicalUnit": "1", "kind": "ratio" },
     { "id": "litehouse:quantity/ratio@1", "canonicalUnit": "1", "kind": "ratio" },
+    { "id": "litehouse:quantity/wmo-weather-code@1", "canonicalUnit": "1", "kind": "discrete-code" },
     { "id": "litehouse:quantity/pressure@1", "canonicalUnit": "Pa", "kind": "linear" },
     { "id": "litehouse:quantity/illuminance@1", "canonicalUnit": "lx", "kind": "linear" },
     { "id": "litehouse:quantity/power@1", "canonicalUnit": "W", "kind": "linear" },

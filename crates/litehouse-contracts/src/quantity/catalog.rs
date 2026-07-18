@@ -16,6 +16,7 @@ pub mod profile_ids {
     pub const TEMPERATURE_DIFFERENCE: &str = "litehouse:quantity/temperature-difference@1";
     pub const RELATIVE_HUMIDITY: &str = "litehouse:quantity/relative-humidity@1";
     pub const RATIO: &str = "litehouse:quantity/ratio@1";
+    pub const WMO_WEATHER_CODE: &str = "litehouse:quantity/wmo-weather-code@1";
     pub const PRESSURE: &str = "litehouse:quantity/pressure@1";
     pub const ILLUMINANCE: &str = "litehouse:quantity/illuminance@1";
     pub const POWER: &str = "litehouse:quantity/power@1";
@@ -73,6 +74,10 @@ impl Profile {
             self.id,
             profile_ids::RELATIVE_HUMIDITY | profile_ids::RATIO | profile_ids::BATTERY_RATIO
         )
+    }
+
+    pub(crate) fn is_wmo_weather_code(&self) -> bool {
+        self.id == profile_ids::WMO_WEATHER_CODE
     }
 
     pub(crate) fn is_logarithmic_source(&self) -> bool {
@@ -134,6 +139,13 @@ pub static BUILTIN_PROFILES: &[Profile] = &[
         "generic ratio",
         "1",
         "Dimensionless ratio in the closed interval [0, 1] for levels and positions.",
+        Dimension::DIMENSIONLESS
+    ),
+    profile!(
+        profile_ids::WMO_WEATHER_CODE,
+        "WMO weather interpretation code",
+        "1",
+        "Discrete WMO weather interpretation code in the closed integer interval [0, 99].",
         Dimension::DIMENSIONLESS
     ),
     profile!(

@@ -20,6 +20,22 @@ fn canonicalizes_percent_to_profile_ratio() {
 }
 
 #[test]
+fn wmo_weather_code_is_a_bounded_discrete_profile() {
+    for value in ["0", "99"] {
+        let code = Quantity::parse(profile_ids::WMO_WEATHER_CODE, value, "1").unwrap();
+        assert_eq!(code.magnitude().to_string(), value);
+    }
+    for invalid in ["-1", "1.5", "100"] {
+        assert_eq!(
+            Quantity::parse(profile_ids::WMO_WEATHER_CODE, invalid, "1")
+                .unwrap_err()
+                .code,
+            ErrorCode::SemanticMismatch
+        );
+    }
+}
+
+#[test]
 fn keeps_absolute_temperature_and_difference_distinct() {
     let freezing = Quantity::parse(profile_ids::TEMPERATURE_ABSOLUTE, "0", "Cel").unwrap();
     let boiling = Quantity::parse(profile_ids::TEMPERATURE_ABSOLUTE, "100", "Cel").unwrap();

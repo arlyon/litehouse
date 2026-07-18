@@ -73,6 +73,12 @@ impl Quantity {
         {
             return Err(QuantityError::new(Code::SemanticMismatch));
         }
+        if quantity.profile().is_wmo_weather_code()
+            && (quantity.magnitude.scale() != 0
+                || !(0..=99).contains(&quantity.magnitude.coefficient()))
+        {
+            return Err(QuantityError::new(Code::SemanticMismatch));
+        }
         Ok(quantity)
     }
 
