@@ -5790,11 +5790,13 @@ checksum = "df7f62577c25e07834649fc3b39fafdc597c0a3527dc1c60129201ccfcbaa50c"
 name = "tasmota"
 version = "0.1.1"
 dependencies = [
- "litehouse-plugin",
- "schemars 0.8.22",
+ "base64 0.22.1",
+ "futures",
  "serde",
  "serde_json",
- "tracing",
+ "sha2",
+ "wit-bindgen 0.59.0",
+ "zeroize",
 ]
 
 [[package]]
