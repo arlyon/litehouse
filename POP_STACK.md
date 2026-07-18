@@ -168,7 +168,7 @@ runtime-only credential material left with the proof process.
 | T6c | Completed | ntfy notification provider |
 | T6d | Completed | attributed Open-Meteo provider |
 | T6e | Completed | Four-provider release group; empty MQTT, Presence, Sonoff, and Weather shells removed |
-| T6f | In progress | Expand ESPHome across every conservatively representable typed facet |
+| T6f | Completed | ESPHome switches, binary sensors, numeric sensors, lights, fans, sirens, climates, covers, and buttons mapped conservatively |
 | T7 | Completed | Rule JSON schema, typed compiler, immutable input, and pure planner subset |
 | T13a | Completed | Network-reachable bounded Streamable HTTP with explicit no-auth warning |
 | T8 | Pending | Durable canonical management core and rule execution; adopt the proving handlers |
@@ -197,7 +197,7 @@ runtime-only credential material left with the proof process.
 - Workspace-wide `cargo check --workspace --all-targets` remains blocked by the pre-existing registry test reference to unresolved `crate::registry` in `partitioned_store.rs`.
 - `cargo groups test bin` may remain unavailable because `cargo-groups`/`cargo-binstall` is not installed; run the documented clean-worktree package equivalents and report the limitation.
 - `/mcp` is network-reachable but intentionally unauthenticated in T13a: reachability grants use. Authenticated `/mcp` remains T13 work.
-- ESPHome switches and binary sensors are proven. Light Level/Color, measurements, climate, covering, and momentary actions are the active T6f expansion.
+- ESPHome's mapped API 1.14 entities are covered by deterministic typed feature-gate and command fixtures; unsupported entities remain bounded diagnostics.
 - Shared-store T3 failures still require process restart for reactivation; this provider uses the default per-instance strategy.
 
 ## Compaction handoff
@@ -210,4 +210,4 @@ After context compaction, reorient in this order:
 4. `git status --short` and `git log --oneline -8`
 5. The active combined T6a + MCP todo subtree
 
-The next implementation action is **finish T6f: expand ESPHome across the complete typed provider surface**, then run the combined provider/MCP/Rule JSON release validation. Do not reopen T0–T4, the typed-resource feasibility question, or the proven three-tool adapter unless a demonstrated regression requires it.
+The next implementation action is **proceed to the durable management core and authenticated transport tranches**. Do not reopen T0–T7, T13a, the typed-resource feasibility question, or the proven three-tool adapter unless a demonstrated regression requires it.

@@ -572,3 +572,17 @@ configuration.
   paths in the release group. Tasmota, ntfy, and Open-Meteo pass deterministic
   protocol tests and Component Model/runtime-profile admission without live
   service or hardware access.
+
+### R-015 — Map ESPHome by advertised Native API features
+
+- **Resolution:** one encrypted API 1.14 session now projects switches, binary
+  sensors, whitelisted numeric sensors, lights, fans, sirens, climates, covers,
+  and buttons only into contracts their discovery metadata can support. Facets
+  from one entity share a stable source locator. Commands remain absolute;
+  unsupported step/move/toggle semantics and unknown units/entities become
+  bounded diagnostics rather than invented capabilities.
+- **Evidence:** deterministic API 1.14 Noise fixtures cover discovery, hydration,
+  feature-gated descriptors, typed queries, every mapped command family, bounded
+  unsupported diagnostics, disconnect gaps, topology reincarnation, and the
+  existing switch set/observe/restore regression. The expanded component passes
+  Clippy, Component Model validation, and provider runtime-profile admission.
