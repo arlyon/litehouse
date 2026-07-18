@@ -187,12 +187,17 @@ pub struct CompiledRule {
     pub(crate) revision: u64,
     pub(crate) profile_sha256: String,
     pub(crate) semantic_sha256: String,
+    pub(crate) artifacts: CompiledArtifacts,
+    pub(crate) policies: crate::model::SemanticPolicies,
+    pub(crate) limits: crate::model::RuleLimits,
     pub(crate) trigger_id: String,
     pub(crate) trigger: CompiledTrigger,
     pub(crate) nodes: BTreeMap<String, CompiledNode>,
     pub(crate) outgoing: BTreeMap<(String, String), String>,
     pub(crate) data_sources: BTreeMap<(String, String), (String, String)>,
+    pub(crate) receipt_continuations: BTreeMap<String, String>,
     pub(crate) topological_order: Vec<String>,
+    pub(crate) topological_rank: BTreeMap<String, usize>,
     pub(crate) max_plan_input_bytes: usize,
     pub(crate) max_trace_bytes: usize,
 }
@@ -212,6 +217,10 @@ impl CompiledRule {
 
     pub fn semantic_sha256(&self) -> &str {
         &self.semantic_sha256
+    }
+
+    pub fn artifacts(&self) -> &CompiledArtifacts {
+        &self.artifacts
     }
 
     pub fn trigger_id(&self) -> &str {
@@ -236,6 +245,37 @@ impl CompiledRule {
     pub fn nodes(&self) -> &BTreeMap<String, CompiledNode> {
         &self.nodes
     }
+
+    pub fn policies(&self) -> crate::model::SemanticPolicies {
+        self.policies
+    }
+
+    pub fn limits(&self) -> crate::model::RuleLimits {
+        self.limits
+    }
+
+    pub fn receipt_continuation(&self, effect_node_id: &str) -> Option<&str> {
+        self.receipt_continuations
+            .get(effect_node_id)
+            .map(String::as_str)
+    }
+
+    pub fn topological_rank(&self, node_id: &str) -> Option<usize> {
+        self.topological_rank.get(node_id).copied()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompiledArtifacts {
+    pub schema_sha256: String,
+    pub compiler_sha256: String,
+    pub cel_sha256: String,
+    pub quantity_catalog_sha256: String,
+    pub runtime_profile_sha256: String,
+    pub timezone_database_sha256: String,
+    pub contract_catalog_sha256: String,
+    pub management_operations_sha256: String,
+    pub port_catalog_sha256: String,
 }
 
 #[derive(Debug, Clone)]
@@ -346,6 +386,55 @@ pub enum CompiledQuantityOperation {
     Quantize {
         scale: u8,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CompiledQuantityResult {
+    Quantity(Quantity),
+    Predicate(bool),
+}
+
+impl CompiledQuantityOperation {
+    pub fn evaluate(
+        &self,
+        input: &Quantity,
+    ) -> Result<CompiledQuantityResult, litehouse_contracts::quantity::QuantityError> {
+        let result = match self {
+            Self::Convert { .. } => CompiledQuantityResult::Quantity(input.clone()),
+            Self::Compare { operator, right } => {
+                let ordering = input.checked_cmp(right)?;
+                let predicate = match operator {
+                    CompareOperator::Equal => ordering == std::cmp::Ordering::Equal,
+                    CompareOperator::NotEqual => ordering != std::cmp::Ordering::Equal,
+                    CompareOperator::Less => ordering == std::cmp::Ordering::Less,
+                    CompareOperator::LessOrEqual => ordering != std::cmp::Ordering::Greater,
+                    CompareOperator::Greater => ordering == std::cmp::Ordering::Greater,
+                    CompareOperator::GreaterOrEqual => ordering != std::cmp::Ordering::Less,
+                };
+                CompiledQuantityResult::Predicate(predicate)
+            }
+            Self::Add { right, .. } => CompiledQuantityResult::Quantity(input.checked_add(right)?),
+            Self::Subtract { right, .. } => {
+                CompiledQuantityResult::Quantity(input.checked_sub(right)?)
+            }
+            Self::Multiply { right, .. } => {
+                CompiledQuantityResult::Quantity(input.checked_mul(right)?)
+            }
+            Self::Divide { right, .. } => {
+                CompiledQuantityResult::Quantity(input.checked_div(right)?)
+            }
+            Self::Quantize { scale } => CompiledQuantityResult::Quantity(
+                Quantity::parse_quantized(
+                    input.profile_id().as_str(),
+                    &input.magnitude().to_string(),
+                    input.unit(),
+                    *scale,
+                )?
+                .quantity,
+            ),
+        };
+        Ok(result)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -466,17 +555,50 @@ pub(crate) fn compile(document: RuleDocument) -> Result<CompiledRule, CompileErr
         );
     }
 
+    let receipt_continuations = document
+        .semantic
+        .nodes
+        .iter()
+        .filter_map(|node| match node {
+            Node::ReceiptBranch {
+                id, effect_node_id, ..
+            } => Some((effect_node_id.clone(), id.clone())),
+            _ => None,
+        })
+        .collect();
+    let topological_rank = topological_order
+        .iter()
+        .enumerate()
+        .map(|(rank, node)| (node.clone(), rank))
+        .collect();
+    let artifacts = CompiledArtifacts {
+        schema_sha256: document.schema.sha256.clone(),
+        compiler_sha256: document.semantic.locks.compiler.sha256.clone(),
+        cel_sha256: document.semantic.locks.cel.sha256.clone(),
+        quantity_catalog_sha256: document.semantic.locks.quantity_catalog.sha256.clone(),
+        runtime_profile_sha256: document.semantic.locks.runtime_profile.sha256.clone(),
+        timezone_database_sha256: document.semantic.locks.timezone_database.sha256.clone(),
+        contract_catalog_sha256: document.semantic.locks.contract_catalog.sha256.clone(),
+        management_operations_sha256: document.semantic.locks.management_operations.sha256.clone(),
+        port_catalog_sha256: document.semantic.locks.port_catalog.sha256.clone(),
+    };
+
     Ok(CompiledRule {
         rule_id: document.rule_id,
         revision: document.revision,
         profile_sha256: document.schema.profile_sha256,
         semantic_sha256,
+        artifacts,
+        policies: document.semantic.policies,
+        limits: document.semantic.limits,
         trigger_id: document.semantic.trigger.id().to_owned(),
         trigger,
         nodes,
         outgoing: graph.outgoing,
         data_sources: graph.data_sources,
+        receipt_continuations,
         topological_order,
+        topological_rank,
         max_plan_input_bytes: document.semantic.limits.max_plan_input_bytes as usize,
         max_trace_bytes: document.semantic.limits.max_trace_bytes as usize,
     })

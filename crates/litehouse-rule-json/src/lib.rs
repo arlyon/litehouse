@@ -18,8 +18,9 @@ mod planner;
 pub mod schema;
 
 pub use compile::{
-    CompileError, CompiledNode, CompiledQuantityOperation, CompiledRule, CompiledSchedule,
-    CompiledTrigger, RuleJsonError, compile_rule_json,
+    CompileError, CompiledArtifacts, CompiledNode, CompiledQuantityOperation,
+    CompiledQuantityResult, CompiledRule, CompiledSchedule, CompiledTrigger, RuleJsonError,
+    compile_rule_json,
 };
 pub use condition::CheckedCelProgram;
 pub use model::*;
