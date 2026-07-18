@@ -16,6 +16,11 @@ wit_bindgen::generate!({
         "../../crates/litehouse-contracts/packages/quantity/1.0.0/wit",
         "../../crates/litehouse-contracts/packages/measurement/1.0.0/wit",
         "../../crates/litehouse-contracts/packages/notification-sink/1.0.0/wit",
+        "../../crates/litehouse-contracts/packages/level-control/1.0.0/wit",
+        "../../crates/litehouse-contracts/packages/color-control/1.0.0/wit",
+        "../../crates/litehouse-contracts/packages/thermostat/1.0.0/wit",
+        "../../crates/litehouse-contracts/packages/window-covering/1.0.0/wit",
+        "../../crates/litehouse-contracts/packages/momentary-action/1.0.0/wit",
         "../../crates/litehouse-contracts/packages/provider/1.0.0/wit",
         "wit/http.wit",
         "wit/world.wit",
@@ -27,10 +32,12 @@ wit_bindgen::generate!({
 use exports::litehouse::provider::provider;
 use futures::lock::Mutex;
 use litehouse::{
-    boolean_state::types as boolean, descriptor::types as descriptor, errors::types as errors,
-    measurement::types as measurement, notification_sink::types as notification,
-    on_off::types as on_off, quantity::types as quantity, receipt::types as receipt,
-    state::types as state,
+    boolean_state::types as boolean, color_control::types as color,
+    descriptor::types as descriptor, errors::types as errors, level_control::types as level,
+    measurement::types as measurement, momentary_action::types as momentary,
+    notification_sink::types as notification, on_off::types as on_off, quantity::types as quantity,
+    receipt::types as receipt, state::types as state, thermostat::types as thermostat,
+    window_covering::types as covering,
 };
 use protocol::{
     Config, ProtocolError, RateBudget, RequestSpec, WeatherField, WeatherSnapshot, parse_response,
@@ -71,6 +78,11 @@ struct MeasurementFacet {
 enum NeverOnOffFacet {}
 enum NeverBooleanFacet {}
 enum NeverNotificationSinkFacet {}
+enum NeverLevelControlFacet {}
+enum NeverColorControlFacet {}
+enum NeverThermostatFacet {}
+enum NeverWindowCoveringFacet {}
+enum NeverMomentaryActionFacet {}
 
 struct Session {
     config: Config,
@@ -100,6 +112,11 @@ impl provider::Guest for OpenMeteoProvider {
     type BooleanFacet = NeverBooleanFacet;
     type MeasurementFacet = MeasurementFacet;
     type NotificationSinkFacet = NeverNotificationSinkFacet;
+    type LevelControlFacet = NeverLevelControlFacet;
+    type ColorControlFacet = NeverColorControlFacet;
+    type ThermostatFacet = NeverThermostatFacet;
+    type WindowCoveringFacet = NeverWindowCoveringFacet;
+    type MomentaryActionFacet = NeverMomentaryActionFacet;
 
     async fn start(
         instance_id: String,
@@ -148,6 +165,270 @@ impl provider::GuestRunner for Runner {
         &self,
     ) -> Result<Vec<provider::NotificationSinkFacet>, provider::Error> {
         Ok(vec![])
+    }
+    async fn level_control_facets(
+        &self,
+    ) -> Result<Vec<provider::LevelControlFacet>, provider::Error> {
+        Ok(vec![])
+    }
+    async fn color_control_facets(
+        &self,
+    ) -> Result<Vec<provider::ColorControlFacet>, provider::Error> {
+        Ok(vec![])
+    }
+    async fn thermostat_facets(&self) -> Result<Vec<provider::ThermostatFacet>, provider::Error> {
+        Ok(vec![])
+    }
+    async fn window_covering_facets(
+        &self,
+    ) -> Result<Vec<provider::WindowCoveringFacet>, provider::Error> {
+        Ok(vec![])
+    }
+    async fn momentary_action_facets(
+        &self,
+    ) -> Result<Vec<provider::MomentaryActionFacet>, provider::Error> {
+        Ok(vec![])
+    }
+}
+
+impl provider::GuestLevelControlFacet for NeverLevelControlFacet {
+    fn key(&self) -> String {
+        match *self {}
+    }
+    fn incarnation(&self) -> u64 {
+        match *self {}
+    }
+    async fn describe(
+        &self,
+        _: receipt::RequestContext,
+    ) -> Result<level::LevelDescriptor, level::Error> {
+        match *self {}
+    }
+    async fn query(&self, _: receipt::RequestContext) -> Result<level::State, level::Error> {
+        match *self {}
+    }
+    async fn set_level(
+        &self,
+        _: receipt::RequestContext,
+        _: level::SetRequest,
+    ) -> Result<level::OperationReceipt, level::Error> {
+        match *self {}
+    }
+    async fn step(
+        &self,
+        _: receipt::RequestContext,
+        _: level::StepRequest,
+    ) -> Result<level::OperationReceipt, level::Error> {
+        match *self {}
+    }
+    async fn move_(
+        &self,
+        _: receipt::RequestContext,
+        _: level::MoveRequest,
+    ) -> Result<level::OperationReceipt, level::Error> {
+        match *self {}
+    }
+    async fn stop(
+        &self,
+        _: receipt::RequestContext,
+    ) -> Result<level::OperationReceipt, level::Error> {
+        match *self {}
+    }
+    async fn set_level_with_on_off(
+        &self,
+        _: receipt::RequestContext,
+        _: level::CoupledRequest,
+    ) -> Result<level::OperationReceipt, level::Error> {
+        match *self {}
+    }
+    async fn step_with_on_off(
+        &self,
+        _: receipt::RequestContext,
+        _: level::CoupledStepRequest,
+    ) -> Result<level::OperationReceipt, level::Error> {
+        match *self {}
+    }
+    async fn move_with_on_off(
+        &self,
+        _: receipt::RequestContext,
+        _: level::CoupledMoveRequest,
+    ) -> Result<level::OperationReceipt, level::Error> {
+        match *self {}
+    }
+}
+
+impl provider::GuestColorControlFacet for NeverColorControlFacet {
+    fn key(&self) -> String {
+        match *self {}
+    }
+    fn incarnation(&self) -> u64 {
+        match *self {}
+    }
+    async fn describe(
+        &self,
+        _: receipt::RequestContext,
+    ) -> Result<color::ColorDescriptor, color::Error> {
+        match *self {}
+    }
+    async fn query(&self, _: receipt::RequestContext) -> Result<color::State, color::Error> {
+        match *self {}
+    }
+    async fn set_color(
+        &self,
+        _: receipt::RequestContext,
+        _: color::SetRequest,
+    ) -> Result<color::OperationReceipt, color::Error> {
+        match *self {}
+    }
+    async fn step_color(
+        &self,
+        _: receipt::RequestContext,
+        _: color::StepRequest,
+    ) -> Result<color::OperationReceipt, color::Error> {
+        match *self {}
+    }
+    async fn move_color(
+        &self,
+        _: receipt::RequestContext,
+        _: color::MoveRequest,
+    ) -> Result<color::OperationReceipt, color::Error> {
+        match *self {}
+    }
+    async fn stop(
+        &self,
+        _: receipt::RequestContext,
+    ) -> Result<color::OperationReceipt, color::Error> {
+        match *self {}
+    }
+}
+
+impl provider::GuestThermostatFacet for NeverThermostatFacet {
+    fn key(&self) -> String {
+        match *self {}
+    }
+    fn incarnation(&self) -> u64 {
+        match *self {}
+    }
+    async fn describe(
+        &self,
+        _: receipt::RequestContext,
+    ) -> Result<thermostat::ThermostatDescriptor, thermostat::Error> {
+        match *self {}
+    }
+    async fn query(
+        &self,
+        _: receipt::RequestContext,
+    ) -> Result<thermostat::State, thermostat::Error> {
+        match *self {}
+    }
+    async fn set_mode(
+        &self,
+        _: receipt::RequestContext,
+        _: thermostat::SetModeRequest,
+    ) -> Result<thermostat::OperationReceipt, thermostat::Error> {
+        match *self {}
+    }
+    async fn set_single_target(
+        &self,
+        _: receipt::RequestContext,
+        _: thermostat::SetSingleTargetRequest,
+    ) -> Result<thermostat::OperationReceipt, thermostat::Error> {
+        match *self {}
+    }
+    async fn set_dual_target(
+        &self,
+        _: receipt::RequestContext,
+        _: thermostat::SetDualTargetRequest,
+    ) -> Result<thermostat::OperationReceipt, thermostat::Error> {
+        match *self {}
+    }
+    async fn set_fan(
+        &self,
+        _: receipt::RequestContext,
+        _: thermostat::SetChoiceRequest,
+    ) -> Result<thermostat::OperationReceipt, thermostat::Error> {
+        match *self {}
+    }
+    async fn set_swing(
+        &self,
+        _: receipt::RequestContext,
+        _: thermostat::SetChoiceRequest,
+    ) -> Result<thermostat::OperationReceipt, thermostat::Error> {
+        match *self {}
+    }
+    async fn set_preset(
+        &self,
+        _: receipt::RequestContext,
+        _: thermostat::SetChoiceRequest,
+    ) -> Result<thermostat::OperationReceipt, thermostat::Error> {
+        match *self {}
+    }
+}
+
+impl provider::GuestWindowCoveringFacet for NeverWindowCoveringFacet {
+    fn key(&self) -> String {
+        match *self {}
+    }
+    fn incarnation(&self) -> u64 {
+        match *self {}
+    }
+    async fn describe(
+        &self,
+        _: receipt::RequestContext,
+    ) -> Result<covering::CoveringDescriptor, covering::Error> {
+        match *self {}
+    }
+    async fn query(&self, _: receipt::RequestContext) -> Result<covering::State, covering::Error> {
+        match *self {}
+    }
+    async fn open(
+        &self,
+        _: receipt::RequestContext,
+        _: covering::AxisRequest,
+    ) -> Result<covering::OperationReceipt, covering::Error> {
+        match *self {}
+    }
+    async fn close(
+        &self,
+        _: receipt::RequestContext,
+        _: covering::AxisRequest,
+    ) -> Result<covering::OperationReceipt, covering::Error> {
+        match *self {}
+    }
+    async fn stop(
+        &self,
+        _: receipt::RequestContext,
+        _: covering::AxisRequest,
+    ) -> Result<covering::OperationReceipt, covering::Error> {
+        match *self {}
+    }
+    async fn set_position(
+        &self,
+        _: receipt::RequestContext,
+        _: covering::PositionRequest,
+    ) -> Result<covering::OperationReceipt, covering::Error> {
+        match *self {}
+    }
+}
+
+impl provider::GuestMomentaryActionFacet for NeverMomentaryActionFacet {
+    fn key(&self) -> String {
+        match *self {}
+    }
+    fn incarnation(&self) -> u64 {
+        match *self {}
+    }
+    async fn describe(
+        &self,
+        _: receipt::RequestContext,
+    ) -> Result<momentary::ActionDescriptor, momentary::Error> {
+        match *self {}
+    }
+    async fn invoke(
+        &self,
+        _: receipt::RequestContext,
+    ) -> Result<momentary::InvokeReceipt, momentary::Error> {
+        match *self {}
     }
 }
 
