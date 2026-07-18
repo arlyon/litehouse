@@ -3982,6 +3982,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "open-meteo"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "serde",
+ "serde_json",
+ "wit-bindgen 0.59.0",
+]
+
+[[package]]
 name = "opendal"
 version = "0.45.1"
 source = "git+https://github.com/apache/opendal?rev=4d5df20#4d5df20d586888744a7af4db057d19b583425873"

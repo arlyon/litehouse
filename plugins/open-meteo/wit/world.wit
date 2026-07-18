@@ -1,0 +1,6 @@
+package litehouse:open-meteo@1.0.0;
+
+world component {
+  import wasi:http/client@0.3.0;
+  export litehouse:provider/provider@1.0.0;
+}
