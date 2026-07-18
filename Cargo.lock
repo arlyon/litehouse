@@ -3869,6 +3869,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ntfy"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "url",
+ "wit-bindgen 0.59.0",
+ "zeroize",
+]
+
+[[package]]
 name = "nu-ansi-term"
 version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7921,6 +7932,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94c5e45f6d4cfaca727c1c48989ab3e05bb289bf84fbad226e1cfbbef2c04b7f"
 dependencies = [
  "bitflags 2.13.0",
+ "futures",
  "wit-bindgen-rust-macro",
 ]
 

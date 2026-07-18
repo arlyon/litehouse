@@ -1,0 +1,64 @@
+package wasi:http@0.3.0;
+
+// Exact P3 identities with only the operations this bounded provider consumes.
+// `duration` is the specified nanosecond u64 alias, inlined to avoid requiring
+// an otherwise-unapproved wasi:clocks@0.3 import in the frozen runtime profile.
+interface types {
+  type duration = u64;
+  variant method { get, head, post, put, delete, connect, options, trace, patch, other(string) }
+  variant scheme { HTTP, HTTPS, other(string) }
+  record DNS-error-payload { rcode: option<string>, info-code: option<u16> }
+  record TLS-alert-received-payload { alert-id: option<u8>, alert-message: option<string> }
+  record field-size-payload { field-name: option<string>, field-size: option<u32> }
+  variant error-code {
+    DNS-timeout, DNS-error(DNS-error-payload), destination-not-found,
+    destination-unavailable, destination-IP-prohibited, destination-IP-unroutable,
+    connection-refused, connection-terminated, connection-timeout,
+    connection-read-timeout, connection-write-timeout, connection-limit-reached,
+    TLS-protocol-error, TLS-certificate-error, TLS-alert-received(TLS-alert-received-payload),
+    HTTP-request-denied, HTTP-request-length-required, HTTP-request-body-size(option<u64>),
+    HTTP-request-method-invalid, HTTP-request-URI-invalid, HTTP-request-URI-too-long,
+    HTTP-request-header-section-size(option<u32>), HTTP-request-header-size(option<field-size-payload>),
+    HTTP-request-trailer-section-size(option<u32>), HTTP-request-trailer-size(field-size-payload),
+    HTTP-response-incomplete, HTTP-response-header-section-size(option<u32>),
+    HTTP-response-header-size(field-size-payload), HTTP-response-body-size(option<u64>),
+    HTTP-response-trailer-section-size(option<u32>), HTTP-response-trailer-size(field-size-payload),
+    HTTP-response-transfer-coding(option<string>), HTTP-response-content-coding(option<string>),
+    HTTP-response-timeout, HTTP-upgrade-failed, HTTP-protocol-error, loop-detected,
+    configuration-error, internal-error(option<string>),
+  }
+  variant header-error { invalid-syntax, forbidden, immutable, size-exceeded, other(option<string>) }
+  variant request-options-error { not-supported, immutable, other(option<string>) }
+  type field-name = string;
+  type field-value = list<u8>;
+  resource fields {
+    constructor();
+    append: func(name: field-name, value: field-value) -> result<_, header-error>;
+    copy-all: func() -> list<tuple<field-name, field-value>>;
+  }
+  type headers = fields;
+  type trailers = fields;
+  resource request-options {
+    constructor();
+    set-connect-timeout: func(duration: option<duration>) -> result<_, request-options-error>;
+    set-first-byte-timeout: func(duration: option<duration>) -> result<_, request-options-error>;
+    set-between-bytes-timeout: func(duration: option<duration>) -> result<_, request-options-error>;
+  }
+  resource request {
+    new: static func(headers: headers, contents: option<stream<u8>>, trailers: future<result<option<trailers>, error-code>>, options: option<request-options>) -> tuple<request, future<result<_, error-code>>>;
+    set-method: func(method: method) -> result;
+    set-path-with-query: func(path-with-query: option<string>) -> result;
+    set-scheme: func(scheme: option<scheme>) -> result;
+    set-authority: func(authority: option<string>) -> result;
+  }
+  type status-code = u16;
+  resource response {
+    get-status-code: func() -> status-code;
+    get-headers: func() -> headers;
+    consume-body: static func(this: response, res: future<result<_, error-code>>) -> tuple<stream<u8>, future<result<option<trailers>, error-code>>>;
+  }
+}
+interface client {
+  use types.{request, response, error-code};
+  send: async func(request: request) -> result<response, error-code>;
+}
