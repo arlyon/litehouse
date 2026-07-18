@@ -11,7 +11,7 @@ const QUANTITY_PROFILE_BYTES: &[u8] =
     include_bytes!("../../litehouse-contracts/packages/quantity/1.0.0/quantity/profiles.json");
 const RUNTIME_PROFILE_BYTES: &[u8] =
     include_bytes!("../../litehouse-contracts/packages/runtime-profile/1.0.0/profile.json");
-const COMPILER_PROFILE_BYTES: &[u8] = b"litehouse:rule-compiler@1\nrule-json=1.0.0\ncanonical-semantic=rfc8785-jcs-64k\ncompiler=t8.1b\n";
+const COMPILER_PROFILE_BYTES: &[u8] = b"litehouse:rule-compiler@1\nrule-json=1.0.0\ncanonical-semantic=rfc8785-jcs-64k\ncompiler=t8.1c\n";
 const CEL_PROFILE_BYTES: &[u8] = b"litehouse-cel@1\ncel=0.14.0\nmode=bounded-dynamic-interpreter\ninputs=declared-immutable-only\ncost=closed-ast-precharged\nmemory=checked-ast-plus-runtime-values\nchrono=timestamp-boundary-only\n";
 const TIMEZONE_PROFILE_BYTES: &[u8] =
     b"jiff-tzdb@0.1.8+2026c\njiff=0.2.32\ntzdb-source=jiff-tzdb-bundle-always\n";

@@ -27,8 +27,8 @@ use crate::{
         HARD_MAX_STRING_BYTES, HARD_MAX_TIMER_DURATION_MS, HARD_MAX_TIMERS_PER_RULE,
         HARD_MAX_TRACE_BYTES, Node, NonexistentTimePolicy, QuantityCatalogRef, QuantityOperation,
         QuantityProfileRef, RebindPolicy, ReceiptRequirement, RetryPolicy, RuleDocument, Schedule,
-        Selector, SelectorCardinality, TriggerContextKind, TriggerNode, TypeRef, ValueType,
-        Weekday, valid_contract_part, valid_decimal_shape, valid_hex_32, valid_hex_64, valid_id,
+        Selector, SelectorCardinality, TriggerContextKind, TriggerNode, TypeRef, Weekday,
+        valid_contract_part, valid_decimal_shape, valid_hex_32, valid_hex_64, valid_id,
     },
     schema::artifact_digests,
 };
@@ -179,8 +179,6 @@ pub enum CompileError {
     UnreachableNode { node: String },
     #[error("graph depth {actual} exceeds configured maximum {maximum}")]
     GraphTooDeep { actual: usize, maximum: usize },
-    #[error("planner subset does not yet support {kind} at {node:?}")]
-    PlannerSubsetUnsupported { node: String, kind: String },
 }
 
 #[derive(Debug, Clone)]
@@ -190,8 +188,7 @@ pub struct CompiledRule {
     pub(crate) profile_sha256: String,
     pub(crate) semantic_sha256: String,
     pub(crate) trigger_id: String,
-    pub(crate) trigger_selector: Option<Selector>,
-    schedule: Option<CompiledSchedule>,
+    pub(crate) trigger: CompiledTrigger,
     pub(crate) nodes: BTreeMap<String, CompiledNode>,
     pub(crate) outgoing: BTreeMap<(String, String), String>,
     pub(crate) data_sources: BTreeMap<(String, String), (String, String)>,
@@ -221,13 +218,41 @@ impl CompiledRule {
         &self.trigger_id
     }
 
+    pub fn trigger(&self) -> &CompiledTrigger {
+        &self.trigger
+    }
+
     pub fn schedule(&self) -> Option<&CompiledSchedule> {
-        self.schedule.as_ref()
+        match &self.trigger {
+            CompiledTrigger::TimeSchedule { schedule } => Some(schedule),
+            _ => None,
+        }
     }
 
     pub fn topological_order(&self) -> &[String] {
         &self.topological_order
     }
+
+    pub fn nodes(&self) -> &BTreeMap<String, CompiledNode> {
+        &self.nodes
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum CompiledTrigger {
+    StateObservation {
+        selector: Selector,
+        mode: crate::model::ObservationMode,
+        initial: crate::model::InitialObservationPolicy,
+    },
+    DiscreteEvent {
+        selector: Selector,
+        event: crate::model::ContractEventRef,
+        deduplication: crate::model::EventDeduplicationPolicy,
+    },
+    TimeSchedule {
+        schedule: CompiledSchedule,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -248,14 +273,13 @@ pub enum CompiledSchedule {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum CompiledNode {
+pub enum CompiledNode {
     Snapshot {
         selector: Selector,
-        field: String,
-        value_type: ValueType,
+        field: crate::model::StateFieldRef,
+        value_type: TypeRef,
     },
     Quantity {
-        input_port: &'static str,
         input_profile: QuantityProfileRef,
         operation: CompiledQuantityOperation,
     },
@@ -263,18 +287,39 @@ pub(crate) enum CompiledNode {
         program: CheckedCelProgram,
     },
     Branch,
-    OnOffSet {
-        selector: Selector,
-        value: bool,
+    DesiredPatch {
+        snapshot_node_id: String,
+        operations: Vec<DesiredPatchOperation>,
     },
-    ReceiptBranch,
+    EffectIntent {
+        selector: Selector,
+        operation: CapabilityOperation,
+        deadline_ms: u32,
+        required_receipt: ReceiptRequirement,
+        retry: RetryPolicy,
+    },
+    Delay {
+        duration_ms: u64,
+    },
+    DebounceThrottle {
+        trigger: TriggerContextKind,
+        key: crate::model::AdmissionKey,
+        policy: AdmissionPolicy,
+    },
+    ForkJoin {
+        phase: ForkJoinPhase,
+        conflict_policy: crate::model::PatchConflictPolicy,
+    },
+    ReceiptBranch {
+        effect_node_id: String,
+    },
     End {
         outcome: EndOutcome,
     },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum CompiledQuantityOperation {
+pub enum CompiledQuantityOperation {
     Convert {
         target_unit: String,
     },
@@ -382,22 +427,37 @@ pub(crate) fn compile(document: RuleDocument) -> Result<CompiledRule, CompileErr
         });
     }
 
-    let (trigger_selector, schedule) = match &document.semantic.trigger {
-        TriggerNode::StateObservation { selector, .. } => (Some(selector.clone()), None),
-        TriggerNode::TimeSchedule { schedule, .. } => (None, Some(compile_schedule(schedule)?)),
-        trigger => {
-            return Err(CompileError::PlannerSubsetUnsupported {
-                node: trigger_id,
-                kind: trigger.kind_name().to_owned(),
-            });
-        }
+    let trigger = match &document.semantic.trigger {
+        TriggerNode::StateObservation {
+            selector,
+            mode,
+            initial,
+            ..
+        } => CompiledTrigger::StateObservation {
+            selector: selector.clone(),
+            mode: *mode,
+            initial: *initial,
+        },
+        TriggerNode::DiscreteEvent {
+            selector,
+            event,
+            deduplication,
+            ..
+        } => CompiledTrigger::DiscreteEvent {
+            selector: selector.clone(),
+            event: event.clone(),
+            deduplication: *deduplication,
+        },
+        TriggerNode::TimeSchedule { schedule, .. } => CompiledTrigger::TimeSchedule {
+            schedule: compile_schedule(schedule)?,
+        },
     };
 
     let mut nodes = BTreeMap::new();
     for node in &document.semantic.nodes {
         nodes.insert(
             node.id().to_owned(),
-            lower_compatibility_node(
+            lower_node(
                 node,
                 document.semantic.limits.max_cel_steps as usize,
                 document.semantic.limits.max_cel_memory_bytes as usize,
@@ -412,8 +472,7 @@ pub(crate) fn compile(document: RuleDocument) -> Result<CompiledRule, CompileErr
         profile_sha256: document.schema.profile_sha256,
         semantic_sha256,
         trigger_id: document.semantic.trigger.id().to_owned(),
-        trigger_selector,
-        schedule,
+        trigger,
         nodes,
         outgoing: graph.outgoing,
         data_sources: graph.data_sources,
@@ -1356,7 +1415,7 @@ fn compile_schedule(schedule: &Schedule) -> Result<CompiledSchedule, CompileErro
     }
 }
 
-fn lower_compatibility_node(
+fn lower_node(
     node: &Node,
     maximum_cel_steps: usize,
     maximum_cel_memory_bytes: usize,
@@ -1364,23 +1423,12 @@ fn lower_compatibility_node(
 ) -> Result<CompiledNode, CompileError> {
     match node {
         Node::Snapshot {
-            id,
-            selector,
-            field,
-            ..
-        } => {
-            let value_type = field.planner_value_type().ok_or_else(|| {
-                CompileError::PlannerSubsetUnsupported {
-                    node: id.clone(),
-                    kind: format!("snapshot field {}", field.catalog_name()),
-                }
-            })?;
-            Ok(CompiledNode::Snapshot {
-                selector: selector.clone(),
-                field: field.catalog_name(),
-                value_type,
-            })
-        }
+            selector, field, ..
+        } => Ok(CompiledNode::Snapshot {
+            selector: selector.clone(),
+            field: field.clone(),
+            value_type: field.type_ref(),
+        }),
         Node::Condition { id, expression, .. } => lower_condition(
             id,
             expression,
@@ -1395,51 +1443,53 @@ fn lower_compatibility_node(
             ..
         } => lower_quantity(id, *input_profile, operation),
         Node::Branch { .. } => Ok(CompiledNode::Branch),
+        Node::DesiredPatch {
+            snapshot_node_id,
+            operations,
+            ..
+        } => Ok(CompiledNode::DesiredPatch {
+            snapshot_node_id: snapshot_node_id.clone(),
+            operations: operations.clone(),
+        }),
         Node::EffectIntent {
-            id,
             selector,
             operation,
+            deadline_ms,
             required_receipt,
             retry,
             ..
-        } => {
-            if *required_receipt != ReceiptRequirement::AcceptedForDelivery {
-                return Err(CompileError::PlannerSubsetUnsupported {
-                    node: id.clone(),
-                    kind: "receipt requirement above accepted-for-delivery".to_owned(),
-                });
-            }
-            if !matches!(retry, RetryPolicy::None) {
-                return Err(CompileError::PlannerSubsetUnsupported {
-                    node: id.clone(),
-                    kind: "effect retry policy".to_owned(),
-                });
-            }
-            match operation {
-                CapabilityOperation::OnOffSet { on } => Ok(CompiledNode::OnOffSet {
-                    selector: selector.clone(),
-                    value: *on,
-                }),
-                operation => Err(CompileError::PlannerSubsetUnsupported {
-                    node: id.clone(),
-                    kind: operation.operation_id().to_owned(),
-                }),
-            }
-        }
-        Node::ReceiptBranch { .. } => Ok(CompiledNode::ReceiptBranch),
-        Node::End { id, outcome, .. } => match outcome {
-            EndOutcome::Success | EndOutcome::Noop | EndOutcome::Unknown | EndOutcome::Error => {
-                Ok(CompiledNode::End { outcome: *outcome })
-            }
-            _ => Err(CompileError::PlannerSubsetUnsupported {
-                node: id.clone(),
-                kind: format!("end outcome {outcome:?}"),
-            }),
-        },
-        node => Err(CompileError::PlannerSubsetUnsupported {
-            node: node.id().to_owned(),
-            kind: node.kind_name().to_owned(),
+        } => Ok(CompiledNode::EffectIntent {
+            selector: selector.clone(),
+            operation: operation.clone(),
+            deadline_ms: *deadline_ms,
+            required_receipt: *required_receipt,
+            retry: retry.clone(),
         }),
+        Node::Delay { duration, .. } => Ok(CompiledNode::Delay {
+            duration_ms: duration.milliseconds,
+        }),
+        Node::DebounceThrottle {
+            trigger,
+            key,
+            policy,
+            ..
+        } => Ok(CompiledNode::DebounceThrottle {
+            trigger: *trigger,
+            key: *key,
+            policy: *policy,
+        }),
+        Node::ForkJoin {
+            phase,
+            conflict_policy,
+            ..
+        } => Ok(CompiledNode::ForkJoin {
+            phase: phase.clone(),
+            conflict_policy: *conflict_policy,
+        }),
+        Node::ReceiptBranch { effect_node_id, .. } => Ok(CompiledNode::ReceiptBranch {
+            effect_node_id: effect_node_id.clone(),
+        }),
+        Node::End { outcome, .. } => Ok(CompiledNode::End { outcome: *outcome }),
     }
 }
 
@@ -1571,7 +1621,6 @@ fn lower_quantity(
         }
     };
     Ok(CompiledNode::Quantity {
-        input_port: "value",
         input_profile,
         operation,
     })

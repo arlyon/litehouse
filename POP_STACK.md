@@ -176,7 +176,8 @@ runtime-only credential material left with the proof process.
 | T8.0 | Completed | Restart-clean management/dependency/observation contracts and Fjall 3.1.7 feasibility |
 | T8.1a | Completed | Complete Rule JSON V1 model/schema/catalog/fixtures with planner compatibility lowering |
 | T8.1b | Completed | RFC 8785 semantic identity, bounded CEL, exact quantity compilation, and Jiff/tzdb schedules |
-| T8.1c–T8.6 | Pending | Full pure-planner parity, persistent canonical management core, and restart-clean execution; adopt the proving handlers |
+| T8.1c | In progress | Complete compiled forms landed; closed microstep planner parity is proceeding in bounded phases |
+| T8.2–T8.6 | Pending | Persistent canonical management core and restart-clean execution; adopt the proving handlers |
 | T9 | Pending | Portable local server/container and thin Butane/Quadlet output |
 | T10 | Pending | Clean D1 identity, owner account, inventory, and pairing |
 | T11 | Pending | Signaling-only broker and direct WebRTC JSON-RPC |

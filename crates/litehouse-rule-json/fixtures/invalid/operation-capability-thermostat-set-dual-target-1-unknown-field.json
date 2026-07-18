@@ -20,7 +20,7 @@
   "revision": 1,
   "rule_id": "00000000000000000000000000000012",
   "schema": {
-    "profile_sha256": "d3782d126073911133a98fe765ba00caafa9694abe93cc1097676987615f2d52",
+    "profile_sha256": "10d91c897516802b25059481eb898ec06f3ed6a66dd7651c3e2e122d9a7c7f3e",
     "sha256": "3e911d83383ced436a24ad24dd5b044149625ffce9ffddff34196d688c41202d",
     "url": "https://schemas.litehouse.dev/rule-ir/v1.0.0/schema.json",
     "version": "1.0.0"
@@ -91,7 +91,7 @@
       },
       "compiler": {
         "id": "litehouse:rule-compiler@1",
-        "sha256": "301bebb5e6df9557836f0e06c08e839682999754b46722df925b1310b9d9ce96"
+        "sha256": "bfb858d9294a5370ade07c9944f4169bc90274f47283e3fb9a178041095c515f"
       },
       "contract_catalog": {
         "id": "litehouse:contract-catalog@1",

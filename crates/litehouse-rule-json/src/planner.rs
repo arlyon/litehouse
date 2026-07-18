@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::{
-    compile::{CompiledNode, CompiledQuantityOperation, CompiledRule},
+    compile::{CompiledNode, CompiledQuantityOperation, CompiledRule, CompiledTrigger},
     condition::evaluate_condition,
     model::{
         CompareOperator, EndOutcome, HARD_MAX_EFFECT_INTENTS, HARD_MAX_NODES,
@@ -625,9 +625,7 @@ pub fn plan(compiled: &CompiledRule, input: &EvaluationInput) -> Result<Transiti
             })?;
         match node {
             CompiledNode::Snapshot {
-                selector,
-                field,
-                value_type,
+                selector, field, ..
             } => {
                 let snapshot = input
                     .snapshots
@@ -636,18 +634,26 @@ pub fn plan(compiled: &CompiledRule, input: &EvaluationInput) -> Result<Transiti
                     .ok_or_else(|| PlanError::MissingSnapshot {
                         node: current.clone(),
                     })?;
-                if snapshot.selector != *selector || snapshot.field != *field {
+                if snapshot.selector != *selector || snapshot.field != field.catalog_name() {
                     return Err(PlanError::SnapshotSelectorMismatch {
                         node: current.clone(),
                     });
                 }
+                let planner_value_type =
+                    field
+                        .planner_value_type()
+                        .ok_or_else(|| PlanError::InvalidCompiledGraph {
+                            node: current.clone(),
+                            reason: "snapshot value requires the T8.1c closed runtime-value model"
+                                .to_owned(),
+                        })?;
                 let value = if snapshot.freshness == Freshness::Stale {
                     ObservationValue::Unknown {
                         reason: UnknownReason::Stale,
                     }
                 } else if matches!(
                     &snapshot.value,
-                    ObservationValue::Known { value } if value.value_type() != *value_type
+                    ObservationValue::Known { value } if value.value_type() != planner_value_type
                 ) {
                     ObservationValue::Error {
                         code: EvaluationErrorCode::TypeMismatch,
@@ -723,11 +729,10 @@ pub fn plan(compiled: &CompiledRule, input: &EvaluationInput) -> Result<Transiti
                 current = next(compiled, &current, "next")?;
             }
             CompiledNode::Quantity {
-                input_port,
                 input_profile,
                 operation,
             } => {
-                let (source, source_port) = data_source(compiled, &current, input_port)?;
+                let (source, source_port) = data_source(compiled, &current, "value")?;
                 if source_port != "value" {
                     return Err(PlanError::InvalidCompiledGraph {
                         node: current,
@@ -792,7 +797,13 @@ pub fn plan(compiled: &CompiledRule, input: &EvaluationInput) -> Result<Transiti
                 };
                 current = next(compiled, &current, port)?;
             }
-            CompiledNode::OnOffSet { selector, value } => {
+            CompiledNode::EffectIntent {
+                selector,
+                operation: crate::model::CapabilityOperation::OnOffSet { on: value },
+                required_receipt: crate::model::ReceiptRequirement::AcceptedForDelivery,
+                retry: crate::model::RetryPolicy::None,
+                ..
+            } => {
                 let target = input
                     .targets
                     .iter()
@@ -833,12 +844,22 @@ pub fn plan(compiled: &CompiledRule, input: &EvaluationInput) -> Result<Transiti
                     visited_nodes,
                 });
             }
-            CompiledNode::ReceiptBranch => {
+            CompiledNode::ReceiptBranch { .. } => {
                 return Err(PlanError::InvalidCompiledGraph {
                     node: current,
                     reason:
                         "receipt branches require a later typed receipt microstep owned by T8.1c"
                             .to_owned(),
+                });
+            }
+            CompiledNode::DesiredPatch { .. }
+            | CompiledNode::Delay { .. }
+            | CompiledNode::DebounceThrottle { .. }
+            | CompiledNode::ForkJoin { .. }
+            | CompiledNode::EffectIntent { .. } => {
+                return Err(PlanError::InvalidCompiledGraph {
+                    node: current,
+                    reason: "node execution belongs to the T8.1c pure planner".to_owned(),
                 });
             }
             CompiledNode::End { outcome } => {
@@ -884,14 +905,15 @@ fn validate_input_identity(
     if input.profile_sha256 != compiled.profile_sha256 {
         return Err(PlanError::ProfileDigestMismatch);
     }
-    let trigger_selector =
-        compiled
-            .trigger_selector
-            .as_ref()
-            .ok_or_else(|| PlanError::InvalidCompiledGraph {
+    let trigger_selector = match &compiled.trigger {
+        CompiledTrigger::StateObservation { selector, .. } => selector,
+        _ => {
+            return Err(PlanError::InvalidCompiledGraph {
                 node: compiled.trigger_id.clone(),
-                reason: "scheduled trigger execution belongs to T8.1c".to_owned(),
-            })?;
+                reason: "non-state trigger execution belongs to the T8.1c pure planner".to_owned(),
+            });
+        }
+    };
     if input.trigger.selector != *trigger_selector {
         return Err(PlanError::TriggerSelectorMismatch);
     }

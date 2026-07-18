@@ -187,7 +187,7 @@
       },
       "compiler": {
         "id": "litehouse:rule-compiler@1",
-        "sha256": "301bebb5e6df9557836f0e06c08e839682999754b46722df925b1310b9d9ce96"
+        "sha256": "bfb858d9294a5370ade07c9944f4169bc90274f47283e3fb9a178041095c515f"
       },
       "contract_catalog": {
         "id": "litehouse:contract-catalog@1",

@@ -17,7 +17,11 @@ mod model;
 mod planner;
 pub mod schema;
 
-pub use compile::{CompileError, CompiledRule, CompiledSchedule, RuleJsonError, compile_rule_json};
+pub use compile::{
+    CompileError, CompiledNode, CompiledQuantityOperation, CompiledRule, CompiledSchedule,
+    CompiledTrigger, RuleJsonError, compile_rule_json,
+};
+pub use condition::CheckedCelProgram;
 pub use model::*;
 pub use planner::{
     Assumption, AssumptionError, AssumptionKind, EffectIntent, EvaluationErrorCode,

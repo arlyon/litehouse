@@ -20,7 +20,7 @@
   "revision": 7,
   "rule_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "schema": {
-    "profile_sha256": "d3782d126073911133a98fe765ba00caafa9694abe93cc1097676987615f2d52",
+    "profile_sha256": "10d91c897516802b25059481eb898ec06f3ed6a66dd7651c3e2e122d9a7c7f3e",
     "sha256": "3e911d83383ced436a24ad24dd5b044149625ffce9ffddff34196d688c41202d",
     "url": "https://schemas.litehouse.dev/rule-ir/v1.0.0/schema.json",
     "version": "1.0.0"

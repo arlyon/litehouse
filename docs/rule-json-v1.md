@@ -92,15 +92,12 @@ provider execution, an exact `receipt<CapabilityOperationKind>`. A receipt branc
 names the effect node it continues and accepts that exact same parameterized
 receipt type. Wiring a receipt from another operation is a compile error.
 
-The T8.1a compatibility planner can produce a literal absolute On/Off set intent,
-but returns `AwaitingReceipt`; it does not visit a receipt branch or success end.
-Receipt microsteps and provider dispatch belong to T8.1c. Accepted-for-delivery
-is the required non-notification baseline without changing the provider ABI.
-Stronger provider receipts remain typed and routable.
-
-Valid non-On/Off operations with matching selectors return a precise
-`PlannerSubsetUnsupported` operation diagnostic. An operation/selector mismatch
-is rejected first.
+T8.1c compilation retains the complete typed effect operation, deadline, receipt
+requirement, and retry policy for all 29 operations. The preceding compatibility
+planner can still demonstrate absolute On/Off suspension while the closed
+microstep evaluator is replaced in the remaining T8.1c phases; it never dispatches
+a provider or visits a receipt branch in the same microstep. Operation/selector,
+receipt, retry, and deadline mismatches remain compile errors.
 
 ## Desired projections
 
@@ -195,10 +192,12 @@ One-shot, bounded fixed-interval, and weekly civil
 schedules compile to Jiff values against bundled tzdb 2026c while retaining the
 explicit nonexistent-time and duplicate-time policies.
 
+T8.1c compilation now has closed forms for all three triggers and all eleven node
+families; no valid release fixture returns a planner-subset compiler diagnostic.
 Still deferred explicitly:
 
-- full planner parity for non-comparison quantity operations, scheduled trigger
-  microsteps, and the remaining node families: T8.1c;
+- execution parity for non-comparison quantity operations, scheduled trigger
+  microsteps, and the remaining node families: the subsequent T8.1c phases;
 - executor receipt/timer behavior: T8.1c; and
 - persisted activation binding locks/provider generations/grant revisions: T8.2.
 

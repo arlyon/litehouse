@@ -17,7 +17,7 @@ use crate::model::{
 };
 
 #[derive(Debug, Clone)]
-pub(crate) struct CheckedCelProgram {
+pub struct CheckedCelProgram {
     expression: IdedExpr,
     inputs: Vec<ConditionInput>,
     static_steps: usize,

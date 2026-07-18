@@ -136,10 +136,7 @@ fn compile_value(value: &Value) -> Result<litehouse_rule_json::CompiledRule, Rul
 }
 
 fn assert_semantically_valid(value: &Value) {
-    match compile_value(value) {
-        Ok(_) | Err(RuleJsonError::Compile(CompileError::PlannerSubsetUnsupported { .. })) => {}
-        result => panic!("expected semantic success or bounded subset diagnostic, got {result:?}"),
-    }
+    compile_value(value).unwrap_or_else(|error| panic!("expected semantic success, got {error:?}"));
 }
 
 fn compile_error(value: &Value) -> CompileError {
@@ -942,10 +939,7 @@ fn retry_is_fail_closed_requires_matching_deduplication_and_one_deadline() {
         "backoff_ms": 100,
         "provider_deduplication": "matching_provider_generation"
     });
-    assert!(matches!(
-        compile_error(&eligible),
-        CompileError::PlannerSubsetUnsupported { ref kind, .. } if kind == "effect retry policy"
-    ));
+    assert_semantically_valid(&eligible);
 
     let mut escape_hatch = eligible.clone();
     escape_hatch["semantic"]["nodes"][3]["retry"] = json!({
@@ -1083,7 +1077,7 @@ fn authored_artifact_ids_are_schema_fixed_and_activation_revisions_are_not_fabri
         ),
         (
             "litehouse:rule-compiler@1",
-            b"litehouse:rule-compiler@1\nrule-json=1.0.0\ncanonical-semantic=rfc8785-jcs-64k\ncompiler=t8.1b\n".as_slice(),
+            b"litehouse:rule-compiler@1\nrule-json=1.0.0\ncanonical-semantic=rfc8785-jcs-64k\ncompiler=t8.1c\n".as_slice(),
         ),
         (
             "litehouse:quantity-catalog@1",
@@ -1763,7 +1757,7 @@ fn invalid_kinds_legacy_spellings_and_schema_bounds_fail_closed() {
 }
 
 #[test]
-fn operation_contract_is_checked_before_precise_subset_lowering() {
+fn operation_contract_is_checked_before_complete_lowering() {
     let mut invalid = planner_fixture();
     invalid["semantic"]["nodes"][3]["operation"] = json!({
         "operation": "capability.level.set@1",
@@ -1776,11 +1770,7 @@ fn operation_contract_is_checked_before_precise_subset_lowering() {
 
     let mut valid = invalid;
     valid["semantic"]["nodes"][3]["selector"]["contract"]["package"] = json!("level-control");
-    assert!(matches!(
-        compile_error(&valid),
-        CompileError::PlannerSubsetUnsupported { ref kind, .. }
-            if kind == "capability.level.set@1"
-    ));
+    assert_semantically_valid(&valid);
 }
 
 #[test]

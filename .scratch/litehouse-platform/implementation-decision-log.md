@@ -683,3 +683,16 @@ configuration.
   dynamic-language rejection, type-faithful integers, and quantity exclusion;
   quantity unit/arithmetic/result-profile tests call the shared engine; schedule
   tests compile all three forms and reject an unavailable timezone.
+
+### R-018 — Replace planner compatibility forms in place
+
+- **Resolution:** T8.1c replaces the unreleased planner API rather than preserving
+  a wrapper. Its first bounded phase removes compiler subset diagnostics and
+  retains closed compiled forms for all three triggers, all eleven node families,
+  all 29 typed effects, schedules, quantities, desired patches, admission,
+  fork/join, delays, receipts, retry, and every terminal outcome. Persistence,
+  provider dispatch, and workflow recovery remain outside the pure planner.
+- **Evidence:** every checked valid fixture now compiles completely; selector,
+  graph, port, retry, receipt, deadline, quantity, CEL, and schedule failures
+  remain typed compile diagnostics. Existing compatibility-plan tests stay green
+  while the closed microstep evaluator is replaced in subsequent T8.1c phases.
