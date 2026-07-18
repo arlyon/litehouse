@@ -20,7 +20,7 @@
   "revision": 7,
   "rule_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "schema": {
-    "profile_sha256": "f4139ae1e4389838da0b2a05da50688d8600c3447b5e14ace6d0d07ed7e4307f",
+    "profile_sha256": "d3782d126073911133a98fe765ba00caafa9694abe93cc1097676987615f2d52",
     "sha256": "3e911d83383ced436a24ad24dd5b044149625ffce9ffddff34196d688c41202d",
     "url": "https://schemas.litehouse.dev/rule-ir/v1.0.0/schema.json",
     "version": "1.0.0"
@@ -183,7 +183,7 @@
     "locks": {
       "cel": {
         "id": "litehouse-cel@1",
-        "sha256": "872b983fde72f8577f35442f4df2c0323d6526e94714fedb19d6184391d5c61c"
+        "sha256": "23f28d31f94d5e355a6848fb9bc5e47d4b3a8b49e7711aea0e909d46f0cea950"
       },
       "compiler": {
         "id": "litehouse:rule-compiler@1",

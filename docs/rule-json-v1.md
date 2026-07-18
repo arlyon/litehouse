@@ -169,18 +169,36 @@ maxima, deadlines, CEL source and input counts, annotation/editor maps, schedule
 delays, fork branches, effects, timers, desired operation counts/bytes, retry,
 node/edge counts, and graph depth.
 
-The 64-KiB RFC 8785 canonical-semantic limit is **not claimed as enforced in
-T8.1a**. Correct duplicate-key rejection, JCS projection/digest, and the exact
-canonical-size check are T8.1b issue #64. The maximal release fixture deliberately
-has more than 64 KiB of non-canonical semantic source while remaining below the
-128-KiB raw limit, preventing a false enforcement claim.
+T8.1b canonicalizes the schema locks plus semantic rule with RFC 8785 JCS,
+sorts node, edge, condition-input, and weekly-day arrays where source order is
+not semantic, excludes editor layout and top-level record revision, enforces the
+64-KiB canonical-semantic limit, and retains the SHA-256 digest on the compiled rule.
+The maximal release fixture remains below both canonical and 128-KiB raw limits.
+Litehouse-generated JSON cannot contain duplicate member names. Duplicate names
+in external raw JSON are unsupported and follow `serde_json`'s deterministic
+last-value behavior; Litehouse does not maintain a second JSON parser solely to
+reject them.
 
-Also deferred explicitly:
+T8.1b also compiles CEL with `cel` 0.14's interpreter behind a Litehouse-owned
+AST/reference/type admission profile, precharged static cost, runtime-value
+memory accounting, and elapsed deadline check. Only declared immutable inputs
+plus `evaluation_time` are injected; quantities, collections,
+comprehensions, method calls, undeclared variables, floating point, mutation, and
+I/O/device functions are rejected. Chrono exists only at CEL's timestamp boundary.
 
-- full bounded CEL checking/evaluation and normalized AST authority: T8.1b;
-- full Jiff schedule compilation and timezone validation: T8.1b;
-- full quantity semantic compilation outside the existing comparison seam:
-  T8.1b;
+All seven quantity node operations are compiled and validated through the shared
+exact quantity engine, including unit/profile compatibility and engine-authoritative
+result profiles (notably absolute-temperature subtraction to temperature
+difference). Arithmetic remains checked and may produce a typed quantity error
+for a particular runtime value; T8.1c owns that fail-closed execution path.
+One-shot, bounded fixed-interval, and weekly civil
+schedules compile to Jiff values against bundled tzdb 2026c while retaining the
+explicit nonexistent-time and duplicate-time policies.
+
+Still deferred explicitly:
+
+- full planner parity for non-comparison quantity operations, scheduled trigger
+  microsteps, and the remaining node families: T8.1c;
 - executor receipt/timer behavior: T8.1c; and
 - persisted activation binding locks/provider generations/grant revisions: T8.2.
 

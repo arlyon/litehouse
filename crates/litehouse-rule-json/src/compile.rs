@@ -1,28 +1,34 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use litehouse_contracts::quantity::Quantity;
+use jiff::{
+    SignedDuration, Timestamp as JiffTimestamp, civil::Time as CivilJiffTime, tz::TimeZone,
+};
+use litehouse_contracts::quantity::{Quantity, lookup_profile};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 
 use crate::{
+    canonical::canonical_semantic_bytes,
     catalog::{
         PortCardinality as CatalogCardinality, PortDirection as CatalogDirection, ResolvedPort,
         resolved_node_ports, resolved_trigger_ports,
     },
+    condition::{CheckedCelProgram, check_condition},
     model::{
         AdmissionPolicy, CapabilityOperation, CelCondition, CompareOperator, ContractRef,
-        DesiredPatchOperation, EditorGroupKey, EditorNodeKey, EndOutcome, ForkJoinPhase,
-        HARD_MAX_CEL_EVAL_MS, HARD_MAX_CEL_MEMORY_BYTES, HARD_MAX_CEL_SOURCE_BYTES,
-        HARD_MAX_CEL_STEPS, HARD_MAX_COLLECTION_ITEMS, HARD_MAX_CONDITION_NODES, HARD_MAX_EDGES,
+        DesiredPatchOperation, DuplicateTimePolicy, EditorGroupKey, EditorNodeKey, EndOutcome,
+        ForkJoinPhase, HARD_MAX_CANONICAL_SEMANTIC_BYTES, HARD_MAX_CEL_EVAL_MS,
+        HARD_MAX_CEL_MEMORY_BYTES, HARD_MAX_CEL_SOURCE_BYTES, HARD_MAX_CEL_STEPS,
+        HARD_MAX_COLLECTION_ITEMS, HARD_MAX_CONDITION_NODES, HARD_MAX_EDGES,
         HARD_MAX_EFFECT_INTENTS, HARD_MAX_GRAPH_DEPTH, HARD_MAX_JSON_BYTES, HARD_MAX_JSON_DEPTH,
         HARD_MAX_NODES, HARD_MAX_PARALLEL_BRANCHES, HARD_MAX_PATCH_BYTES,
         HARD_MAX_PATCH_OPERATIONS, HARD_MAX_PLAN_INPUT_BYTES, HARD_MAX_QUEUED_TRIGGERS,
         HARD_MAX_STRING_BYTES, HARD_MAX_TIMER_DURATION_MS, HARD_MAX_TIMERS_PER_RULE,
-        HARD_MAX_TRACE_BYTES, Node, QuantityCatalogRef, QuantityOperation, QuantityProfileRef,
-        RebindPolicy, ReceiptRequirement, RetryPolicy, RuleDocument, Selector, SelectorCardinality,
-        TriggerContextKind, TriggerNode, TypeRef, ValueType, valid_contract_part,
-        valid_decimal_shape, valid_hex_32, valid_hex_64, valid_id,
+        HARD_MAX_TRACE_BYTES, Node, NonexistentTimePolicy, QuantityCatalogRef, QuantityOperation,
+        QuantityProfileRef, RebindPolicy, ReceiptRequirement, RetryPolicy, RuleDocument, Schedule,
+        Selector, SelectorCardinality, TriggerContextKind, TriggerNode, TypeRef, ValueType,
+        Weekday, valid_contract_part, valid_decimal_shape, valid_hex_32, valid_hex_64, valid_id,
     },
     schema::artifact_digests,
 };
@@ -57,6 +63,10 @@ pub enum CompileError {
     EvaluationProfileDigestMismatch,
     #[error("{artifact} digest does not match its authoritative shipped artifact")]
     ArtifactDigestMismatch { artifact: &'static str },
+    #[error("semantic projection could not be canonicalized: {reason}")]
+    SemanticCanonicalization { reason: String },
+    #[error("canonical semantic projection is {actual} bytes; the maximum is {maximum}")]
+    CanonicalSemanticTooLarge { actual: usize, maximum: usize },
     #[error("rule ID must be 32 lowercase hexadecimal characters")]
     InvalidRuleId,
     #[error("rule revision must be non-zero")]
@@ -117,6 +127,10 @@ pub enum CompileError {
     },
     #[error("quantity literal on {node:?} is invalid: {reason}")]
     InvalidQuantity { node: String, reason: String },
+    #[error("condition {node:?} is not admitted: {reason}")]
+    InvalidCondition { node: String, reason: String },
+    #[error("schedule is invalid: {reason}")]
+    InvalidSchedule { reason: String },
     #[error("node {node:?} has invalid authored data: {reason}")]
     InvalidNodeData { node: String, reason: String },
     #[error("edge {edge:?} references unknown node {node:?}")]
@@ -167,8 +181,6 @@ pub enum CompileError {
     GraphTooDeep { actual: usize, maximum: usize },
     #[error("planner subset does not yet support {kind} at {node:?}")]
     PlannerSubsetUnsupported { node: String, kind: String },
-    #[error("condition on {node:?} is invalid for compatibility lowering: {reason}")]
-    InvalidCondition { node: String, reason: String },
 }
 
 #[derive(Debug, Clone)]
@@ -176,8 +188,10 @@ pub struct CompiledRule {
     pub(crate) rule_id: String,
     pub(crate) revision: u64,
     pub(crate) profile_sha256: String,
+    pub(crate) semantic_sha256: String,
     pub(crate) trigger_id: String,
-    pub(crate) trigger_selector: Selector,
+    pub(crate) trigger_selector: Option<Selector>,
+    schedule: Option<CompiledSchedule>,
     pub(crate) nodes: BTreeMap<String, CompiledNode>,
     pub(crate) outgoing: BTreeMap<(String, String), String>,
     pub(crate) data_sources: BTreeMap<(String, String), (String, String)>,
@@ -199,13 +213,38 @@ impl CompiledRule {
         &self.profile_sha256
     }
 
+    pub fn semantic_sha256(&self) -> &str {
+        &self.semantic_sha256
+    }
+
     pub fn trigger_id(&self) -> &str {
         &self.trigger_id
+    }
+
+    pub fn schedule(&self) -> Option<&CompiledSchedule> {
+        self.schedule.as_ref()
     }
 
     pub fn topological_order(&self) -> &[String] {
         &self.topological_order
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum CompiledSchedule {
+    OneShot {
+        at: JiffTimestamp,
+    },
+    FixedInterval {
+        interval: SignedDuration,
+    },
+    WeeklyCivil {
+        days: Vec<Weekday>,
+        time: CivilJiffTime,
+        timezone: String,
+        nonexistent_time: NonexistentTimePolicy,
+        duplicate_time: DuplicateTimePolicy,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -215,11 +254,13 @@ pub(crate) enum CompiledNode {
         field: String,
         value_type: ValueType,
     },
-    Compare {
+    Quantity {
         input_port: &'static str,
-        value_type: ValueType,
-        operator: CompareOperator,
-        right: CompiledScalar,
+        input_profile: QuantityProfileRef,
+        operation: CompiledQuantityOperation,
+    },
+    Condition {
+        program: CheckedCelProgram,
     },
     Branch,
     OnOffSet {
@@ -233,12 +274,33 @@ pub(crate) enum CompiledNode {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum CompiledScalar {
-    Bool(bool),
-    String(String),
-    I64(i64),
-    U64(u64),
-    Quantity(Quantity),
+pub(crate) enum CompiledQuantityOperation {
+    Convert {
+        target_unit: String,
+    },
+    Compare {
+        operator: CompareOperator,
+        right: Quantity,
+    },
+    Add {
+        right: Quantity,
+        result_profile: QuantityProfileRef,
+    },
+    Subtract {
+        right: Quantity,
+        result_profile: QuantityProfileRef,
+    },
+    Multiply {
+        right: Quantity,
+        result_profile: QuantityProfileRef,
+    },
+    Divide {
+        right: Quantity,
+        result_profile: QuantityProfileRef,
+    },
+    Quantize {
+        scale: u8,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -272,6 +334,18 @@ pub fn compile_rule_json(bytes: &[u8]) -> Result<CompiledRule, RuleJsonError> {
 
 pub(crate) fn compile(document: RuleDocument) -> Result<CompiledRule, CompileError> {
     validate_document_bounds(&document)?;
+    let canonical_semantic = canonical_semantic_bytes(&document).map_err(|error| {
+        CompileError::SemanticCanonicalization {
+            reason: error.to_string(),
+        }
+    })?;
+    if canonical_semantic.len() > HARD_MAX_CANONICAL_SEMANTIC_BYTES {
+        return Err(CompileError::CanonicalSemanticTooLarge {
+            actual: canonical_semantic.len(),
+            maximum: HARD_MAX_CANONICAL_SEMANTIC_BYTES,
+        });
+    }
+    let semantic_sha256 = format!("{:x}", Sha256::digest(&canonical_semantic));
 
     let trigger_id = document.semantic.trigger.id().to_owned();
     validate_node_id("trigger", &trigger_id)?;
@@ -308,8 +382,9 @@ pub(crate) fn compile(document: RuleDocument) -> Result<CompiledRule, CompileErr
         });
     }
 
-    let trigger_selector = match &document.semantic.trigger {
-        TriggerNode::StateObservation { selector, .. } => selector.clone(),
+    let (trigger_selector, schedule) = match &document.semantic.trigger {
+        TriggerNode::StateObservation { selector, .. } => (Some(selector.clone()), None),
+        TriggerNode::TimeSchedule { schedule, .. } => (None, Some(compile_schedule(schedule)?)),
         trigger => {
             return Err(CompileError::PlannerSubsetUnsupported {
                 node: trigger_id,
@@ -320,15 +395,25 @@ pub(crate) fn compile(document: RuleDocument) -> Result<CompiledRule, CompileErr
 
     let mut nodes = BTreeMap::new();
     for node in &document.semantic.nodes {
-        nodes.insert(node.id().to_owned(), lower_compatibility_node(node)?);
+        nodes.insert(
+            node.id().to_owned(),
+            lower_compatibility_node(
+                node,
+                document.semantic.limits.max_cel_steps as usize,
+                document.semantic.limits.max_cel_memory_bytes as usize,
+                document.semantic.limits.max_cel_eval_ms as usize,
+            )?,
+        );
     }
 
     Ok(CompiledRule {
         rule_id: document.rule_id,
         revision: document.revision,
         profile_sha256: document.schema.profile_sha256,
+        semantic_sha256,
         trigger_id: document.semantic.trigger.id().to_owned(),
         trigger_selector,
+        schedule,
         nodes,
         outgoing: graph.outgoing,
         data_sources: graph.data_sources,
@@ -1230,7 +1315,53 @@ fn validate_type_ref(type_ref: &TypeRef, depth: usize) -> Result<(), CompileErro
     }
 }
 
-fn lower_compatibility_node(node: &Node) -> Result<CompiledNode, CompileError> {
+fn compile_schedule(schedule: &Schedule) -> Result<CompiledSchedule, CompileError> {
+    match schedule {
+        Schedule::OneShot { at } => JiffTimestamp::new(at.unix_seconds, at.nanosecond as i32)
+            .map(|at| CompiledSchedule::OneShot { at })
+            .map_err(|error| CompileError::InvalidSchedule {
+                reason: error.to_string(),
+            }),
+        Schedule::FixedInterval { interval_ms } => Ok(CompiledSchedule::FixedInterval {
+            interval: SignedDuration::from_millis(*interval_ms as i64),
+        }),
+        Schedule::WeeklyCivil {
+            days,
+            time,
+            timezone,
+            nonexistent_time,
+            duplicate_time,
+        } => {
+            TimeZone::get(timezone).map_err(|error| CompileError::InvalidSchedule {
+                reason: format!("timezone {timezone:?} is unavailable: {error}"),
+            })?;
+            let time = CivilJiffTime::new(time.hour as i8, time.minute as i8, time.second as i8, 0)
+                .map_err(|error| CompileError::InvalidSchedule {
+                    reason: error.to_string(),
+                })?;
+            let unique_days = days.iter().copied().collect::<BTreeSet<_>>();
+            if unique_days.len() != days.len() {
+                return Err(CompileError::InvalidSchedule {
+                    reason: "weekly civil schedule contains duplicate weekdays".to_owned(),
+                });
+            }
+            Ok(CompiledSchedule::WeeklyCivil {
+                days: unique_days.into_iter().collect(),
+                time,
+                timezone: timezone.clone(),
+                nonexistent_time: *nonexistent_time,
+                duplicate_time: *duplicate_time,
+            })
+        }
+    }
+}
+
+fn lower_compatibility_node(
+    node: &Node,
+    maximum_cel_steps: usize,
+    maximum_cel_memory_bytes: usize,
+    maximum_cel_evaluation_time_ms: usize,
+) -> Result<CompiledNode, CompileError> {
     match node {
         Node::Snapshot {
             id,
@@ -1250,7 +1381,13 @@ fn lower_compatibility_node(node: &Node) -> Result<CompiledNode, CompileError> {
                 value_type,
             })
         }
-        Node::Condition { id, expression, .. } => lower_condition(id, expression),
+        Node::Condition { id, expression, .. } => lower_condition(
+            id,
+            expression,
+            maximum_cel_steps,
+            maximum_cel_memory_bytes,
+            maximum_cel_evaluation_time_ms,
+        ),
         Node::Quantity {
             id,
             input_profile,
@@ -1306,49 +1443,24 @@ fn lower_compatibility_node(node: &Node) -> Result<CompiledNode, CompileError> {
     }
 }
 
-fn lower_condition(id: &str, expression: &CelCondition) -> Result<CompiledNode, CompileError> {
-    let actual_digest = format!("{:x}", Sha256::digest(expression.source.as_bytes()));
-    if expression.normalized_source_sha256 != actual_digest {
-        return Err(CompileError::InvalidCondition {
-            node: id.to_owned(),
-            reason: "normalized source digest does not match source".to_owned(),
-        });
-    }
-    if expression.inputs.len() != 1 || expression.inputs[0].name != "left" {
-        return Err(CompileError::PlannerSubsetUnsupported {
-            node: id.to_owned(),
-            kind: "condition outside the one-input compatibility subset".to_owned(),
-        });
-    }
-    let input = &expression.inputs[0];
-    let value_type = type_ref_to_value_type(&input.type_ref).ok_or_else(|| {
-        CompileError::PlannerSubsetUnsupported {
-            node: id.to_owned(),
-            kind: format!("condition input type {}", input.type_ref.scalar_name()),
-        }
+fn lower_condition(
+    id: &str,
+    expression: &CelCondition,
+    maximum_steps: usize,
+    maximum_memory_bytes: usize,
+    maximum_evaluation_time_ms: usize,
+) -> Result<CompiledNode, CompileError> {
+    let program = check_condition(
+        expression,
+        maximum_steps,
+        maximum_memory_bytes,
+        maximum_evaluation_time_ms,
+    )
+    .map_err(|reason| CompileError::InvalidCondition {
+        node: id.to_owned(),
+        reason,
     })?;
-    if value_type == ValueType::U64 {
-        return Err(CompileError::PlannerSubsetUnsupported {
-            node: id.to_owned(),
-            kind: "u64 CEL comparison requires type-faithful CEL uint token parsing".to_owned(),
-        });
-    }
-    let (operator, literal) =
-        parse_comparison(&expression.source, &input.name).ok_or_else(|| {
-            CompileError::PlannerSubsetUnsupported {
-                node: id.to_owned(),
-                kind: "CEL expression outside the one-input comparison compatibility subset"
-                    .to_owned(),
-            }
-        })?;
-    validate_operator(operator, &value_type)?;
-    let right = compile_cel_literal(id, &value_type, literal)?;
-    Ok(CompiledNode::Compare {
-        input_port: "left",
-        value_type,
-        operator,
-        right,
-    })
+    Ok(CompiledNode::Condition { program })
 }
 
 fn lower_quantity(
@@ -1356,97 +1468,146 @@ fn lower_quantity(
     input_profile: QuantityProfileRef,
     operation: &QuantityOperation,
 ) -> Result<CompiledNode, CompileError> {
-    let value_type = ValueType::Quantity {
-        profile: input_profile.as_str().to_owned(),
-    };
-    match operation {
+    let sample = quantity_sample(id, input_profile, "1")?;
+    let operation = match operation {
+        QuantityOperation::Convert { target_unit } => {
+            Quantity::parse(input_profile.as_str(), "1", target_unit).map_err(|error| {
+                CompileError::InvalidQuantity {
+                    node: id.to_owned(),
+                    reason: format!("target unit is invalid: {error}"),
+                }
+            })?;
+            CompiledQuantityOperation::Convert {
+                target_unit: target_unit.clone(),
+            }
+        }
         QuantityOperation::Compare { operator, right } => {
-            validate_operator(*operator, &value_type)?;
             let right = compile_quantity_literal(id, input_profile, right)?;
-            Ok(CompiledNode::Compare {
-                input_port: "value",
-                value_type,
+            CompiledQuantityOperation::Compare {
                 operator: *operator,
                 right,
-            })
+            }
         }
-        operation => Err(CompileError::PlannerSubsetUnsupported {
-            node: id.to_owned(),
-            kind: format!("quantity operation {operation:?}"),
-        }),
-    }
-}
-
-fn type_ref_to_value_type(type_ref: &TypeRef) -> Option<ValueType> {
-    match type_ref {
-        TypeRef::Bool => Some(ValueType::Bool),
-        TypeRef::String => Some(ValueType::String),
-        TypeRef::I64 => Some(ValueType::I64),
-        TypeRef::U64 => Some(ValueType::U64),
-        TypeRef::Quantity { profile, .. } => Some(ValueType::Quantity {
-            profile: profile.as_str().to_owned(),
-        }),
-        TypeRef::Optional { item } => type_ref_to_value_type(item),
-        _ => None,
-    }
-}
-
-fn parse_comparison<'a>(source: &'a str, input_name: &str) -> Option<(CompareOperator, &'a str)> {
-    let source = source.trim();
-    let rest = source.strip_prefix(input_name)?;
-    if rest
-        .as_bytes()
-        .first()
-        .is_some_and(|byte| !byte.is_ascii_whitespace())
-    {
-        return None;
-    }
-    let rest = rest.trim_start();
-    [
-        ("==", CompareOperator::Equal),
-        ("!=", CompareOperator::NotEqual),
-        ("<=", CompareOperator::LessOrEqual),
-        (">=", CompareOperator::GreaterOrEqual),
-        ("<", CompareOperator::Less),
-        (">", CompareOperator::Greater),
-    ]
-    .into_iter()
-    .find_map(|(token, operator)| {
-        let literal = rest.strip_prefix(token)?.trim();
-        (!literal.is_empty()).then_some((operator, literal))
+        QuantityOperation::Add { right } => {
+            let right = compile_quantity_literal(id, input_profile, right)?;
+            let zero = quantity_sample(id, input_profile, "0")?;
+            let result =
+                zero.checked_add(&right)
+                    .map_err(|error| CompileError::InvalidQuantity {
+                        node: id.to_owned(),
+                        reason: format!("addition is invalid: {error}"),
+                    })?;
+            let result_profile = operation
+                .result_profile(input_profile)
+                .expect("addition always has a result profile");
+            require_result_profile(id, result.profile_id().as_str(), result_profile)?;
+            CompiledQuantityOperation::Add {
+                right,
+                result_profile,
+            }
+        }
+        QuantityOperation::Subtract { right } => {
+            let right = compile_quantity_literal(id, input_profile, right)?;
+            let result =
+                right
+                    .checked_sub(&right)
+                    .map_err(|error| CompileError::InvalidQuantity {
+                        node: id.to_owned(),
+                        reason: format!("subtraction is invalid: {error}"),
+                    })?;
+            let result_profile = operation
+                .result_profile(input_profile)
+                .expect("subtraction always has a result profile");
+            require_result_profile(id, result.profile_id().as_str(), result_profile)?;
+            CompiledQuantityOperation::Subtract {
+                right,
+                result_profile,
+            }
+        }
+        QuantityOperation::Multiply {
+            right,
+            result_profile,
+        } => {
+            let right = compile_quantity_literal(id, right.profile, right)?;
+            let result =
+                sample
+                    .checked_mul(&right)
+                    .map_err(|error| CompileError::InvalidQuantity {
+                        node: id.to_owned(),
+                        reason: format!("multiplication is invalid: {error}"),
+                    })?;
+            require_result_profile(id, result.profile_id().as_str(), *result_profile)?;
+            CompiledQuantityOperation::Multiply {
+                right,
+                result_profile: *result_profile,
+            }
+        }
+        QuantityOperation::Divide {
+            right,
+            result_profile,
+        } => {
+            let right = compile_quantity_literal(id, right.profile, right)?;
+            let result =
+                sample
+                    .checked_div(&right)
+                    .map_err(|error| CompileError::InvalidQuantity {
+                        node: id.to_owned(),
+                        reason: format!("division is invalid: {error}"),
+                    })?;
+            require_result_profile(id, result.profile_id().as_str(), *result_profile)?;
+            CompiledQuantityOperation::Divide {
+                right,
+                result_profile: *result_profile,
+            }
+        }
+        QuantityOperation::Quantize { scale } => {
+            Quantity::parse_quantized(input_profile.as_str(), "1", sample.unit(), *scale).map_err(
+                |error| CompileError::InvalidQuantity {
+                    node: id.to_owned(),
+                    reason: format!("quantization is invalid: {error}"),
+                },
+            )?;
+            CompiledQuantityOperation::Quantize { scale: *scale }
+        }
+    };
+    Ok(CompiledNode::Quantity {
+        input_port: "value",
+        input_profile,
+        operation,
     })
 }
 
-fn compile_cel_literal(
-    node: &str,
-    value_type: &ValueType,
-    literal: &str,
-) -> Result<CompiledScalar, CompileError> {
-    let invalid = |reason: &str| CompileError::InvalidCondition {
-        node: node.to_owned(),
-        reason: reason.to_owned(),
-    };
-    match value_type {
-        ValueType::Bool => match literal {
-            "true" => Ok(CompiledScalar::Bool(true)),
-            "false" => Ok(CompiledScalar::Bool(false)),
-            _ => Err(invalid("Boolean literal must be true or false")),
-        },
-        ValueType::String => serde_json::from_str::<String>(literal)
-            .map(CompiledScalar::String)
-            .map_err(|_| invalid("string literal must be a JSON string")),
-        ValueType::I64 => literal
-            .parse::<i64>()
-            .map(CompiledScalar::I64)
-            .map_err(|_| invalid("integer literal is outside i64 or not canonical")),
-        ValueType::U64 => literal
-            .parse::<u64>()
-            .map(CompiledScalar::U64)
-            .map_err(|_| invalid("integer literal is outside u64 or not canonical")),
-        ValueType::Quantity { .. } => Err(CompileError::PlannerSubsetUnsupported {
-            node: node.to_owned(),
-            kind: "quantity inside CEL".to_owned(),
-        }),
+fn quantity_sample(
+    id: &str,
+    profile: QuantityProfileRef,
+    magnitude: &str,
+) -> Result<Quantity, CompileError> {
+    let unit = lookup_profile(profile.as_str())
+        .expect("Rule JSON quantity profiles are generated from the quantity catalog")
+        .canonical_unit;
+    Quantity::parse(profile.as_str(), magnitude, unit).map_err(|error| {
+        CompileError::InvalidQuantity {
+            node: id.to_owned(),
+            reason: format!("input profile has no valid sample: {error}"),
+        }
+    })
+}
+
+fn require_result_profile(
+    id: &str,
+    actual: &str,
+    expected: QuantityProfileRef,
+) -> Result<(), CompileError> {
+    if actual == expected.as_str() {
+        Ok(())
+    } else {
+        Err(CompileError::InvalidQuantity {
+            node: id.to_owned(),
+            reason: format!(
+                "declared result profile {} does not match quantity-engine result {actual}",
+                expected.as_str()
+            ),
+        })
     }
 }
 
@@ -1454,7 +1615,7 @@ fn compile_quantity_literal(
     node: &str,
     profile: QuantityProfileRef,
     value: &crate::model::QuantityWire,
-) -> Result<CompiledScalar, CompileError> {
+) -> Result<Quantity, CompileError> {
     if value.profile != profile || !valid_decimal_shape(&value.magnitude) {
         return Err(CompileError::ComparisonTypeMismatch {
             node: node.to_owned(),
@@ -1478,27 +1639,7 @@ fn compile_quantity_literal(
             reason: "quantity literal must already be canonical".to_owned(),
         });
     }
-    Ok(CompiledScalar::Quantity(quantity))
-}
-
-fn validate_operator(
-    operator: CompareOperator,
-    value_type: &ValueType,
-) -> Result<(), CompileError> {
-    let equality = matches!(operator, CompareOperator::Equal | CompareOperator::NotEqual);
-    if equality
-        || matches!(
-            value_type,
-            ValueType::I64 | ValueType::U64 | ValueType::Quantity { .. }
-        )
-    {
-        Ok(())
-    } else {
-        Err(CompileError::UnsupportedComparison {
-            operator,
-            value_type: value_type.name().to_owned(),
-        })
-    }
+    Ok(quantity)
 }
 
 struct Graph {
@@ -1846,16 +1987,11 @@ fn legacy_ports(node: &RawNode<'_>, nodes: &BTreeMap<String, RawNode<'_>>) -> Ve
             operation,
             ..
         }) => {
-            let output = match operation {
-                QuantityOperation::Compare { .. } => TypeRef::PredicateOutcome,
-                QuantityOperation::Multiply { result_profile, .. }
-                | QuantityOperation::Divide { result_profile, .. } => TypeRef::Quantity {
+            let output = match operation.result_profile(*input_profile) {
+                None => TypeRef::PredicateOutcome,
+                Some(profile) => TypeRef::Quantity {
                     catalog: QuantityCatalogRef::V1,
-                    profile: *result_profile,
-                },
-                _ => TypeRef::Quantity {
-                    catalog: QuantityCatalogRef::V1,
-                    profile: *input_profile,
+                    profile,
                 },
             };
             vec![
@@ -2226,6 +2362,118 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn quantity_compilation_uses_the_shared_engine_for_every_closed_operation() {
+        use crate::model::QuantityWire;
+
+        let power = |magnitude: &str| QuantityWire {
+            profile: QuantityProfileRef::Power,
+            magnitude: magnitude.to_owned(),
+            unit: "W".to_owned(),
+        };
+        let ratio = QuantityWire {
+            profile: QuantityProfileRef::Ratio,
+            magnitude: "0.5".to_owned(),
+            unit: "1".to_owned(),
+        };
+        let operations = vec![
+            QuantityOperation::Convert {
+                target_unit: "kW".to_owned(),
+            },
+            QuantityOperation::Compare {
+                operator: CompareOperator::GreaterOrEqual,
+                right: power("40"),
+            },
+            QuantityOperation::Add { right: power("1") },
+            QuantityOperation::Subtract { right: power("1") },
+            QuantityOperation::Multiply {
+                right: ratio.clone(),
+                result_profile: QuantityProfileRef::Power,
+            },
+            QuantityOperation::Divide {
+                right: ratio,
+                result_profile: QuantityProfileRef::Power,
+            },
+            QuantityOperation::Quantize { scale: 2 },
+        ];
+        for operation in operations {
+            assert!(matches!(
+                lower_quantity("quantity", QuantityProfileRef::Power, &operation),
+                Ok(CompiledNode::Quantity { .. })
+            ));
+        }
+
+        assert!(matches!(
+            lower_quantity(
+                "quantity",
+                QuantityProfileRef::Power,
+                &QuantityOperation::Convert {
+                    target_unit: "definitely-not-ucum".to_owned(),
+                },
+            ),
+            Err(CompileError::InvalidQuantity { .. })
+        ));
+        assert!(matches!(
+            lower_quantity(
+                "quantity",
+                QuantityProfileRef::Power,
+                &QuantityOperation::Multiply {
+                    right: QuantityWire {
+                        profile: QuantityProfileRef::Ratio,
+                        magnitude: "0.5".to_owned(),
+                        unit: "1".to_owned(),
+                    },
+                    result_profile: QuantityProfileRef::Energy,
+                },
+            ),
+            Err(CompileError::InvalidQuantity { .. })
+        ));
+
+        let ratio_add = QuantityOperation::Add {
+            right: QuantityWire {
+                profile: QuantityProfileRef::Ratio,
+                magnitude: "0.25".to_owned(),
+                unit: "1".to_owned(),
+            },
+        };
+        assert!(matches!(
+            lower_quantity("quantity", QuantityProfileRef::Ratio, &ratio_add),
+            Ok(CompiledNode::Quantity {
+                operation: CompiledQuantityOperation::Add {
+                    result_profile: QuantityProfileRef::Ratio,
+                    ..
+                },
+                ..
+            })
+        ));
+
+        let absolute_subtract = QuantityOperation::Subtract {
+            right: QuantityWire {
+                profile: QuantityProfileRef::TemperatureAbsolute,
+                magnitude: "300".to_owned(),
+                unit: "K".to_owned(),
+            },
+        };
+        assert_eq!(
+            absolute_subtract.result_profile(QuantityProfileRef::TemperatureAbsolute),
+            Some(QuantityProfileRef::TemperatureDifference)
+        );
+        assert!(matches!(
+            lower_quantity(
+                "quantity",
+                QuantityProfileRef::TemperatureAbsolute,
+                &absolute_subtract,
+            ),
+            Ok(CompiledNode::Quantity {
+                operation: CompiledQuantityOperation::Subtract {
+                    result_profile: QuantityProfileRef::TemperatureDifference,
+                    ..
+                },
+                ..
+            })
+        ));
     }
 
     fn normalized_ports(

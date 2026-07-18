@@ -827,6 +827,26 @@ pub enum QuantityOperation {
     },
 }
 
+impl QuantityOperation {
+    pub const fn result_profile(
+        &self,
+        input_profile: QuantityProfileRef,
+    ) -> Option<QuantityProfileRef> {
+        match self {
+            Self::Compare { .. } => None,
+            Self::Multiply { result_profile, .. } | Self::Divide { result_profile, .. } => {
+                Some(*result_profile)
+            }
+            Self::Subtract { .. }
+                if matches!(input_profile, QuantityProfileRef::TemperatureAbsolute) =>
+            {
+                Some(QuantityProfileRef::TemperatureDifference)
+            }
+            _ => Some(input_profile),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum CompareOperator {
@@ -2129,18 +2149,6 @@ pub(crate) enum ValueType {
     I64,
     U64,
     Quantity { profile: String },
-}
-
-impl ValueType {
-    pub(crate) const fn name(&self) -> &'static str {
-        match self {
-            Self::Bool => "bool",
-            Self::String => "string",
-            Self::I64 => "i64",
-            Self::U64 => "u64",
-            Self::Quantity { .. } => "quantity",
-        }
-    }
 }
 
 pub(crate) fn valid_id(value: &str) -> bool {

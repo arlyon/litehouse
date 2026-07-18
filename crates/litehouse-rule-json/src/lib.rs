@@ -8,14 +8,16 @@
 //! rules, dispatch providers, mutate observed state, or execute timers.
 
 mod artifacts;
+mod canonical;
 mod catalog;
 mod compile;
+mod condition;
 mod fixtures;
 mod model;
 mod planner;
 pub mod schema;
 
-pub use compile::{CompileError, CompiledRule, RuleJsonError, compile_rule_json};
+pub use compile::{CompileError, CompiledRule, CompiledSchedule, RuleJsonError, compile_rule_json};
 pub use model::*;
 pub use planner::{
     Assumption, AssumptionError, AssumptionKind, EffectIntent, EvaluationErrorCode,

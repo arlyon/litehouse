@@ -1216,7 +1216,7 @@ fn resolve_type_expression(
     node: Option<&crate::model::Node>,
     nodes: &[crate::model::Node],
 ) -> TypeRef {
-    use crate::model::{Node, QuantityOperation};
+    use crate::model::Node;
     match expression {
         TypeExpression::Fixed { type_ref } => type_ref.clone(),
         TypeExpression::StateField { .. } => match node {
@@ -1244,16 +1244,11 @@ fn resolve_type_expression(
                 input_profile,
                 operation,
                 ..
-            }) => match operation {
-                QuantityOperation::Compare { .. } => TypeRef::PredicateOutcome,
-                QuantityOperation::Multiply { result_profile, .. }
-                | QuantityOperation::Divide { result_profile, .. } => TypeRef::Quantity {
+            }) => match operation.result_profile(*input_profile) {
+                None => TypeRef::PredicateOutcome,
+                Some(profile) => TypeRef::Quantity {
                     catalog: crate::model::QuantityCatalogRef::V1,
-                    profile: *result_profile,
-                },
-                _ => TypeRef::Quantity {
-                    catalog: crate::model::QuantityCatalogRef::V1,
-                    profile: *input_profile,
+                    profile,
                 },
             },
             _ => unreachable!("quantity-result expression belongs only to quantity"),

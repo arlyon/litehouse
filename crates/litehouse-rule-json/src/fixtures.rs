@@ -1619,7 +1619,7 @@ fn maximal_document(schema_digest: &ArtifactDigests) -> RuleDocument {
                     minute: 59,
                     second: 59,
                 },
-                timezone: "A".repeat(64),
+                timezone: "America/Argentina/ComodRivadavia".to_owned(),
                 nonexistent_time: NonexistentTimePolicy::Skip,
                 duplicate_time: DuplicateTimePolicy::Second,
             },
@@ -1632,7 +1632,7 @@ fn maximal_document(schema_digest: &ArtifactDigests) -> RuleDocument {
     for index in 0..64 {
         result.semantic.annotations.insert(
             NamespacedAnnotationKey::new(format!("fixture:key{index:02}")),
-            AnnotationValue::new("v".repeat(1_024)),
+            AnnotationValue::new("v".repeat(512)),
         );
     }
     result.editor.nodes.clear();

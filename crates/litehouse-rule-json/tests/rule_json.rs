@@ -11,11 +11,11 @@ use litehouse_contracts::{
     quantity::{Quantity, profile_ids},
 };
 use litehouse_rule_json::{
-    AssumptionError, CompileError, ContractRef, EvaluationErrorCode, EvaluationInput, Freshness,
-    InputError, ObservationValue, ObservedRevision, PlanError, PlanOutcome, QuantityCatalogRef,
-    QuantityProfileRef, RebindPolicy, RuleDocument, RuleJsonError, ScalarValue, Selector,
-    SelectorCardinality, SnapshotInput, StateObservationInput, StatefulContractKind, TargetInput,
-    Timestamp, TypeRef, UnknownReason, compile_rule_json, plan,
+    AssumptionError, CompileError, CompiledSchedule, ContractRef, EvaluationErrorCode,
+    EvaluationInput, Freshness, InputError, ObservationValue, ObservedRevision, PlanError,
+    PlanOutcome, QuantityCatalogRef, QuantityProfileRef, RebindPolicy, RuleDocument, RuleJsonError,
+    ScalarValue, Selector, SelectorCardinality, SnapshotInput, StateObservationInput,
+    StatefulContractKind, TargetInput, Timestamp, TypeRef, UnknownReason, compile_rule_json, plan,
     schema::{
         CHECKED_EVALUATION_ARTIFACTS, CHECKED_FIXTURE_INVENTORY, CHECKED_FIXTURES,
         CHECKED_PORT_CATALOG, CHECKED_RULE_SCHEMA, evaluation_profile_sha256,
@@ -1073,7 +1073,7 @@ fn authored_artifact_ids_are_schema_fixed_and_activation_revisions_are_not_fabri
     let concrete = [
         (
             "litehouse-cel@1",
-            b"litehouse-cel@1\ncel=0.14.0\ncompatibility-subset=one-input-comparison-no-u64\n"
+            b"litehouse-cel@1\ncel=0.14.0\nmode=bounded-dynamic-interpreter\ninputs=declared-immutable-only\ncost=closed-ast-precharged\nmemory=checked-ast-plus-runtime-values\nchrono=timestamp-boundary-only\n"
                 .as_slice(),
         ),
         ("litehouse:contract-catalog@1", CONTRACT_ARTIFACT_MANIFEST),
@@ -1083,7 +1083,7 @@ fn authored_artifact_ids_are_schema_fixed_and_activation_revisions_are_not_fabri
         ),
         (
             "litehouse:rule-compiler@1",
-            b"litehouse:rule-compiler@1\nrule-json=1.0.0\ncompatibility-planner=t8.1a\n".as_slice(),
+            b"litehouse:rule-compiler@1\nrule-json=1.0.0\ncanonical-semantic=rfc8785-jcs-64k\ncompiler=t8.1b\n".as_slice(),
         ),
         (
             "litehouse:quantity-catalog@1",
@@ -1140,6 +1140,62 @@ fn authored_artifact_ids_are_schema_fixed_and_activation_revisions_are_not_fabri
     assert!(matches!(
         compile_error(&noncurrent_profile),
         CompileError::EvaluationProfileDigestMismatch
+    ));
+}
+
+#[test]
+fn canonical_semantic_digest_excludes_editor_and_enforces_64_kib() {
+    let original = planner_fixture();
+    let compiled = compile_value(&original).unwrap();
+
+    let mut layout_only = original.clone();
+    layout_only["revision"] = json!(8);
+    layout_only["editor"]["revision"] = json!(8);
+    layout_only["editor"]["nodes"]["trigger"]["x"] = json!(123_456);
+    let layout_compiled = compile_value(&layout_only).unwrap();
+    assert_eq!(
+        compiled.semantic_sha256(),
+        layout_compiled.semantic_sha256()
+    );
+
+    let mut reordered = original.clone();
+    reordered["semantic"]["nodes"]
+        .as_array_mut()
+        .unwrap()
+        .reverse();
+    reordered["semantic"]["edges"]
+        .as_array_mut()
+        .unwrap()
+        .reverse();
+    let reordered_compiled = compile_value(&reordered).unwrap();
+    assert_eq!(
+        compiled.semantic_sha256(),
+        reordered_compiled.semantic_sha256()
+    );
+
+    let mut changed_semantic = original.clone();
+    changed_semantic["semantic"]["name"] = json!("Changed semantic rule");
+    let changed_compiled = compile_value(&changed_semantic).unwrap();
+    assert_ne!(
+        compiled.semantic_sha256(),
+        changed_compiled.semantic_sha256()
+    );
+
+    let maximal = fixture("fixtures/valid-maximal.json");
+    assert_semantically_valid(&maximal);
+
+    let mut oversized = original;
+    let annotations = oversized["semantic"]["annotations"]
+        .as_object_mut()
+        .unwrap();
+    annotations.clear();
+    for index in 0..64 {
+        annotations.insert(format!("test:key{index:02}"), json!("v".repeat(1_024)));
+    }
+    assert!(matches!(
+        compile_error(&oversized),
+        CompileError::CanonicalSemanticTooLarge { maximum, .. }
+            if maximum == 64 * 1_024
     ));
 }
 
@@ -1741,6 +1797,29 @@ fn schedule_and_dst_policy_matrix_is_closed_and_semantically_valid() {
     let mut cron = fixture("fixtures/valid-time-fixed-interval.json");
     cron["semantic"]["trigger"]["schedule"] = json!({"kind": "cron", "value": "* * * * *"});
     assert!(!validator().is_valid(&cron));
+
+    let one_shot = compile_value(&fixture("fixtures/valid-time-one-shot.json")).unwrap();
+    assert!(matches!(
+        one_shot.schedule(),
+        Some(CompiledSchedule::OneShot { .. })
+    ));
+    let interval = compile_value(&fixture("fixtures/valid-time-fixed-interval.json")).unwrap();
+    assert!(matches!(
+        interval.schedule(),
+        Some(CompiledSchedule::FixedInterval { .. })
+    ));
+    let weekly = compile_value(&fixture("fixtures/valid-time-weekly.json")).unwrap();
+    assert!(matches!(
+        weekly.schedule(),
+        Some(CompiledSchedule::WeeklyCivil { timezone, .. }) if timezone == "Europe/London"
+    ));
+
+    let mut unknown_timezone = fixture("fixtures/valid-time-weekly.json");
+    unknown_timezone["semantic"]["trigger"]["schedule"]["timezone"] = json!("Mars/Olympus_Mons");
+    assert!(matches!(
+        compile_error(&unknown_timezone),
+        CompileError::InvalidSchedule { .. }
+    ));
 }
 
 #[test]
@@ -1768,8 +1847,13 @@ fn minimal_maximal_and_matrix_fixtures_cover_the_frozen_release_contract() {
         serde_json::to_vec(&maximal).unwrap().len() <= litehouse_rule_json::HARD_MAX_JSON_BYTES
     );
     assert!(
-        serde_json::to_vec(&maximal["semantic"]).unwrap().len()
-            > litehouse_rule_json::HARD_MAX_CANONICAL_SEMANTIC_BYTES
+        serde_json::to_vec(&json!({
+            "schema": maximal["schema"].clone(),
+            "semantic": maximal["semantic"].clone(),
+        }))
+        .unwrap()
+        .len()
+            <= litehouse_rule_json::HARD_MAX_CANONICAL_SEMANTIC_BYTES
     );
     assert_semantically_valid(&maximal);
 
@@ -1974,8 +2058,65 @@ fn unsuffixed_cel_int_is_not_reinterpreted_as_u64() {
         json!(digest(source));
     assert!(matches!(
         compile_error(&document),
-        CompileError::PlannerSubsetUnsupported { ref node, ref kind }
-            if node == "condition" && kind.contains("type-faithful CEL uint token parsing")
+        CompileError::InvalidCondition { ref node, ref reason }
+            if node == "condition" && reason.contains("is not admitted")
+    ));
+}
+
+#[test]
+fn cel_profile_uses_declared_immutable_values_and_rejects_dynamic_language_features() {
+    let mut timestamp_rule = planner_fixture();
+    let source = "left == true && evaluation_time < timestamp(\"2040-01-01T00:00:00Z\")";
+    timestamp_rule["semantic"]["nodes"][1]["expression"]["source"] = json!(source);
+    timestamp_rule["semantic"]["nodes"][1]["expression"]["normalized_source_sha256"] =
+        json!(digest(source));
+    let compiled = compile_value(&timestamp_rule).unwrap();
+    assert_eq!(
+        plan(
+            &compiled,
+            &input(ObservationValue::Known {
+                value: ScalarValue::Bool { value: true },
+            }),
+        )
+        .unwrap()
+        .outcome(),
+        PlanOutcome::AwaitingReceipt
+    );
+
+    let mut undeclared = planner_fixture();
+    let source = "left == true && ambient == true";
+    undeclared["semantic"]["nodes"][1]["expression"]["source"] = json!(source);
+    undeclared["semantic"]["nodes"][1]["expression"]["normalized_source_sha256"] =
+        json!(digest(source));
+    assert!(matches!(
+        compile_error(&undeclared),
+        CompileError::InvalidCondition { ref reason, .. }
+            if reason.contains("not declared")
+    ));
+
+    let mut comprehension = planner_fixture();
+    let source = "[left].exists(value, value == true)";
+    comprehension["semantic"]["nodes"][1]["expression"]["source"] = json!(source);
+    comprehension["semantic"]["nodes"][1]["expression"]["normalized_source_sha256"] =
+        json!(digest(source));
+    assert!(matches!(
+        compile_error(&comprehension),
+        CompileError::InvalidCondition { .. }
+    ));
+
+    let mut quantity = planner_fixture();
+    quantity["semantic"]["nodes"][1]["expression"]["inputs"][0]["type_ref"] = json!({
+        "kind": "quantity",
+        "catalog": "litehouse:quantity-catalog@1",
+        "profile": "litehouse:quantity/ratio@1"
+    });
+    let source = "left == left";
+    quantity["semantic"]["nodes"][1]["expression"]["source"] = json!(source);
+    quantity["semantic"]["nodes"][1]["expression"]["normalized_source_sha256"] =
+        json!(digest(source));
+    assert!(matches!(
+        compile_error(&quantity),
+        CompileError::InvalidCondition { .. } | CompileError::IncompatiblePorts { .. }
     ));
 }
 

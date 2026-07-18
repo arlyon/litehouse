@@ -4,931 +4,931 @@
       "path": "fixtures/valid-minimal.json",
       "schema_valid": true,
       "semantic_valid": true,
-      "sha256": "8ffb56d696ef11bcb1613de736fa79784c65b6aac3cd7fb161eccf0de82aaba2"
+      "sha256": "b440e574c791ecb863ec929437ed0fa1641f0f241cee65d263e191190cd641ef"
     },
     {
       "path": "fixtures/valid-planner-compat.json",
       "schema_valid": true,
       "semantic_valid": true,
-      "sha256": "6576376b4f30254c7b3df70f13ab611b2aaffb9ca081ca4ea3a2b288a61bf6da"
+      "sha256": "1cbcb57a1e1ec654ed4967dbfb3353ed260602fc579e87ed0b1ebb46baed5933"
     },
     {
       "path": "fixtures/valid-all-operations.json",
       "schema_valid": true,
       "semantic_valid": true,
-      "sha256": "8df52d74d75842a5ec347573c498f383d89dd2349f96e5e72234dfe6a13f0240"
+      "sha256": "49a52fbc45183ae750762c47dc79af044f4285faad894ff64b21f1ed7ea9614a"
     },
     {
       "path": "fixtures/valid-all-node-families.json",
       "schema_valid": true,
       "semantic_valid": true,
-      "sha256": "feb741b32000cb0cda718c2361fe4f41bc9f0920c47f4af6a091d36704169df3"
+      "sha256": "c48b40ba74ba3037cb3942143bef68d88887e4325c21be1a196b8073ea373020"
     },
     {
       "path": "fixtures/valid-all-desired-paths.json",
       "schema_valid": true,
       "semantic_valid": true,
-      "sha256": "e9a24b859dfafb4ec884f80c24e68b08c7152eacdae7d1caa6aeedf6a083693d"
+      "sha256": "c1465125ae1e9da9a218650375015dc0a973c41aee297c47f8e3e64ca0f51484"
     },
     {
       "path": "fixtures/valid-time-one-shot.json",
       "schema_valid": true,
       "semantic_valid": true,
-      "sha256": "aed0f41b4fac5de8a9fa24cbe6677055038ae732fa11a66f161f213a27f11924"
+      "sha256": "4062ff1e17acef7bfc41727c8c440afeeddf9b722e7f3822148faeeba5abeca0"
     },
     {
       "path": "fixtures/valid-time-fixed-interval.json",
       "schema_valid": true,
       "semantic_valid": true,
-      "sha256": "2ff828ce889e6fe20615aadcab36e3812fc1e99a148d597bca36a1bfd5c41261"
+      "sha256": "4329c2ace6df3616235b79ceea50167dd4c2226a046af50d51bb84ee421d9bce"
     },
     {
       "path": "fixtures/valid-time-weekly.json",
       "schema_valid": true,
       "semantic_valid": true,
-      "sha256": "9ef6b19dc5cada781637139c2d182f4b40b3b0af0c8827b1d1af39ced3929b17"
+      "sha256": "03f0f4e233ae292d6759a61e30a44e0c3f7ba4eb372bf2d5a210a68a0e79338a"
     },
     {
       "path": "fixtures/valid-maximal.json",
       "schema_valid": true,
       "semantic_valid": true,
-      "sha256": "464bde3864e9c17e41bc37b75c5f5b1439519da25efa3a8952d7ce218775a912"
+      "sha256": "d6fd6012c7acd8bfd524ab617a9ee42af30c5c008e858256199499e299a7d669"
     },
     {
       "path": "fixtures/invalid-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "e3ecddd329c8e7943e007ad8a45b25252d030f4a4c219a255cae5d7c6f55b337"
+      "sha256": "dc3953cf77dcac38663439579c9eac35b7720ce46c6a3af129a4103c97807bc1"
     },
     {
       "path": "fixtures/invalid-bound.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "e8e96958f1e91cad35b41331b3d756a60e5dc254d73c3755bd5b87aa9e8b2c18"
+      "sha256": "29acc87bfff95a9c51c8353a8c87c0959ab41d6dfc9d8586b4d6ca1b2c9a9cbf"
     },
     {
       "path": "fixtures/invalid-legacy-compare.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "2305b7a2e65c288e79c3027d08283ad38c228de55c40e6b079a2f5465167e877"
+      "sha256": "894f87f2dfe4bb872151378fd4b74b546f0904ea2cf3a79c0b006d98b7889148"
     },
     {
       "path": "fixtures/invalid-legacy-on-off-set.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "c16bd219bf89afc33d36e7699532d9277f9d8cc64278e0951926af3bb8051219"
+      "sha256": "f3232721546d60fb20d8ce358aa71ef07ba686922ee461907e11150a4bce8e60"
     },
     {
       "path": "fixtures/invalid/trigger-state-observation-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "a185747a6993cb82c16fccdbf400138fe45ff026b8d025c4a43053e80d20d56c"
+      "sha256": "41907578a6f21fc7e6282cae7b7c52f1f80f5d7944fea4881b5331fd422a8eb9"
     },
     {
       "path": "fixtures/invalid/trigger-discrete-event-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "61fa3aaf63651c4f767637a3e07ec0d3b69fabfccec7afcb5135bfffa97a80a3"
+      "sha256": "01899cfc04ce86ef60a1f754299167514c832a834d1d52f53a2d3fda21152824"
     },
     {
       "path": "fixtures/invalid/trigger-time-schedule-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "1536ecf25eda8a9c76e97583226f5f7bcde3309bc5ded2e009126a5d1e4352a7"
+      "sha256": "59d659f2117d547c2694839e0823565c276b12fa3e4a13dcc85a9e7d9f1147ac"
     },
     {
       "path": "fixtures/invalid/node-snapshot-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "71b574a944b01e754f131b26d44d1db7ac7e09110bb6d27253f748da9fb93901"
+      "sha256": "2fb8dd14cbbd77648fb9c57ae72b608113ac362bb5f0f993b2dc1d3730c97586"
     },
     {
       "path": "fixtures/invalid/node-condition-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "fbda99509625ddc55816025913aaaadde3b2488127b7ce44ee7f0174fb3f88ad"
+      "sha256": "1d1d56c046ca4912dff3d61035db45b0e91ddfefdc32a2bf5b70f5c918425f8f"
     },
     {
       "path": "fixtures/invalid/node-quantity-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "7a90771a01074b1b0c04adb5ed2dac7786cd7cbf7dc57d65d45111aad9998a3a"
+      "sha256": "4a07c1d0ed46f32f33112d3a9ca26010968b1150674452a32517d0f83898883a"
     },
     {
       "path": "fixtures/invalid/node-branch-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "f42314ba869f57a76cc020daf9829c5707e0774899ac3b7a405e3eb034c241b3"
+      "sha256": "2943c489c7edeba86a437f34c20a6eb002618f883f4ad2e45ecc69533c037484"
     },
     {
       "path": "fixtures/invalid/node-desired-patch-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "bf728a1741c7dfab7760e5b31aa333cc6984b9f048eb8f57c6d2e8cfbb51d273"
+      "sha256": "6377bbc203a1cb7dd434d38bca27e5ca4e92fc851034216af42e3fdf77adfbcd"
     },
     {
       "path": "fixtures/invalid/node-effect-intent-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "aae29be362c2c18f5c151906a9e355fceb94772fa007c0b0923d50b65273c231"
+      "sha256": "39bfacd2cc2e46059d009003c523ebbe0e446d689b91093ac7e3f75afba0e6da"
     },
     {
       "path": "fixtures/invalid/node-delay-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "d073b366792a75783c79ce6f15dbc19af50e7d9dc996ac7ce9204bb948a5d397"
+      "sha256": "361fdaea03706c7fdd56045bf81e3da3084093c3241fc309988cf78b18409226"
     },
     {
       "path": "fixtures/invalid/node-debounce-throttle-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "08bfe7647ed34bdbe669c809e9be94567492ea348dd61fb4b7067f126d376c1a"
+      "sha256": "b1539b480124d3c6b7b84312f494b74004ff7b554c40dbce238fc49599a39c1a"
     },
     {
       "path": "fixtures/invalid/node-fork-join-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "7b1525650df94520b3d8e23afd7ef1250f7066554aeeac1d495fdccf7cac6685"
+      "sha256": "eeaca1a7562be8332d23ed2281131ad9a5092717460bb133fe81fca808f59d54"
     },
     {
       "path": "fixtures/invalid/node-receipt-branch-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "8cf7eb273229df53b3b74dd4634fe85b574bc8ff2e193aa60cf3f5d481e5377c"
+      "sha256": "5776d9adce554ff083aff2ba00372d7a99d38b3af3fc23c6c87ea95012a292c8"
     },
     {
       "path": "fixtures/invalid/node-end-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "e991006e6122727a673e10f5953c0ae449a1cc3b98b0b7943fa12a028267e8ed"
+      "sha256": "7b99f8b128899e4fb2fc511c681a9bc16fbba01b38be7acdc76b997b4bd78b24"
     },
     {
       "path": "fixtures/invalid/operation-capability-on-off-set-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "b00d768a45c8e947e918883ad063c4f8f6a4d559d4380282176536b00eb6342d"
+      "sha256": "a09d2189ef3c8d0f9d7b7f9fd55dcec1460e3a4c4d9e27f629560eff69cdd259"
     },
     {
       "path": "fixtures/invalid/operation-capability-on-off-toggle-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "da3d9bf45cdb37685bb9ca09800d56cb6e5e6a2f9cfb4da598f75e8aa983700a"
+      "sha256": "7885179bb7341c4ea87632367459203aadc735fa42cf4dcebf9cb7a9373c6dc6"
     },
     {
       "path": "fixtures/invalid/operation-capability-level-set-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "27ed23fb301e48cf623ff0ba01fb74a739f178647b2e36062eb6c690e296b912"
+      "sha256": "edb245005bb6bb7caad7ec5417175dd0dbea70be00adb2cccb874d4ea8a95254"
     },
     {
       "path": "fixtures/invalid/operation-capability-level-step-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "5babbd7a79d52228951b332fa2f2c61d7260b777c7337fd03614f74b740c647c"
+      "sha256": "7f3a738f2764e89b9bebb3f9d099616c4e5db5959235de92548e31694c7e8b1c"
     },
     {
       "path": "fixtures/invalid/operation-capability-level-move-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "cc3e50ecd67e70f67d9bef25fa989a61cf082ecc7a98b7ccb4d20b6fa0e269bc"
+      "sha256": "d5aa75d251e8fe2aaa69f1d66f2ea5d0ee967f1279cd6030d70d582fc26dcee2"
     },
     {
       "path": "fixtures/invalid/operation-capability-level-stop-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "3d0589d7f60014151f9467084ece5d1fb99eae0ef7d877bdd693b8ce5348fe41"
+      "sha256": "d755c53e238ed71c0915d2ba23654097c32572e095b482d61caaad092dc743f2"
     },
     {
       "path": "fixtures/invalid/operation-capability-level-transition-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "5a17e2549a0736cac50f45576cc2c76797fe2a9f78fe2165082bfcf7fcf56da6"
+      "sha256": "93dce033f7ded58fa369d8a3e0c2e03457dc79b116bbbf08e9cacc01b5d002f4"
     },
     {
       "path": "fixtures/invalid/operation-capability-level-set-coupled-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "7b3c54cf4266b52a5accbdaba6bed5fbe475345ef22b0b87446832de43da3d6c"
+      "sha256": "c2f2250e87b6e06160fc262ea6eca6ec2c5ef3ef43cd71ac7a5f2e2a31e66eba"
     },
     {
       "path": "fixtures/invalid/operation-capability-level-step-coupled-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "6339ac85cfc18d0074543ad2c97faa3c7d25be121f7963eeb17777b2ec88095d"
+      "sha256": "9da25b5e3bef8147b3f35f72310525d249854ad9702919524221fc1a77195ff8"
     },
     {
       "path": "fixtures/invalid/operation-capability-level-move-coupled-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "225c3c56927d60c356542cc51f663685ce960b83095c030dea66020e72f46ee6"
+      "sha256": "ae29e2aa4a844a55aec931c6db0a0b15f314dbcd7753e326dfed4bf6986cfcae"
     },
     {
       "path": "fixtures/invalid/operation-capability-level-transition-coupled-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "d2bdd9c3c747682f248035d9650c16fa31fb862340dd60b89d81dc582f522b81"
+      "sha256": "35a7311c9638c76239450a64a430556143764171f7a6b81006052ca78d753e84"
     },
     {
       "path": "fixtures/invalid/operation-capability-color-set-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "8f57f9e87683c6937ce8aafb789d27da91f45ac01100e25d966f53801db02212"
+      "sha256": "fcdfe5ad6cb74d87869f4830d3f8f9c4a20db6c1d6f27a33c0bd77c6e94243b2"
     },
     {
       "path": "fixtures/invalid/operation-capability-color-step-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "8de49cf0b9c754ef91c6ab1666d824901f548749f4b2722813e193e576505232"
+      "sha256": "941673da6ffd9397b9399f353bfc25b59320b2334c999ced201c8af08f0dbe9b"
     },
     {
       "path": "fixtures/invalid/operation-capability-color-move-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "243d58a0426625e7cb57d1a3a075e7a0757b594202ccd1c61264d1ea0e0758f2"
+      "sha256": "fe8003319881ad76f8df2d34035d31bd3535600dffd657967cee67081ec2a003"
     },
     {
       "path": "fixtures/invalid/operation-capability-color-stop-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "738e2a3b36cea3efa9c0a06fa4782cea64574cf93a0922ea3cd01c2bb8e94c44"
+      "sha256": "c08508ac0cb88da8b9248130f54ce75a1b051679911ce7649198f8df6a9033aa"
     },
     {
       "path": "fixtures/invalid/operation-capability-color-transition-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "d62a0c289472b3e596250bd6a0d05b35e6674a73edf0eb52df57133af5dcecbd"
+      "sha256": "931ebd946604a68709e09625f7086fb7bdd04ea6d02ca9db53f55406a7d0f190"
     },
     {
       "path": "fixtures/invalid/operation-capability-thermostat-set-mode-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "ba85d8d2b2877e2666ca30ba44b952f44af9ab2103c7c439db3b1ffc5990edb9"
+      "sha256": "82225b56ca23daf0a63ac6518a1f1df5541ec399cfee5fc26fe8bc8a2d2dee6a"
     },
     {
       "path": "fixtures/invalid/operation-capability-thermostat-set-single-target-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "9156b769229a401e0d4d58c0faab7876cabd2a99fa760277b69966f401ebeb67"
+      "sha256": "36f9414b79646983853b95b2c0c1e59d9737d1ab20b05d2baaa1353304291884"
     },
     {
       "path": "fixtures/invalid/operation-capability-thermostat-set-dual-target-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "5472f7fc19790ac28e8db05d9b0ae25ec1a63dd74bea49984766128892d7f6c2"
+      "sha256": "16d5ae98025c40b001cdc07fc28d4ab6641f8d47428d7d1569d8872155f56bcf"
     },
     {
       "path": "fixtures/invalid/operation-capability-thermostat-set-fan-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "6f5e8a3e9f4037976f59fed852f710c778ddd1727d1d4ab734e69f6a02463a0f"
+      "sha256": "fff9e0601ea679f3b8b956ea7a6c3bee45a9280c2bcff6f32aae6a91bbba8927"
     },
     {
       "path": "fixtures/invalid/operation-capability-thermostat-set-swing-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "73fa014c9089cb179223c3cbef409500292627bc8472f52ecfc064c6a61ab6a3"
+      "sha256": "5ace0311af8e93c488c0b9983ae520239cbba03fe0977baf20791128248694e6"
     },
     {
       "path": "fixtures/invalid/operation-capability-thermostat-set-preset-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "981cba0f8001c6bdadc41f0727bbb5795c6779998b63ca4f9005aabe14e99045"
+      "sha256": "a149ea301176e913f1a3accfe142f623e95a8fee4948171e2031c99e41d00b80"
     },
     {
       "path": "fixtures/invalid/operation-capability-covering-open-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "2e9983b8e756773b823221699515d9c51c0e4c1bf2cd7a57e2f359a69368500c"
+      "sha256": "3afde608b3474dcb4864b32bf8b0ba848e5657e4280c889ccd2f61ddd7d4329b"
     },
     {
       "path": "fixtures/invalid/operation-capability-covering-close-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "ec6942602833a5820c4c8f79e64439de63e5ec7736d99d88e5419911dbe3c4ae"
+      "sha256": "856b60c121db6f7ddb407c040cdc7d5b979fd8b3b2e4d61df378ac316e5634ac"
     },
     {
       "path": "fixtures/invalid/operation-capability-covering-stop-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "b4f2a9c888bfafdd582243affa4aada0c67fc0178f325dde6eeb12a7394d73e8"
+      "sha256": "31c12c849c2fad311c97d3c45c1ea2e567dae3dde347728bc98344687556e38c"
     },
     {
       "path": "fixtures/invalid/operation-capability-covering-set-lift-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "18be0af1346756b1588587e6b56a17a22db58910f1a9c2645044a6b503e75939"
+      "sha256": "c7ca48c4d4b60adebe65ebdbd5bd2f67c8175b4d9c01aeea179c0703a735e157"
     },
     {
       "path": "fixtures/invalid/operation-capability-covering-set-tilt-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "b6bffd6d866c23f9b5fb0c19ebac6441126548c4fb66d0c6ae5336f0bb3d25c8"
+      "sha256": "fb38b846dcb40ec000072b6205fdfd483531c365421af24daa0fed4258ab94bb"
     },
     {
       "path": "fixtures/invalid/operation-capability-momentary-invoke-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "14a4253dfe4eb15bba9ec1788fba5fa461348e611bc06a71c88ec9fef85cb6fd"
+      "sha256": "f0bf76e8776cf6d448c3b0836e3e5053ef22b0adf10e20cacad6ef71d4fca84f"
     },
     {
       "path": "fixtures/invalid/operation-capability-notification-send-1-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "43c07cfc81edbfca219da24107751ff0b4b9424735961da99965fd90ed8c49a9"
+      "sha256": "eeb740b066f69355975a1e72eb41d8de2b9c10682d9e29eef0157a8832071c74"
     },
     {
       "path": "fixtures/invalid/schedule-one-shot-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "5fed5855806c2b7a544a1907630cd9a4dc6b76d9d4740b893f6520f1e378f425"
+      "sha256": "e4984bef864c19cff868f8945e758966ed2b522cbda2b0331dd8c49b5748636d"
     },
     {
       "path": "fixtures/invalid/schedule-fixed-interval-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "6c1942cd7955c1c551dc1750245a12e6885e8fb7aa17e7ff715e253f939b403e"
+      "sha256": "d5aa04394eb985d48f48b01dd2f0e37714da7583986079268f841e8ba1058a2c"
     },
     {
       "path": "fixtures/invalid/schedule-weekly-civil-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "53b2c90013bc85ee64a9f4da8d93d1ec228e2b6153b00b082e66c3c1e75fec56"
+      "sha256": "6dc74dda55b063efa07b5f6e3ca6d9dcd289fcc3ce33862631d5b129b887b737"
     },
     {
       "path": "fixtures/invalid/dst-nonexistent-skip-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "53b2c90013bc85ee64a9f4da8d93d1ec228e2b6153b00b082e66c3c1e75fec56"
+      "sha256": "6dc74dda55b063efa07b5f6e3ca6d9dcd289fcc3ce33862631d5b129b887b737"
     },
     {
       "path": "fixtures/invalid/dst-nonexistent-shift-forward-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "f7c3313e3dda92e07f18f6a5c6cff5272f93e2c7db733d7318d103fd069b2380"
+      "sha256": "f171ce24930ca84cb00852930cf70de512e652b8280cdac8991f5bce9103b54c"
     },
     {
       "path": "fixtures/invalid/dst-nonexistent-error-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "fa62dfafdf3876bfb14e97cdb1c553d08d06d902f2153eeaf2f273e9824cf36f"
+      "sha256": "e59fb8ab64b246f3d683d9304ba5815a6bea3c6e932dad32024730f6f6b6a386"
     },
     {
       "path": "fixtures/invalid/dst-duplicate-first-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "53b2c90013bc85ee64a9f4da8d93d1ec228e2b6153b00b082e66c3c1e75fec56"
+      "sha256": "6dc74dda55b063efa07b5f6e3ca6d9dcd289fcc3ce33862631d5b129b887b737"
     },
     {
       "path": "fixtures/invalid/dst-duplicate-second-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "daf4ad6b1a5d1d9401641a68bccfb764a562d0855b84029ab6125728bbb61527"
+      "sha256": "9d5ac57a404b56d0b18c3aa84b9293ead0e09c5501c1947e24d2dd98ef434517"
     },
     {
       "path": "fixtures/invalid/dst-duplicate-both-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "766b43c269529009eef2887c78be04ae7a46281b946052df98e03c60fab2362b"
+      "sha256": "577d7b6fbae27d77a8752d310ab38a66fa7b29d987ada7a6d99cfa1c17530853"
     },
     {
       "path": "fixtures/invalid/retry-none-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "aae29be362c2c18f5c151906a9e355fceb94772fa007c0b0923d50b65273c231"
+      "sha256": "39bfacd2cc2e46059d009003c523ebbe0e446d689b91093ac7e3f75afba0e6da"
     },
     {
       "path": "fixtures/invalid/retry-definitely-pre-dispatch-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "f91e30c1407ac8b6c26aa8011e0da06b91d9f93242ea9e82837ac94c401b0975"
+      "sha256": "cc865fbba3c40d783bf566f0a31d2453a161b711d3d2554ec75bdbf4ddc9e9c7"
     },
     {
       "path": "fixtures/invalid/receipt-requirement-accepted-for-delivery-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "aae29be362c2c18f5c151906a9e355fceb94772fa007c0b0923d50b65273c231"
+      "sha256": "39bfacd2cc2e46059d009003c523ebbe0e446d689b91093ac7e3f75afba0e6da"
     },
     {
       "path": "fixtures/invalid/receipt-requirement-notification-advertised-maximum-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "fdc375cb409f6c6009cd197a7cbfe95acc9abad0989ae1dfa8924b0baa345952"
+      "sha256": "6505395dcb2a4d39291b2845095816e6ddff9b612379b2741afbb536b85fd07b"
     },
     {
       "path": "fixtures/invalid/receipt-outcome-accepted-for-delivery-edge-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "f9ff0e8512ffc3cf553e18fb8909aa82f5f3ade4d3a5bf9f030605abce6a5659"
+      "sha256": "6e9a06276ba0c06cc0aeef1453f55f2c6527c86534ca3d3a37fe63472e491703"
     },
     {
       "path": "fixtures/invalid/receipt-outcome-protocol-or-target-acknowledged-edge-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "5510b00603dfc8fd2063cf47c0700349c14b67b3a1f9ffa6b1f56d83a23bcdbb"
+      "sha256": "b8698f3b53bd52f74f9fe8dd0bee733863505ae9a528ea8e65ea01af98df4183"
     },
     {
       "path": "fixtures/invalid/receipt-outcome-completed-edge-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "d8131523d18c3f3788f5b6a43ab1b1ed77dab3b1e73a46ea2dc8cebb6e0adac5"
+      "sha256": "2ea1e4fa5151d618e0013e04d0389901835b1fabe3b42f3b74bd35ebe1a44182"
     },
     {
       "path": "fixtures/invalid/receipt-outcome-observed-completed-edge-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "b54a69a0a54392ca7b9ffd1117fa81f4aabe93e054f504bd74a00f9474789c65"
+      "sha256": "e862265b78d9f0f6bb51f351912605168714aa3e907424fa729274263913ef04"
     },
     {
       "path": "fixtures/invalid/receipt-outcome-rejected-edge-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "a8da00acfd7358bd13c5ab243356f3e2781983eaedeb4095843f24ed6c5dd383"
+      "sha256": "6e5a4716eef0bd2c092f654fa78cb1964e33aec8a2175d29f4f7cbeae87eebd2"
     },
     {
       "path": "fixtures/invalid/receipt-outcome-error-edge-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "7fa1779c960af8a7e14696c8ccc4f48da4ed3fadff32b74ed02ca593aa7eb773"
+      "sha256": "dcd1c410ccf126b0f6ce2c37c14e384346b590db7fe1d9e626da009ade705ab4"
     },
     {
       "path": "fixtures/invalid/receipt-outcome-cancelled-edge-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "8db8ec604380f9cd92276f49cd9b91115ca3a6946dacbe5b0549524b9174f2ce"
+      "sha256": "81ceb1dc3a9ded8406f2cb6dadcd98b96178d988577297692b480d6a82a74ed3"
     },
     {
       "path": "fixtures/invalid/receipt-outcome-outcome-unknown-edge-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "258031261d06d1a4edb6e2d4fabb01eebf74dcc246aaa824a16ca245a4e1562f"
+      "sha256": "68680685c3c7db03736f30061c14c586a9105f1b5f5f23e34b251123e0650bd9"
     },
     {
       "path": "fixtures/invalid/desired-path-color-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "7986c79b238a4f81bbc5712cc9e19dc1e6b72930c38b033fd825fef3352c6af0"
+      "sha256": "c258b4bc4c65e0d39de07464b926c522d8b13bd8365f2a93e1919f4554cbb4b2"
     },
     {
       "path": "fixtures/invalid/desired-path-covering-lift-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "1cdec59f453c90e8cbf4db800ce46e0b7b96f28dcd0deadf11b541d5c1eb81c8"
+      "sha256": "a28e23ccf5771c25f2d0a5878b8620e82c6caefe8924c486a52abd935bd7dc1f"
     },
     {
       "path": "fixtures/invalid/desired-path-covering-tilt-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "ed3ac0adbd635f96fcc72dbcebe27bef2bd1c8340f6e4c4b18ae825c860aa01a"
+      "sha256": "619c84dd424058668f61e7158229afd604f2b2ece78cd340e8f9cfffa08a01ab"
     },
     {
       "path": "fixtures/invalid/desired-path-level-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "07b65ce45d7dcf3718c7ea895ad3c63f3fd827ca65f6de149a9c11993a14af87"
+      "sha256": "0d925430e81d40d75e7827a8f8edf96a973e9bc2417bc3cacf366aa0a8080e5c"
     },
     {
       "path": "fixtures/invalid/desired-path-on-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "dfdfd7b8fb6afb26f333b4e46e64f9c2163fa791b67b41baa34a6791a30308d4"
+      "sha256": "6981a70b6b0eeae5a822e239a30c9f27922916fd2e1127b70ba12f1f9f45bca2"
     },
     {
       "path": "fixtures/invalid/desired-path-thermostat-cool-target-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "cd81efcc2a4c3fc977a56d79155b09570cd79c43fefc2a48ac052c10d5b91edf"
+      "sha256": "adff5c85919f64c5a8a9071eac920f50ffa027ba2f938db4d451cb411c4cad08"
     },
     {
       "path": "fixtures/invalid/desired-path-thermostat-fan-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "dd13a834e2c6eefa7fa1f6f1495ca00912e91071899fad8f0b187863a4c53e08"
+      "sha256": "23b871b3f1e854bd33f38c5abba5c59924c15d555155051116bf2a9fb92018a9"
     },
     {
       "path": "fixtures/invalid/desired-path-thermostat-heat-target-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "1b25726aecc6a066d5c8f8ad59c469bcb189d88c1e2815fd012167e14c661995"
+      "sha256": "26d0598374e0a4941ff6a6469cbb23bf852d11237f3b92bddbcad8ec6a7c0129"
     },
     {
       "path": "fixtures/invalid/desired-path-thermostat-mode-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "e886056e58fdb31528237fa9ecd4c39316902c91e39899ee78454ca665b8cc22"
+      "sha256": "ba0cdf0f62b7537b836636a2393d868ac7c3f3dd480196eff7e8ecda0343c929"
     },
     {
       "path": "fixtures/invalid/desired-path-thermostat-preset-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "7c9c5bcd5a307fd763632d278dcce681523f4bed27d9f384dcfe6b153e0190ec"
+      "sha256": "26992b469ddb079fc234c878e87b9bb324c927874635e066c184d40dc257c448"
     },
     {
       "path": "fixtures/invalid/desired-path-thermostat-single-target-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "fce3dcfeefeee76e1802edba5538069c7ec679b2cc30a4c39e5f70f3d8085e83"
+      "sha256": "57cf51c528e24f5dd8ee7f6488a7ac19a25780c3045eddfdbe4c4fc35da508b2"
     },
     {
       "path": "fixtures/invalid/desired-path-thermostat-swing-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "8b27cecac94bfe43a2390599d8f9b5ceb8590606454600447a2f13c86c33b05f"
+      "sha256": "cf075c5141111ab54b6100cfbefaf93d371bd8829423f6dca29d011106ebf5c0"
     },
     {
       "path": "fixtures/invalid/editor-presentation-standard-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "2b3b75b46500b5b506e0560da85530ad97ae1c9f1c0cc0bc3793fc6c308d22db"
+      "sha256": "bacc86cdf42b35bd3877395da8eb90aa45b26131bcb3873deb555ccbbc95f68e"
     },
     {
       "path": "fixtures/invalid/editor-presentation-compact-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "849953136a67f83296fd7e6ed6e8c8b84085de6cf0a4d6eb6fe041448cc67242"
+      "sha256": "653adcc39aaa00153a868264429681593f319edd6bc8c966165fd8e42d5a9a87"
     },
     {
       "path": "fixtures/invalid/editor-presentation-emphasized-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "66e925ca70e9813498343125c4c5dd22bff0e5e8ee80fef8f7b8642fe0ec8189"
+      "sha256": "064808f244f8a798ca55f57b56258a595776aef2bebac6047bea95f5d9669ebf"
     },
     {
       "path": "fixtures/invalid/editor-group-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "b75f811aa812f8bcba12ee8548d9fb79f2ce3737e545fe00f31dd70ddfa8beb5"
+      "sha256": "c43285d4c3de914b064785ecb06a8555fc8784349b81d1cc8e64341731118429"
     },
     {
       "path": "fixtures/invalid/editor-viewport-unknown-field.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "c78db14eaffeb60ca166f3c44bff6c95a7eebeb745c6c32ba2ad90e6dea95e10"
+      "sha256": "1c8f65e582a941432ea34f45a1ca9e710a3a45c9c68ccf6e250e6755364854e1"
     },
     {
       "path": "fixtures/invalid/noncurrent-lock-compiler.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "babf9ec627d9aad9195cfa062096d61b767e6898774c1b853c86282f5e35f14c"
+      "sha256": "780f2a6d1320972ab825859ea4d981d40aafa4d3ce08f26298cc8887f7ef8ca0"
     },
     {
       "path": "fixtures/invalid/noncurrent-lock-cel.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "37586ec77f90e6fc6a93c96bf9e92bd0c5ae666e938948dd7fa637414896598e"
+      "sha256": "79bb40ea3463357c7d3f3c2ebb53cef678e38b06c1014ba69fb5724973d7b5d4"
     },
     {
       "path": "fixtures/invalid/noncurrent-lock-quantity-catalog.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "a062cf4acfc4904263c56a2613ca6ba526cc73716985280e8b0d6e967d904325"
+      "sha256": "3157643d266fba8cb3044101ff233b64347833cbbb9de187cc846156fe9db9a9"
     },
     {
       "path": "fixtures/invalid/noncurrent-lock-runtime-profile.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "a9a0092f6073070a2ac9bbc41eaa5d0d4045003e655fab5ab007f2904ccb84e0"
+      "sha256": "3fd34613ac54a0b33eb3bc45e4953db0f17201a22efe3efc93ad744341493ddb"
     },
     {
       "path": "fixtures/invalid/noncurrent-lock-timezone-database.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "8188fdc0d80188f0e51a6381ca739efdd70ac0381fc72f7e4c8efdaffc2de9a8"
+      "sha256": "7e35f1097fd9c41e463d7494ba786d44b574ee3cb7413e2df6d1bc27c472b680"
     },
     {
       "path": "fixtures/invalid/noncurrent-lock-contract-catalog.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "a1482eaeda05c089dff2e91fa559c687f9883f32652e6d84ca6f456e7e9af170"
+      "sha256": "ce2b76ac376b3b22629440f498b080051e5ad569fa34a38f3bb881e053afc22c"
     },
     {
       "path": "fixtures/invalid/noncurrent-lock-management-operations.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "a79de6112d3176696cea6b736053c03bc5e9de6f90a8f69d54fc7908cc9ad0a6"
+      "sha256": "72ff1613df9e1546ab62a6f21fe37e77afd8132d929cdbf331f8b318a18dec22"
     },
     {
       "path": "fixtures/invalid/noncurrent-lock-port-catalog.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "7c236253d029f4377d9ce64612edbae49ddf544d71ac1e130205634c49707b20"
+      "sha256": "6982510f8dee93d0a8bbe55c9b007fc15a967269439a54530aac7659ea7b8bde"
     },
     {
       "path": "fixtures/invalid/noncurrent-evaluation-profile.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "708e1168179b1dcfc47539d3b5de69d81bddd7ea97efcfd1e1952d6704affa17"
+      "sha256": "0b15d696557618b03fe49a47be9116cd74247e240bad1e96e060e5f19b15d76c"
     },
     {
       "path": "fixtures/invalid/bound-limit-max-nodes.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "84141807036980c1831d6c82824148f3846282acdfc8e3d498aa30beaf8c7125"
+      "sha256": "440e278815eee1b50bfd4d249666c34467f6995d5d57c8f0f6a5850b9373c955"
     },
     {
       "path": "fixtures/invalid/bound-limit-max-edges.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "79fed45df6ac7f020df86fd62361abdc7f618688a0e2c9cc0ebdc05fc72944ee"
+      "sha256": "ba537abb693c0af9347c4a007ff03e2bfd430b7fb3453fc672ee1513d1d6927e"
     },
     {
       "path": "fixtures/invalid/bound-limit-max-depth.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "13e599ff4ff6c59f765280aa0e6c39311353ecbcc5f0b120778e140099c63174"
+      "sha256": "ce2c6496c5c3a14928ca9d7ec5305c81cb99873b037a8ef313c713d88f617e57"
     },
     {
       "path": "fixtures/invalid/bound-limit-max-parallel-branches.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "051d2edbe9e79d65fbf1eea4614ba71955ab2164f8be9050ecd3672dc647d841"
+      "sha256": "dbcd0da46c2a45aa79f27349486c71a241301c6a617f99502a5fb1e5941f2e24"
     },
     {
       "path": "fixtures/invalid/bound-limit-max-queued-triggers.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "eda5eedfdd6333973e4f030db10c7baeb85b9a781c8866fa3b17d51972a17750"
+      "sha256": "13fee8a8c9fd291d0829d2e0614ef455d183fed6efa2996ce50963caeeccf2c7"
     },
     {
       "path": "fixtures/invalid/bound-limit-max-condition-nodes.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "29158b249480f5e676a3edba353b26a93d3357f64360f6c8e97a420e27bb913f"
+      "sha256": "6a28f711aaac04ed269e6e4614125190a209360d6c04538020b4cca38925d284"
     },
     {
       "path": "fixtures/invalid/bound-limit-max-effect-intents.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "e2b6aa55a45ab0775270a3ca601bd60540def02657e5d1c888329d051288fe02"
+      "sha256": "1e31b27ce78de3a31d05cb15d1fcbb04335c16888a79089831f20eb1dda06b72"
     },
     {
       "path": "fixtures/invalid/bound-limit-max-patch-operations.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "1d15c6874e1dfa9bed1961af1011207d0f14cda3746765f7f52281614028ca01"
+      "sha256": "99ceb7723f032487d8e1c9b97a9c84fe21a9ed8e9272a97c35840cc79395f640"
     },
     {
       "path": "fixtures/invalid/bound-limit-max-timers.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "346b6cd57835fde625c20a1094a314a13ef8ae8c0b47de6d1af621d935a1409d"
+      "sha256": "f4ad5c4c84651e07536cf586a79140fb6c4f1507d5427b49b8297ac59d082116"
     },
     {
       "path": "fixtures/invalid/bound-limit-max-cel-steps.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "78b7e7c0e5f8fdab971834ecd4974452243ecb8e713becd8180747be3a936edc"
+      "sha256": "165e678df2e8337c59b482659bfba7f8bc1a37d2b119c361b8db900737a2b1c4"
     },
     {
       "path": "fixtures/invalid/bound-limit-max-cel-memory-bytes.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "55e032c05ecdda30f5b7f4fe13ffd8ee28f1f62317911ab9e91d44b7f24f75f3"
+      "sha256": "39f366872beaa9efc9356c63ed07e16c3c46daa7eeb7305097ea65871e560efb"
     },
     {
       "path": "fixtures/invalid/bound-limit-max-cel-eval-ms.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "c0edfc6ae3d4c3c9e1bd92e82ae6125b39baf733d90fddf6d1ae64a696520175"
+      "sha256": "458e30af26cdefae8ca8ac8804266e92a83ce14a27699ab28627c459b5b939c9"
     },
     {
       "path": "fixtures/invalid/bound-limit-max-plan-input-bytes.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "fcb9b313075cde38f5ce8a11f464510c456dfffcf4076929583477578ae9fe9e"
+      "sha256": "29577181672000d41d15f7d83b2dda2562645430f108ad10d01d8235eababa7d"
     },
     {
       "path": "fixtures/invalid/bound-limit-max-trace-bytes.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "4bc69a8b648680f6e98a5fc8a1b0f1e7ba8a3404f738b091d16ffef615bb9d53"
+      "sha256": "74e4b5a0d9d4956b954e036f6064d0b5db75abfaed8e9a48751f718d231eedcb"
     },
     {
       "path": "fixtures/invalid/bound-rule-id.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "b10ee808113d4f9c4d86405e40e3951a46be2838b49f5f8e40a007ad7e9caa9c"
+      "sha256": "099045cd7cb9ff480aada7d358cd6dabca4ee7c1db5e90d37755885e27f1cd86"
     },
     {
       "path": "fixtures/invalid/bound-rule-revision.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "dc727bcfc1363374cc4fe48f076792ba9b71301b5edf087ea188f2e93d86b833"
+      "sha256": "4bc9ae93f212edd856ae47422d102770df8c8cd97bb48f4175deae72d64991a1"
     },
     {
       "path": "fixtures/invalid/bound-schema-digest-shape.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "007f8a6f8e1c7d1677a83a825012985d86eb5e67d3c32983a8d80bdb8a800c9c"
+      "sha256": "31b775de69329120c31a546da9517914ee0a726bb78090834f4f2623040b310c"
     },
     {
       "path": "fixtures/invalid/bound-name-empty.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "a7f78f02d63a497915621c9603d5a68630ca4f747bcd4d663d6ca224a9e85c33"
+      "sha256": "fa7b97dbbc5551b0ea65f9c3c036f41268c2e04bbf066a8440d899b02efc3beb"
     },
     {
       "path": "fixtures/invalid/bound-name-bytes.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "5c1ea3c6713dd43599fff5db59ad1db114831334f746f93670c3181fb3b02eab"
+      "sha256": "78b8d2c98c0e3327232b7e30ca8d5d4edd963a5b621ddc57b0e2861b16b6027c"
     },
     {
       "path": "fixtures/invalid/bound-description-bytes.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "96dea2dfc3da27a89670c39c325a2dbae3cd97b540bc8a5f72ff48fbbded12f9"
+      "sha256": "dcea9a6305c7defe87acdc9c62d76f4625121dbb00a705dc196590bc9a4e4bab"
     },
     {
       "path": "fixtures/invalid/bound-annotation-key.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "9c4b51050c78fedf48dcdc20b806e5369db2e1dd0a3b0f78534dbb7ecb51c2af"
+      "sha256": "bbb5b81f53bbcfa1bca580d71fb78b7c76277cbd4c5df1b68fa764c74c24be87"
     },
     {
       "path": "fixtures/invalid/bound-annotation-value.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "ddd95a7afb9d81e86522f64a2136c0b1dc6dd5d36bfa972d84fcee9124214b18"
+      "sha256": "07f375da762d52c961f7426de4a769248a398e5cd4d7726078275f691e7746be"
     },
     {
       "path": "fixtures/invalid/bound-editor-revision.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "270cc92f2780cdb7ff3f8fa691e670e044239e67961997069338e7ef8f4ba601"
+      "sha256": "f521afa94d2547c07088030c524974874188bedd59c3e55388fba0aaeafb3c37"
     },
     {
       "path": "fixtures/invalid/bound-editor-viewport-zoom.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "4408521f0f871f324e0b7d0d30cf387bc0ec07c67716099c5baaa72cff5f766d"
+      "sha256": "2ec4d161cacf572adfbd5391bc0f6ba23a4e77503f1d49dcd6df7c16569b3192"
     },
     {
       "path": "fixtures/invalid/bound-one-shot-nanosecond.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "1a77239cca402233e2df6b1f4dfadececd04cdaeac505b69fbd32facebcb23c0"
+      "sha256": "108cb2ce4baf292dd50dc4eed2cb6bbb2e93e3b7c38848070d54a052c44d5720"
     },
     {
       "path": "fixtures/invalid/bound-fixed-interval.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "9749749d753ac8c5d6e15ea9cdc96b1064cb53fac55fc386711dc57e114491ee"
+      "sha256": "088c07e4265c2cf8e3aa2731b851452a4741bf00befdef4fbd8f8b26a40af8bf"
     },
     {
       "path": "fixtures/invalid/bound-weekly-timezone.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "1f3698e2c96216b7c2f3fcbcc73506bb621a69866c988b2d2f035c765cea599f"
+      "sha256": "f882efed75d687816a11f2b344f9530ebd7497450c5b72ed662671843d652c17"
     },
     {
       "path": "fixtures/invalid/bound-condition-inputs-empty.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "0c396bf889c63dfc8b3a7d388a752922c03affda2d47ae067ae44db9f68473bb"
+      "sha256": "71b0e64747396673aa79342dbbb896bbf6a0950d8e49f32a5b3b435f2ea3e76b"
     },
     {
       "path": "fixtures/invalid/bound-condition-source-bytes.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "3cc9fbb434ea7ff4cf892b1be83bbfb1245405bbea13c2b5bf8b7eff71aab829"
+      "sha256": "4c26dc166f46bdd001f53efd76b94f586a4abba9c57efcf6c6bb12b5f2c843e3"
     },
     {
       "path": "fixtures/invalid/bound-delay-duration.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "df45619744cfffee6695519bf9048536c3e628b372cc044327296c338f549d2c"
+      "sha256": "a114a862b12f631c1c2f15539fcb557b5943c1e638b7545959069faffbfef816"
     },
     {
       "path": "fixtures/invalid/bound-admission-window.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "57bdaf319984cba0f94c11f2e7c8d6e42b17dccaf1db61c744cbd677b76de81d"
+      "sha256": "2d9380e2152892072c5fb666f6334a15c962ef0ba1877d814261543334625b3a"
     },
     {
       "path": "fixtures/invalid/bound-edge-order.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "d39fe3010bb38f307ea4bad54f1ef79d9dc39160f62aa49b0cf1207167703b25"
+      "sha256": "ce4153abf319a56cc029e353d3b46c8abc82553f83d93a9194e79b1119b2b9f8"
     },
     {
       "path": "fixtures/invalid/bound-desired-operations-empty.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "7ba45a83613152b4f6eadeadf370ffcfd8d3d923d9a5fdeece27c4257be943d5"
+      "sha256": "5c9fe9af532e68a1aabab9b73312c92a1ba7320dae399da20fc729ef2934fccd"
     },
     {
       "path": "fixtures/invalid/bound-operation-decimal.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "0ea43a7f5b86ef1eac6183d4932f0809c16525e68fa729b15d9c595737896a12"
+      "sha256": "1cc971e77e4b699e703c9df0cd9217ac6d042710b0a0c184cd3217838a611e55"
     },
     {
       "path": "fixtures/invalid/bound-operation-choice.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "0ea4ad19b7cf67ad8798858e5d09937eb30fddd51187fd175a846f720decf141"
+      "sha256": "0e6bb43fc1d0afc11b4ef537f7e942e1d82148a70da16f779bad8fa492ba7d31"
     },
     {
       "path": "fixtures/invalid/bound-operation-transition.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "9e7637af75349210a62eef2eb4b2f40e2e278d04f056541ca005e5ba576dd75b"
+      "sha256": "d5c9500c2dd7fea8c8d61792ff78a248bbcd82b4e2883d64211d8957995c86c7"
     },
     {
       "path": "fixtures/invalid/bound-annotations-count.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "9a4fc1ef7baac18e0400b3a3401af1144fb8efe8074a3a67a9ccbbf720ecc3f5"
+      "sha256": "4b5fcdbb9b73e671a5de1cc30d5ab9decb44e663ebce973925745fa386fa9c18"
     },
     {
       "path": "fixtures/invalid/bound-editor-nodes-count.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "0f900e4d80e7679580da04aa9031f5860ea50fdfe79c6bfb5960abe2ea8a5513"
+      "sha256": "e49f4f20d5337bbae7e4adc75cf496010303800128bdf3830cc667d4d6973134"
     },
     {
       "path": "fixtures/invalid/bound-editor-groups-count.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "0c38f895351ccf4ca3b62bc79af34208cee7530b85a8f000baf3605aa2da75ce"
+      "sha256": "285039b900f54c44196015120db58c434b07bebc19d29dd29d9160c052eb5f3e"
     },
     {
       "path": "fixtures/invalid/bound-weekly-days-count.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "ff0ec2c63a93cf9dd83487c3e960ff3a2663fd564dc23da529722c38b6a59352"
+      "sha256": "e42ceadbfb147214c3b47d9815b0301b959d90afb27cbd3b771bd341ae40843b"
     },
     {
       "path": "fixtures/invalid/bound-condition-inputs-count.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "2b158035db750714f84b239b335e36919fbd2029f11bb59343dc273f2a84bc90"
+      "sha256": "a851c48a6a2f664ae6347d4163331d99cdc4d800d8f080573af1e122356cfad9"
     },
     {
       "path": "fixtures/invalid/bound-type-ref-list-items.json",
       "schema_valid": false,
       "semantic_valid": false,
-      "sha256": "d217843c3fcc51e9b30a307bb6db6a5d62b2f80b84c5f4cfc39f0bce1b9a801e"
+      "sha256": "d4d27c4c2fc704b5baecdf5fff38416747fee72fe839a76f8ef39673f961317a"
     },
     {
       "path": "fixtures/invalid/bound-configured-nodes.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "e542e5eca7d932c34992480f22641bf1bd43bf43299de362de444666da0ec41b"
+      "sha256": "6e01ce20d16731532581b1507b97a26f58f94d29295fb3886a955df8b7784843"
     },
     {
       "path": "fixtures/invalid/bound-configured-edges.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "c028bb9af37f53d41a4feeb533c5f2eb45fb891753a782b5ea0d2eea055b49c2"
+      "sha256": "b290a197b8a4fa77cef113ad33a286ce251c3a95b87839d2b79a1d687a0ef778"
     },
     {
       "path": "fixtures/invalid/bound-configured-depth.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "51f9f94c045597cfd68995d8cfb78865beec33528426fac5b2d2c008f9eff1a8"
+      "sha256": "0e5347c8d402609b4c912012937d85a91df795477899fdaf80a56a1a18b9bc3d"
     },
     {
       "path": "fixtures/invalid/bound-configured-patch-operations.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "3e1573b7f95d2fe3243fb8e524f731f9670dc188939a06c517ca4743e4f06c88"
+      "sha256": "d77ba7bc1ce7fd98feb99c94011ec55d8e1ed89350aebe10b1063243a094cd0e"
     },
     {
       "path": "fixtures/invalid/bound-configured-effect-intents.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "861718843b24888996d793a4483f9d08864459510f3a87dd0e7a271009264366"
+      "sha256": "5771818d539e83c1490edd3d135b6fb26d4933622ae02e7c9a41bf3f93f5f3ba"
     },
     {
       "path": "fixtures/invalid/bound-configured-parallel-branches.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "c5971659fb33ab40d9b753411cb2bda482eeddbdb1e6047a83cbc548b453173e"
+      "sha256": "7c4a913c7d089fe1f09b7ab4c00f1c19dfb592b881b1fcacc6f95dc6df9d9934"
     },
     {
       "path": "fixtures/invalid/bound-configured-condition-nodes.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "9c6797337d3ab9e37131a735570bfa55794b954e0e119cb7eb200d96acf66508"
+      "sha256": "2dc76fd51c681a7d799b4bb3fbb6edd2125db29f5774941d7d9e80e79c0b1687"
     },
     {
       "path": "fixtures/invalid/bound-configured-timers.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "718cab4c9ae6868acfe5e7084f8a6e52cd7e200cb5a5ec23ee7f67111d36ac5f"
+      "sha256": "49ac0268c4a984e42006388e38efabb0c20eafdfd313039522f7930daba29f49"
     },
     {
       "path": "fixtures/invalid/bound-json-depth.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "9348e7863f0357ecb36ca9d2511aa55e29755bc04bef0a5cf7193bdb2e1c371f"
+      "sha256": "845fabb8431233ebc7642e213919c137b795e030f8edce3335d1dccaae66de41"
     },
     {
       "path": "fixtures/invalid/bound-schema-digest-noncurrent.json",
       "schema_valid": true,
       "semantic_valid": false,
-      "sha256": "5aba828456376eefc3c305ec52595181e5d4a3e336d662648eff8e25240a20ea"
+      "sha256": "f7af696d0abaa04094a9aa96af723d69898b9ed8649c3ce3d89c97faa0124070"
     }
   ],
   "version": 1

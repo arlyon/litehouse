@@ -10,7 +10,7 @@
   "entries": [
     {
       "id": "litehouse-cel@1",
-      "sha256": "872b983fde72f8577f35442f4df2c0323d6526e94714fedb19d6184391d5c61c",
+      "sha256": "23f28d31f94d5e355a6848fb9bc5e47d4b3a8b49e7711aea0e909d46f0cea950",
       "source": "explicit_versioned_profile"
     },
     {
@@ -25,7 +25,7 @@
     },
     {
       "id": "litehouse:rule-compiler@1",
-      "sha256": "f8468b18d42820126fe76b43ff168f5b0f66c8df7e5b95e1b0c888e2a9afb1e2",
+      "sha256": "301bebb5e6df9557836f0e06c08e839682999754b46722df925b1310b9d9ce96",
       "source": "explicit_versioned_profile"
     },
     {

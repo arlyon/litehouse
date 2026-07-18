@@ -1,11 +1,13 @@
 use std::{cmp::Ordering, collections::BTreeMap};
 
+use cel::Value as CelValue;
 use litehouse_contracts::quantity::Quantity;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::{
-    compile::{CompiledNode, CompiledRule, CompiledScalar},
+    compile::{CompiledNode, CompiledQuantityOperation, CompiledRule},
+    condition::evaluate_condition,
     model::{
         CompareOperator, EndOutcome, HARD_MAX_EFFECT_INTENTS, HARD_MAX_NODES,
         HARD_MAX_PLAN_INPUT_BYTES, HARD_MAX_STRING_BYTES, RebindPolicy, Selector,
@@ -664,17 +666,72 @@ pub fn plan(compiled: &CompiledRule, input: &EvaluationInput) -> Result<Transiti
                 });
                 current = next(compiled, &current, "next")?;
             }
-            CompiledNode::Compare {
+            CompiledNode::Condition { program } => {
+                let _static_steps = program.static_steps();
+                let mut variables = BTreeMap::new();
+                let mut outcome = None;
+                for declared in program.inputs() {
+                    let (source, source_port) = data_source(compiled, &current, &declared.name)?;
+                    if source_port != "value" {
+                        return Err(PlanError::InvalidCompiledGraph {
+                            node: current,
+                            reason: "condition input is not a snapshot value".to_owned(),
+                        });
+                    }
+                    let observation =
+                        snapshots
+                            .get(&source)
+                            .ok_or_else(|| PlanError::InvalidCompiledGraph {
+                                node: current.clone(),
+                                reason: "condition input was not evaluated before CEL".to_owned(),
+                            })?;
+                    match observation {
+                        ObservationValue::Known { value } => match scalar_to_cel(value) {
+                            Some(value) => {
+                                variables.insert(declared.name.clone(), value);
+                            }
+                            None => {
+                                outcome = Some(ComparisonOutcome::Error(
+                                    EvaluationErrorCode::TypeMismatch,
+                                ));
+                                break;
+                            }
+                        },
+                        ObservationValue::Unknown { reason } => {
+                            outcome = Some(ComparisonOutcome::Unknown(*reason));
+                            break;
+                        }
+                        ObservationValue::Error { code } => {
+                            outcome = Some(ComparisonOutcome::Error(*code));
+                            break;
+                        }
+                    }
+                }
+                let result = outcome.unwrap_or_else(|| {
+                    match evaluate_condition(
+                        program,
+                        variables,
+                        input.evaluation_time.unix_seconds(),
+                        input.evaluation_time.nanosecond(),
+                    ) {
+                        Ok(true) => ComparisonOutcome::True,
+                        Ok(false) => ComparisonOutcome::False,
+                        Err(_) => ComparisonOutcome::Error(EvaluationErrorCode::InvalidValue),
+                    }
+                });
+                comparisons.insert(current.clone(), result);
+                current = next(compiled, &current, "next")?;
+            }
+            CompiledNode::Quantity {
                 input_port,
-                value_type,
-                operator,
-                right,
+                input_profile,
+                operation,
             } => {
                 let (source, source_port) = data_source(compiled, &current, input_port)?;
                 if source_port != "value" {
                     return Err(PlanError::InvalidCompiledGraph {
                         node: current,
-                        reason: "compare left input is not a snapshot value".to_owned(),
+                        reason: "quantity input is not a snapshot value".to_owned(),
                     });
                 }
                 let observation =
@@ -682,12 +739,28 @@ pub fn plan(compiled: &CompiledRule, input: &EvaluationInput) -> Result<Transiti
                         .get(&source)
                         .ok_or_else(|| PlanError::InvalidCompiledGraph {
                             node: current.clone(),
-                            reason: "snapshot value was not evaluated before comparison".to_owned(),
+                            reason: "snapshot value was not evaluated before quantity operation"
+                                .to_owned(),
                         })?;
-                comparisons.insert(
-                    current.clone(),
-                    compare_observation(observation, value_type, *operator, right),
-                );
+                match operation {
+                    CompiledQuantityOperation::Compare { operator, right } => {
+                        comparisons.insert(
+                            current.clone(),
+                            compare_quantity_observation(
+                                observation,
+                                input_profile.as_str(),
+                                *operator,
+                                right,
+                            ),
+                        );
+                    }
+                    _ => {
+                        return Err(PlanError::InvalidCompiledGraph {
+                            node: current,
+                            reason: "non-comparison quantity execution belongs to T8.1c".to_owned(),
+                        });
+                    }
+                }
                 current = next(compiled, &current, "next")?;
             }
             CompiledNode::Branch => {
@@ -811,7 +884,15 @@ fn validate_input_identity(
     if input.profile_sha256 != compiled.profile_sha256 {
         return Err(PlanError::ProfileDigestMismatch);
     }
-    if input.trigger.selector != compiled.trigger_selector {
+    let trigger_selector =
+        compiled
+            .trigger_selector
+            .as_ref()
+            .ok_or_else(|| PlanError::InvalidCompiledGraph {
+                node: compiled.trigger_id.clone(),
+                reason: "scheduled trigger execution belongs to T8.1c".to_owned(),
+            })?;
+    if input.trigger.selector != *trigger_selector {
         return Err(PlanError::TriggerSelectorMismatch);
     }
     Ok(())
@@ -847,33 +928,36 @@ fn selector_label(selector: &Selector) -> String {
     format!("{}:{}", selector.provider_instance_id, selector.facet_key)
 }
 
-fn compare_observation(
+fn scalar_to_cel(value: &ScalarValue) -> Option<CelValue> {
+    match value {
+        ScalarValue::Bool { value } => Some(CelValue::Bool(*value)),
+        ScalarValue::String { value } => Some(CelValue::String(value.clone().into())),
+        ScalarValue::I64 { value } => Some(CelValue::Int(*value)),
+        ScalarValue::U64 { value } => Some(CelValue::UInt(*value)),
+        ScalarValue::Quantity { .. } => None,
+    }
+}
+
+fn compare_quantity_observation(
     observation: &ObservationValue,
-    value_type: &ValueType,
+    profile: &str,
     operator: CompareOperator,
-    right: &CompiledScalar,
+    right: &Quantity,
 ) -> ComparisonOutcome {
     let left = match observation {
         ObservationValue::Known { value } => value,
         ObservationValue::Unknown { reason } => return ComparisonOutcome::Unknown(*reason),
         ObservationValue::Error { code } => return ComparisonOutcome::Error(*code),
     };
-    if left.value_type() != *value_type {
+    let ScalarValue::Quantity { value: left } = left else {
+        return ComparisonOutcome::Error(EvaluationErrorCode::TypeMismatch);
+    };
+    if left.profile_id().as_str() != profile {
         return ComparisonOutcome::Error(EvaluationErrorCode::TypeMismatch);
     }
-
-    let ordering = match (left, right) {
-        (ScalarValue::Bool { value: left }, CompiledScalar::Bool(right)) => left.cmp(right),
-        (ScalarValue::String { value: left }, CompiledScalar::String(right)) => left.cmp(right),
-        (ScalarValue::I64 { value: left }, CompiledScalar::I64(right)) => left.cmp(right),
-        (ScalarValue::U64 { value: left }, CompiledScalar::U64(right)) => left.cmp(right),
-        (ScalarValue::Quantity { value: left }, CompiledScalar::Quantity(right)) => {
-            match left.checked_cmp(right) {
-                Ok(ordering) => ordering,
-                Err(_) => return ComparisonOutcome::Error(EvaluationErrorCode::QuantityError),
-            }
-        }
-        _ => return ComparisonOutcome::Error(EvaluationErrorCode::TypeMismatch),
+    let ordering = match left.checked_cmp(right) {
+        Ok(ordering) => ordering,
+        Err(_) => return ComparisonOutcome::Error(EvaluationErrorCode::QuantityError),
     };
     let result = match operator {
         CompareOperator::Equal => ordering == Ordering::Equal,

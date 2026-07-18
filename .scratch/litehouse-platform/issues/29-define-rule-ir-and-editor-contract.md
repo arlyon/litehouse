@@ -53,16 +53,34 @@ contract/WIT, management-operation, and port-catalog artifacts with single-value
 provider generations, facet/grant revisions, and resolved handles remain later
 activation-record fields rather than fabricated authored JSON.
 
-T8.1a deliberately does not claim duplicate-key rejection, RFC 8785 digest or the
-exact 64-KiB canonical-semantic check, full CEL/Jiff/quantity compilation, full
-receipt/timer execution, or persisted activation binding revisions. Those remain
-T8.1b (#64), T8.1c, and T8.2 as applicable. Generator parity, bounded-memory
+T8.1a deliberately does not claim RFC 8785 digest or the exact 64-KiB
+canonical-semantic check, full CEL/Jiff/quantity compilation, full receipt/timer
+execution, or persisted activation binding revisions. Those remain T8.1b (#64),
+T8.1c, and T8.2 as applicable. Generator parity, bounded-memory
 native tests, formatting, management-contract tests, diagnostics, and source-only
 T0 checks provide the local completion seam; `litehouse:provider@1.0.0` remains
 byte-identical. The final `wasm32-wasip2` and Clippy reruns are environment-blocked
 because the synchronized local toolchain lacks those optional components; the
 immediately preceding repair passed both checks before the final fixture/catalog
 hardening.
+
+### T8.1b completion evidence (2026-07-18)
+
+Semantic identity is the RFC 8785 canonical projection of schema locks plus
+semantic content; non-semantic arrays are sorted by stable IDs, editor layout and
+record revision are excluded, the projection is bounded to 64 KiB, and its
+SHA-256 is retained by the compiled rule. CEL is parsed, admitted, statically
+precharged, runtime-value-memory checked, deadline checked, and evaluated by
+`cel` 0.14 with immutable
+declared variables plus `evaluation_time`; no quantity, collection,
+comprehension, method, mutation, device, or I/O seam exists. Chrono is confined
+to the CEL timestamp boundary.
+
+All quantity operations now compile through the shared exact quantity engine.
+Jiff compiles all three schedule forms against bundled tzdb 2026c, validates
+IANA timezone availability, and retains explicit gap/fold policy. Closed compiled
+forms are available to T8.1c; non-comparison quantity execution and scheduled
+trigger microsteps remain intentionally fail-closed until that planner tranche.
 
 ### T8.0 implementation locks
 
@@ -71,12 +89,14 @@ hardening.
   `PersistMode::SyncAll`; the database's exclusive path lock rejects a second
   process. Litehouse also stores and validates its own application format
   version and has no implicit V2-to-V3 migration.
-- Use `serde_json_canonicalizer` `0.3.2` for RFC 8785 JCS after duplicate-key,
-  depth, string, collection, and raw-size validation.
-- Use `cel` `0.14.0` with default features disabled only for bounded CEL parsing.
-  Litehouse owns the closed type checker, accepted AST subset, cost accounting,
-  evaluator, unknown/error model, and cancellation checks; the crate's general
-  evaluator is not the `litehouse-cel@1` authority.
+- Use `serde_json_canonicalizer` `0.3.2` for RFC 8785 JCS after depth, string,
+  collection, and raw-size validation. Litehouse-authored JSON cannot contain
+  duplicate names; duplicate names in external raw JSON are unsupported and use
+  `serde_json`'s deterministic last-value behavior rather than a second parser.
+- Use the `cel` `0.14.0` bounded parser and interpreter with only the `chrono`
+  feature. Litehouse owns the closed input/type/reference admission profile,
+  accepted AST subset, static cost bound, and unknown/error translation. It
+  injects immutable values only and registers no I/O or device functions.
 - Use `jiff` `0.2.32` with `std` and `tzdb-bundle-always`; pin the bundled
   `jiff-tzdb` `0.1.8` data (`2026c`) in compiler/profile locks. Native,
   `wasm32-wasip2`, and browser-Wasm dependency probes compile successfully.

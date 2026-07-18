@@ -396,10 +396,13 @@ configuration.
   process epoch. Standardize on Fjall 3.1.7 `SingleWriterTxDatabase` in a fresh
   V3 directory, one `SyncAll` cross-keyspace transaction per authored mutation,
   its exclusive path lock, and a separate Litehouse application-format marker.
-  Use `serde_json_canonicalizer` 0.3.2 for JCS after strict JSON validation, `cel`
-  0.14.0 without default features only as the bounded parser with a Litehouse-
-  owned checker/meter/evaluator, and Jiff 0.2.32 plus bundled `jiff-tzdb` 0.1.8
-  (`2026c`) for explicit DST policy. Keep `litehouse:provider@1.0.0` unchanged:
+  Use `serde_json_canonicalizer` 0.3.2 for JCS after bounded JSON validation.
+  Litehouse-authored JSON has unique keys; unsupported external duplicates use
+  `serde_json`'s deterministic last-value behavior rather than a second parser.
+  Use the `cel` 0.14.0 bounded parser and interpreter with immutable variables,
+  a Litehouse-owned AST/type/reference allowlist and static cost cap, and no I/O
+  functions. Use Jiff 0.2.32 plus bundled `jiff-tzdb` 0.1.8 (`2026c`) for explicit
+  DST policy. Keep `litehouse:provider@1.0.0` unchanged:
   the actor performs bounded typed query sweeps, coalescing ESPHome's pushed
   Native API frames and allowing Tasmota/Open-Meteo to poll only when due. Guest
   handles remain confined to their actor/store and seven stateful families use
@@ -656,9 +659,27 @@ configuration.
   event/state/desired mappings, process-epoch state, and coherent minimal,
   maximal, family, operation, schedule, and invalid fixtures. Targeted tests
   cover receipt wiring, selector/contract ordering, all three retained trigger
-  contexts, fail-closed retry, and narrow model bounds. Duplicate-key/JCS digest
-  and the exact 64-KiB canonical bound remain explicitly deferred to T8.1b #64;
-  executor receipts/timers and persisted activation revisions remain T8.1c/T8.2.
+  contexts, fail-closed retry, and narrow model bounds. RFC 8785 semantic digest
+  and the exact 64-KiB canonical bound remain T8.1b #64; executor receipts/timers
+  and persisted activation revisions remain T8.1c/T8.2.
   Native checks pass without changing provider WIT. The immediately preceding
   repair passed `wasm32-wasip2`; the final local rerun is blocked because the
   synchronized toolchain no longer has that optional target component installed.
+
+### R-017 — Compile Rule JSON semantics through pinned engines
+
+- **Resolution:** T8.1b hashes only the RFC 8785 JCS projection of schema locks
+  plus semantic content, sorts non-semantic arrays by stable identity, and
+  enforces its 64-KiB bound. `cel` 0.14 supplies the bounded dynamic interpreter;
+  Litehouse admits a closed AST/reference/type profile, precharges static cost,
+  accounts checked/runtime-value memory, checks elapsed deadline, injects only
+  declared immutable values and `evaluation_time`, and exposes no I/O functions.
+  Chrono is confined to CEL timestamps. All quantity
+  node operations are validated and closed through the existing exact quantity
+  engine. Jiff 0.2.32 and bundled tzdb 2026c compile one-shot, fixed-interval,
+  and weekly civil schedules while retaining explicit gap/fold policy.
+- **Evidence:** digest tests prove editor/revision exclusion and semantic change
+  sensitivity; CEL tests cover timestamp evaluation, undeclared references,
+  dynamic-language rejection, type-faithful integers, and quantity exclusion;
+  quantity unit/arithmetic/result-profile tests call the shared engine; schedule
+  tests compile all three forms and reject an unavailable timezone.
