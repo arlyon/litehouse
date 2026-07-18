@@ -347,6 +347,20 @@ configuration.
   provider-backed staging/signing/cloud qualification is later work requiring a
   separate decision and per-action external approval; it does not block T14.
 
+### D-024 — First server-side Rule JSON tranche
+
+- **Status:** user-authorized
+- **Blocks:** nothing
+- **Question:** How much of T7 can establish a useful authoritative server seam
+  without prematurely selecting CEL/JCS/browser/runtime dependencies?
+- **Resolution:** publish a closed Draft 2020-12 Rust/schema subset for one state-
+  observation trigger, typed immutable snapshots, Boolean/string/i64/quantity
+  comparisons, explicit four-outcome branching, exact On/Off set intents, typed
+  ends, deterministic DAG compilation, and pure transition planning. Use the
+  existing quantity core. Defer browser/Wasm, CEL, JCS semantic digests, selector
+  resolution, persistence, dispatch, receipts, and timers. In particular, do not
+  claim sorted JSON is RFC 8785 when no audited JCS dependency is already present.
+
 ## Deferred external-authority decisions
 
 ### X-001 — T15 staging/signing/cloud/DNS operations
@@ -520,3 +534,16 @@ configuration.
   actor. Both fixture and ESPHome components pass Component Model and runtime
   profile admission, while the encrypted ESPHome set/observe/restore and MCP
   regressions remain green without hardware or secret access.
+
+### R-012 — Establish the closed Rule JSON planner seam
+
+- **Resolution:** `litehouse-rule-json` owns the strict wire structs, generated
+  exact-release schema, generated port catalog, semantic DAG compiler, immutable
+  evaluation input, typed effect-intent plan, and assumption recheck. Unknown
+  fields/kinds/versions and binary floats fail closed. Unknown and evaluator
+  error remain separate required branch ports. Transition planning has no
+  provider handle, mutation API, persistence, timer, or arbitrary-code seam.
+- **Evidence:** checked schema/catalog regeneration and Draft 2020-12 validation;
+  deterministic compile/plan tests for Boolean/string/i64/quantity comparison;
+  explicit false/unknown/stale/error routes; graph, cycle, type, order, bound, and
+  unknown-field rejection; immutable-input proof; and stale-assumption rejection.

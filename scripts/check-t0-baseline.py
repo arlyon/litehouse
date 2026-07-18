@@ -21,6 +21,9 @@ WIT_ROOT = ROOT / "crates/plugin-macro/wit"
 CONTRACTS_ROOT = ROOT / "crates/litehouse-contracts"
 CONTRACT_WIT_ROOT = CONTRACTS_ROOT / "packages"
 QUANTITY_SOURCE_ROOT = CONTRACTS_ROOT / "src/quantity"
+RULE_JSON_ROOT = ROOT / "crates/litehouse-rule-json"
+RULE_JSON_SCHEMA = RULE_JSON_ROOT / "schema/rule-ir-v1.0.0.schema.json"
+RULE_PORT_CATALOG = RULE_JSON_ROOT / "schema/node-port-catalog-v1.0.0.json"
 SERVICE_FABRIC_ROOT = ROOT / "crates/litehouse-service-fabric"
 SERVICE_FABRIC_FIXTURE_WIT_ROOT = SERVICE_FABRIC_ROOT / "tests/fixtures/wit"
 SERVICE_FABRIC_HARNESS_ROOT = ROOT / "crates/service-fabric-harness"
@@ -261,6 +264,10 @@ def collect_state(flatc_version: str, skip_flatc: bool) -> dict[str, object]:
         "flatc_version": flatc_version,
         "management_operations_sha256": sha256(MANAGEMENT_OPERATIONS.read_bytes()),
         "quantity_engine_tree_sha256": tree_digest(QUANTITY_SOURCE_ROOT, ".rs"),
+        "rule_engine_tree_sha256": tree_digest(RULE_JSON_ROOT / "src", ".rs"),
+        "rule_fixture_tree_sha256": tree_digest(RULE_JSON_ROOT / "fixtures", ".json"),
+        "rule_port_catalog_sha256": sha256(RULE_PORT_CATALOG.read_bytes()),
+        "rule_schema_sha256": sha256(RULE_JSON_SCHEMA.read_bytes()),
         "service_fabric_consumer_fixture_sha256": tree_digest(
             SERVICE_FABRIC_CONSUMER_FIXTURE_ROOT, ""
         ),

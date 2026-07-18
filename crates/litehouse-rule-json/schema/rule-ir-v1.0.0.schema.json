@@ -1,0 +1,697 @@
+{
+  "$defs": {
+    "CompareExpression": {
+      "additionalProperties": false,
+      "properties": {
+        "operator": {
+          "$ref": "#/$defs/CompareOperator"
+        },
+        "right": {
+          "$ref": "#/$defs/ScalarLiteral"
+        }
+      },
+      "required": [
+        "operator",
+        "right"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "CompareOperator": {
+      "enum": [
+        "equal",
+        "not_equal",
+        "less",
+        "less_or_equal",
+        "greater",
+        "greater_or_equal"
+      ],
+      "type": "string"
+    },
+    "ContractRef": {
+      "additionalProperties": false,
+      "properties": {
+        "interface": {
+          "pattern": "^[a-z][a-z0-9-]{0,63}$",
+          "type": "string"
+        },
+        "major": {
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "namespace": {
+          "pattern": "^[a-z][a-z0-9-]{0,63}$",
+          "type": "string"
+        },
+        "package": {
+          "pattern": "^[a-z][a-z0-9-]{0,63}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "namespace",
+        "package",
+        "interface",
+        "major"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "Edge": {
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/EdgeEndpoint"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "type": "string"
+        },
+        "order": {
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "to": {
+          "$ref": "#/$defs/EdgeEndpoint"
+        }
+      },
+      "required": [
+        "id",
+        "from",
+        "to",
+        "order"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "EdgeEndpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "node": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "type": "string"
+        },
+        "port": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "node",
+        "port"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "EndOutcome": {
+      "enum": [
+        "success",
+        "noop",
+        "unknown",
+        "error"
+      ],
+      "type": "string"
+    },
+    "InitialObservationPolicy": {
+      "enum": [
+        "ignore",
+        "run"
+      ],
+      "type": "string"
+    },
+    "Node": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "snapshot",
+              "type": "string"
+            },
+            "selector": {
+              "$ref": "#/$defs/Selector"
+            },
+            "value_type": {
+              "$ref": "#/$defs/ValueType"
+            },
+            "version": {
+              "format": "uint8",
+              "maximum": 1,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "version",
+            "selector",
+            "field",
+            "value_type"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "expression": {
+              "$ref": "#/$defs/CompareExpression"
+            },
+            "id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "compare",
+              "type": "string"
+            },
+            "value_type": {
+              "$ref": "#/$defs/ValueType"
+            },
+            "version": {
+              "format": "uint8",
+              "maximum": 1,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "version",
+            "value_type",
+            "expression"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "branch",
+              "type": "string"
+            },
+            "version": {
+              "format": "uint8",
+              "maximum": 1,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "version"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "on_off_set",
+              "type": "string"
+            },
+            "selector": {
+              "$ref": "#/$defs/Selector"
+            },
+            "value": {
+              "type": "boolean"
+            },
+            "version": {
+              "format": "uint8",
+              "maximum": 1,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "version",
+            "selector",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "end",
+              "type": "string"
+            },
+            "outcome": {
+              "$ref": "#/$defs/EndOutcome"
+            },
+            "version": {
+              "format": "uint8",
+              "maximum": 1,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "version",
+            "outcome"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        }
+      ]
+    },
+    "ObservationMode": {
+      "enum": [
+        "any_observation",
+        "value_change"
+      ],
+      "type": "string"
+    },
+    "QuantityWire": {
+      "additionalProperties": false,
+      "properties": {
+        "magnitude": {
+          "maxLength": 96,
+          "minLength": 1,
+          "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]*[1-9])?$",
+          "type": "string"
+        },
+        "profile": {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        "unit": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "profile",
+        "magnitude",
+        "unit"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "RuleLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_depth": {
+          "format": "uint8",
+          "maximum": 32,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_edges": {
+          "format": "uint16",
+          "maximum": 256,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_nodes": {
+          "format": "uint16",
+          "maximum": 128,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_nodes",
+        "max_edges",
+        "max_depth"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "ScalarLiteral": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "bool",
+              "type": "string"
+            },
+            "value": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "string",
+              "type": "string"
+            },
+            "value": {
+              "maxLength": 16384,
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "i64",
+              "type": "string"
+            },
+            "value": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "quantity",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/QuantityWire"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        }
+      ]
+    },
+    "SchemaLock": {
+      "additionalProperties": false,
+      "properties": {
+        "profile_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "url": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 16,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "version",
+        "sha256",
+        "profile_sha256"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "Selector": {
+      "additionalProperties": false,
+      "properties": {
+        "contract": {
+          "$ref": "#/$defs/ContractRef"
+        },
+        "facet_key": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "type": "string"
+        },
+        "provider_instance_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider_instance_id",
+        "facet_key",
+        "contract"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "SemanticLocks": {
+      "additionalProperties": false,
+      "properties": {
+        "compiler": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "quantity_catalog": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "compiler",
+        "quantity_catalog"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "SemanticRule": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "maxLength": 4096,
+          "type": "string"
+        },
+        "edges": {
+          "items": {
+            "$ref": "#/$defs/Edge"
+          },
+          "maxItems": 256,
+          "type": "array"
+        },
+        "limits": {
+          "$ref": "#/$defs/RuleLimits"
+        },
+        "locks": {
+          "$ref": "#/$defs/SemanticLocks"
+        },
+        "name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/Node"
+          },
+          "maxItems": 127,
+          "type": "array"
+        },
+        "trigger": {
+          "$ref": "#/$defs/TriggerNode"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "locks",
+        "limits",
+        "trigger",
+        "nodes",
+        "edges"
+      ],
+      "type": "object",
+      "unevaluatedProperties": false
+    },
+    "TriggerNode": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            "initial": {
+              "$ref": "#/$defs/InitialObservationPolicy"
+            },
+            "kind": {
+              "const": "state_observation",
+              "type": "string"
+            },
+            "mode": {
+              "$ref": "#/$defs/ObservationMode"
+            },
+            "selector": {
+              "$ref": "#/$defs/Selector"
+            },
+            "version": {
+              "format": "uint8",
+              "maximum": 1,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "version",
+            "selector",
+            "mode",
+            "initial"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        }
+      ]
+    },
+    "ValueType": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "bool",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "string",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "i64",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "quantity",
+              "type": "string"
+            },
+            "profile": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "profile"
+          ],
+          "type": "object",
+          "unevaluatedProperties": false
+        }
+      ]
+    }
+  },
+  "$id": "https://schemas.litehouse.dev/rule-ir/v1.0.0/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "revision": {
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "rule_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "type": "string"
+    },
+    "schema": {
+      "$ref": "#/$defs/SchemaLock"
+    },
+    "semantic": {
+      "$ref": "#/$defs/SemanticRule"
+    }
+  },
+  "required": [
+    "schema",
+    "rule_id",
+    "revision",
+    "semantic"
+  ],
+  "title": "RuleDocument",
+  "type": "object",
+  "unevaluatedProperties": false
+}

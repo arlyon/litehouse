@@ -1,5 +1,5 @@
 {
-  "ci_policy_sha256": "57354dec4b3993b92a99fc816fdee7dec65c2527013b5166fc0ab6005a2704b5",
+  "ci_policy_sha256": "f46b00a415903ea6f5e645633fa43e36492679f5eddfda4573356e5189679c91",
   "contract_package_json_sha256": "c2ac2bf11cece64d8671dfd85020201c1e03be6595961be9ff81e67db4e6d337",
   "contract_source_tree_sha256": "28bca980a23e28cd3b1f8811966399901e46ba23590e7ee61a5da94baab6aab7",
   "contract_wit_tree_sha256": "b402066a366ef1485b21b23d7043c1c00d28dbc51a9c414e9df334b126f97e2a",
@@ -9,6 +9,10 @@
   "quantity_engine_tree_sha256": "264a782ba8f0164a43c24417e1337cdb4dfb961a2e957c6a79a8a0d3524e3eb0",
   "registry_generated_sha256": "db64638ce8966b4dee602aac9e27046058a8a6f18a83a49f6b853899cdf2c33d",
   "registry_schema_sha256": "1f39d1296632cb9b5bb1fdca1db8d55b72aff186b55e5db537fed5b3d583aa4d",
+  "rule_engine_tree_sha256": "f4676140e1a0bb43d1c565cdd366da40010392c97011f5496ab5b4f791f44404",
+  "rule_fixture_tree_sha256": "866a2983a3da3c25b3d5be86c194dcaad3f2f92be3f48d6deb7367ad699b4f6f",
+  "rule_port_catalog_sha256": "0b951f1a97c44bd7739010f4ca85a2d4aead662961c47de7e726dc1bff7546ad",
+  "rule_schema_sha256": "a1ac20dc95e3c4484a9668b8c301b0722f8592f6c7a26b5ced670a2909f9c70a",
   "service_fabric_consumer_fixture_sha256": "11eb0acef856e2739def27d8c1cbdb57415ffa332838f89e1efa0736e52b44b3",
   "service_fabric_fixture_wit_sha256": "e5734ded54816bb219a5132635348843907a243d96d74e229ad4e4db0c145178",
   "service_fabric_harness_sha256": "1508431fb5a623b121dfda7455c95759badf186551927306ff1741c734d888ca",
@@ -50,6 +54,11 @@
       "edition": "workspace",
       "name": "litehouse-provider-host",
       "path": "crates/litehouse-provider-host/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-rule-json",
+      "path": "crates/litehouse-rule-json/Cargo.toml"
     },
     {
       "edition": "workspace",

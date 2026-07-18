@@ -1,0 +1,145 @@
+{
+  "$id": "https://schemas.litehouse.dev/rule-ir/v1.0.0/node-port-catalog.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "nodes": [
+    {
+      "kind": "state_observation",
+      "ports": [
+        {
+          "cardinality": "exactly-one",
+          "direction": "output",
+          "name": "next",
+          "type_ref": "control"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "kind": "snapshot",
+      "ports": [
+        {
+          "cardinality": "one-or-more",
+          "direction": "input",
+          "name": "in",
+          "type_ref": "control"
+        },
+        {
+          "cardinality": "exactly-one",
+          "direction": "output",
+          "name": "next",
+          "type_ref": "control"
+        },
+        {
+          "cardinality": "exactly-one",
+          "direction": "output",
+          "name": "value",
+          "type_ref": "$node.value_type"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "kind": "compare",
+      "ports": [
+        {
+          "cardinality": "one-or-more",
+          "direction": "input",
+          "name": "in",
+          "type_ref": "control"
+        },
+        {
+          "cardinality": "exactly-one",
+          "direction": "input",
+          "name": "left",
+          "type_ref": "$node.value_type"
+        },
+        {
+          "cardinality": "exactly-one",
+          "direction": "output",
+          "name": "next",
+          "type_ref": "control"
+        },
+        {
+          "cardinality": "exactly-one",
+          "direction": "output",
+          "name": "result",
+          "type_ref": "comparison-outcome"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "kind": "branch",
+      "ports": [
+        {
+          "cardinality": "one-or-more",
+          "direction": "input",
+          "name": "in",
+          "type_ref": "control"
+        },
+        {
+          "cardinality": "exactly-one",
+          "direction": "input",
+          "name": "condition",
+          "type_ref": "comparison-outcome"
+        },
+        {
+          "cardinality": "exactly-one",
+          "direction": "output",
+          "name": "true",
+          "type_ref": "control"
+        },
+        {
+          "cardinality": "exactly-one",
+          "direction": "output",
+          "name": "false",
+          "type_ref": "control"
+        },
+        {
+          "cardinality": "exactly-one",
+          "direction": "output",
+          "name": "unknown",
+          "type_ref": "control"
+        },
+        {
+          "cardinality": "exactly-one",
+          "direction": "output",
+          "name": "error",
+          "type_ref": "control"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "kind": "on_off_set",
+      "ports": [
+        {
+          "cardinality": "one-or-more",
+          "direction": "input",
+          "name": "in",
+          "type_ref": "control"
+        },
+        {
+          "cardinality": "exactly-one",
+          "direction": "output",
+          "name": "next",
+          "type_ref": "control"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "kind": "end",
+      "ports": [
+        {
+          "cardinality": "one-or-more",
+          "direction": "input",
+          "name": "in",
+          "type_ref": "control"
+        }
+      ],
+      "version": 1
+    }
+  ],
+  "schema_version": "1.0.0"
+}

@@ -1,0 +1,102 @@
+{
+  "schema": {
+    "url": "https://schemas.litehouse.dev/rule-ir/v1.0.0/schema.json",
+    "version": "1.0.0",
+    "sha256": "a1ac20dc95e3c4484a9668b8c301b0722f8592f6c7a26b5ced670a2909f9c70a",
+    "profile_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "rule_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "revision": 7,
+  "semantic": {
+    "name": "Observed boolean controls a switch",
+    "description": "Plan an absolute On/Off set when the observed value is true.",
+    "locks": {
+      "compiler": "litehouse:rule-compiler@1",
+      "quantity_catalog": "litehouse:quantity-catalog@1"
+    },
+    "limits": {
+      "max_nodes": 128,
+      "max_edges": 256,
+      "max_depth": 32
+    },
+    "trigger": {
+      "kind": "state_observation",
+      "id": "trigger",
+      "version": 1,
+      "selector": {
+        "provider_instance_id": "11111111111111111111111111111111",
+        "facet_key": "presence",
+        "contract": {
+          "namespace": "example",
+          "package": "presence",
+          "interface": "state",
+          "major": 1
+        }
+      },
+      "mode": "value_change",
+      "initial": "ignore"
+    },
+    "nodes": [
+      {
+        "kind": "snapshot",
+        "id": "snapshot",
+        "version": 1,
+        "selector": {
+          "provider_instance_id": "11111111111111111111111111111111",
+          "facet_key": "presence",
+          "contract": {
+            "namespace": "example",
+            "package": "presence",
+            "interface": "state",
+            "major": 1
+          }
+        },
+        "field": "occupied",
+        "value_type": { "kind": "bool" }
+      },
+      {
+        "kind": "compare",
+        "id": "compare",
+        "version": 1,
+        "value_type": { "kind": "bool" },
+        "expression": {
+          "operator": "equal",
+          "right": { "kind": "bool", "value": true }
+        }
+      },
+      { "kind": "branch", "id": "branch", "version": 1 },
+      {
+        "kind": "on_off_set",
+        "id": "set_light",
+        "version": 1,
+        "selector": {
+          "provider_instance_id": "22222222222222222222222222222222",
+          "facet_key": "light",
+          "contract": {
+            "namespace": "litehouse",
+            "package": "on-off",
+            "interface": "capability",
+            "major": 1
+          }
+        },
+        "value": true
+      },
+      { "kind": "end", "id": "end_success", "version": 1, "outcome": "success" },
+      { "kind": "end", "id": "end_noop", "version": 1, "outcome": "noop" },
+      { "kind": "end", "id": "end_unknown", "version": 1, "outcome": "unknown" },
+      { "kind": "end", "id": "end_error", "version": 1, "outcome": "error" }
+    ],
+    "edges": [
+      { "id": "e_trigger_snapshot", "from": { "node": "trigger", "port": "next" }, "to": { "node": "snapshot", "port": "in" }, "order": 0 },
+      { "id": "e_snapshot_compare", "from": { "node": "snapshot", "port": "next" }, "to": { "node": "compare", "port": "in" }, "order": 0 },
+      { "id": "e_snapshot_value", "from": { "node": "snapshot", "port": "value" }, "to": { "node": "compare", "port": "left" }, "order": 0 },
+      { "id": "e_compare_branch", "from": { "node": "compare", "port": "next" }, "to": { "node": "branch", "port": "in" }, "order": 0 },
+      { "id": "e_compare_result", "from": { "node": "compare", "port": "result" }, "to": { "node": "branch", "port": "condition" }, "order": 0 },
+      { "id": "e_true_set", "from": { "node": "branch", "port": "true" }, "to": { "node": "set_light", "port": "in" }, "order": 0 },
+      { "id": "e_set_success", "from": { "node": "set_light", "port": "next" }, "to": { "node": "end_success", "port": "in" }, "order": 0 },
+      { "id": "e_false_noop", "from": { "node": "branch", "port": "false" }, "to": { "node": "end_noop", "port": "in" }, "order": 0 },
+      { "id": "e_unknown_end", "from": { "node": "branch", "port": "unknown" }, "to": { "node": "end_unknown", "port": "in" }, "order": 0 },
+      { "id": "e_error_end", "from": { "node": "branch", "port": "error" }, "to": { "node": "end_error", "port": "in" }, "order": 0 }
+    ]
+  }
+}

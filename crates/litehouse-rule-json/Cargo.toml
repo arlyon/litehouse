@@ -1,0 +1,20 @@
+[package]
+name = "litehouse-rule-json"
+version = "0.1.0"
+description = "Closed Litehouse Rule JSON V1 model, compiler, and pure transition planner"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+litehouse-contracts = { version = "0.1.0", path = "../litehouse-contracts" }
+schemars = "1.2.1"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.117"
+sha2 = "0.10.8"
+thiserror = "1.0.58"
+
+[dev-dependencies]
+jsonschema = { version = "0.17.1", features = ["draft202012"] }
