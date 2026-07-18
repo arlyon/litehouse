@@ -14717,7 +14717,7 @@
           }
         },
         "output": {
-          "sha256": "9f33b7894917d6156b4d1354453e4ec2b74b0bea57e3bb91260714543f7a3d89",
+          "sha256": "0a4b20846f86657778f3e5cef9918e4985c52b78a0b295d1f718ec71714b116f",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "facets.query@1 canonical output",
@@ -14873,6 +14873,935 @@
                     "required": [
                       "kind",
                       "current"
+                    ]
+                  },
+                  {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "facets.query@1 level state",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "level"
+                      },
+                      "current": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "profile": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "magnitude": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "unit": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64
+                              }
+                            },
+                            "required": [
+                              "profile",
+                              "magnitude",
+                              "unit"
+                            ]
+                          }
+                        ]
+                      },
+                      "target": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "profile": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "magnitude": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "unit": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64
+                              }
+                            },
+                            "required": [
+                              "profile",
+                              "magnitude",
+                              "unit"
+                            ]
+                          }
+                        ]
+                      },
+                      "transition_remaining_milliseconds": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 18446744073709551615
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "current",
+                      "target",
+                      "transition_remaining_milliseconds"
+                    ]
+                  },
+                  {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "facets.query@1 color state",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "color"
+                      },
+                      "current": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "model": {
+                                    "type": "string",
+                                    "const": "hue-saturation"
+                                  },
+                                  "hue_degrees": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "saturation_ratio": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  }
+                                },
+                                "required": [
+                                  "model",
+                                  "hue_degrees",
+                                  "saturation_ratio"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "model": {
+                                    "type": "string",
+                                    "const": "cie-xy"
+                                  },
+                                  "x": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "y": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  }
+                                },
+                                "required": [
+                                  "model",
+                                  "x",
+                                  "y"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "model": {
+                                    "type": "string",
+                                    "const": "color-temperature"
+                                  },
+                                  "kelvin": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  }
+                                },
+                                "required": [
+                                  "model",
+                                  "kelvin"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "model": {
+                                    "type": "string",
+                                    "const": "calibrated-rgb"
+                                  },
+                                  "red": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "green": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "blue": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "color_space": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  }
+                                },
+                                "required": [
+                                  "model",
+                                  "red",
+                                  "green",
+                                  "blue",
+                                  "color_space"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "model": {
+                                    "type": "string",
+                                    "const": "uncalibrated-rgb"
+                                  },
+                                  "red": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "green": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "blue": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  }
+                                },
+                                "required": [
+                                  "model",
+                                  "red",
+                                  "green",
+                                  "blue"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "model": {
+                                    "type": "string",
+                                    "const": "native-white-channels"
+                                  },
+                                  "white": {
+                                    "oneOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128
+                                      }
+                                    ]
+                                  },
+                                  "cold_white": {
+                                    "oneOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128
+                                      }
+                                    ]
+                                  },
+                                  "warm_white": {
+                                    "oneOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "model",
+                                  "white",
+                                  "cold_white",
+                                  "warm_white"
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "target": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "model": {
+                                    "type": "string",
+                                    "const": "hue-saturation"
+                                  },
+                                  "hue_degrees": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "saturation_ratio": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  }
+                                },
+                                "required": [
+                                  "model",
+                                  "hue_degrees",
+                                  "saturation_ratio"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "model": {
+                                    "type": "string",
+                                    "const": "cie-xy"
+                                  },
+                                  "x": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "y": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  }
+                                },
+                                "required": [
+                                  "model",
+                                  "x",
+                                  "y"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "model": {
+                                    "type": "string",
+                                    "const": "color-temperature"
+                                  },
+                                  "kelvin": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  }
+                                },
+                                "required": [
+                                  "model",
+                                  "kelvin"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "model": {
+                                    "type": "string",
+                                    "const": "calibrated-rgb"
+                                  },
+                                  "red": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "green": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "blue": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "color_space": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  }
+                                },
+                                "required": [
+                                  "model",
+                                  "red",
+                                  "green",
+                                  "blue",
+                                  "color_space"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "model": {
+                                    "type": "string",
+                                    "const": "uncalibrated-rgb"
+                                  },
+                                  "red": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "green": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "blue": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  }
+                                },
+                                "required": [
+                                  "model",
+                                  "red",
+                                  "green",
+                                  "blue"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "model": {
+                                    "type": "string",
+                                    "const": "native-white-channels"
+                                  },
+                                  "white": {
+                                    "oneOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128
+                                      }
+                                    ]
+                                  },
+                                  "cold_white": {
+                                    "oneOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128
+                                      }
+                                    ]
+                                  },
+                                  "warm_white": {
+                                    "oneOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "model",
+                                  "white",
+                                  "cold_white",
+                                  "warm_white"
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "active_model": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "hue-saturation",
+                              "cie-xy",
+                              "color-temperature",
+                              "calibrated-rgb",
+                              "uncalibrated-rgb",
+                              "native-white-channels"
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "current",
+                      "target",
+                      "active_model"
+                    ]
+                  },
+                  {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "facets.query@1 thermostat state",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "thermostat"
+                      },
+                      "current_mode": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "off",
+                                  "auto",
+                                  "heat",
+                                  "cool",
+                                  "dry",
+                                  "fan-only",
+                                  "provider-qualified"
+                                ]
+                              },
+                              "value": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              }
+                            },
+                            "required": [
+                              "kind"
+                            ]
+                          }
+                        ]
+                      },
+                      "target_mode": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "off",
+                                  "auto",
+                                  "heat",
+                                  "cool",
+                                  "dry",
+                                  "fan-only",
+                                  "provider-qualified"
+                                ]
+                              },
+                              "value": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              }
+                            },
+                            "required": [
+                              "kind"
+                            ]
+                          }
+                        ]
+                      },
+                      "current_action": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "idle",
+                              "heating",
+                              "cooling",
+                              "drying",
+                              "fan",
+                              "defrosting"
+                            ]
+                          }
+                        ]
+                      },
+                      "running": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      },
+                      "targets": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "single"
+                              },
+                              "temperature": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "profile": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "magnitude": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "unit": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64
+                                  }
+                                },
+                                "required": [
+                                  "profile",
+                                  "magnitude",
+                                  "unit"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "temperature"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "heat-cool"
+                              },
+                              "heat": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "profile": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "magnitude": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "unit": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64
+                                  }
+                                },
+                                "required": [
+                                  "profile",
+                                  "magnitude",
+                                  "unit"
+                                ]
+                              },
+                              "cool": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "profile": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "magnitude": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "unit": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64
+                                  }
+                                },
+                                "required": [
+                                  "profile",
+                                  "magnitude",
+                                  "unit"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "heat",
+                              "cool"
+                            ]
+                          }
+                        ]
+                      },
+                      "fan": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "string",
+                            "maxLength": 128
+                          }
+                        ]
+                      },
+                      "swing": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "string",
+                            "maxLength": 128
+                          }
+                        ]
+                      },
+                      "preset": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "string",
+                            "maxLength": 128
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "current_mode",
+                      "target_mode",
+                      "current_action",
+                      "running",
+                      "targets",
+                      "fan",
+                      "swing",
+                      "preset"
+                    ]
+                  },
+                  {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "facets.query@1 window covering state",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "window-covering"
+                      },
+                      "axes": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "axis": {
+                              "type": "string",
+                              "enum": [
+                                "lift",
+                                "tilt"
+                              ]
+                            },
+                            "current": {
+                              "oneOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "profile": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 128
+                                    },
+                                    "magnitude": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 128
+                                    },
+                                    "unit": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 64
+                                    }
+                                  },
+                                  "required": [
+                                    "profile",
+                                    "magnitude",
+                                    "unit"
+                                  ]
+                                }
+                              ]
+                            },
+                            "target": {
+                              "oneOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "profile": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 128
+                                    },
+                                    "magnitude": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 128
+                                    },
+                                    "unit": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 64
+                                    }
+                                  },
+                                  "required": [
+                                    "profile",
+                                    "magnitude",
+                                    "unit"
+                                  ]
+                                }
+                              ]
+                            },
+                            "movement": {
+                              "type": "string",
+                              "enum": [
+                                "opening",
+                                "closing",
+                                "stopped",
+                                "idle",
+                                "unknown"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "axis",
+                            "current",
+                            "target",
+                            "movement"
+                          ]
+                        },
+                        "maxItems": 16
+                      },
+                      "safety_status": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 128
+                        },
+                        "maxItems": 32
+                      },
+                      "fault_status": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 128
+                        },
+                        "maxItems": 32
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "axes",
+                      "safety_status",
+                      "fault_status"
                     ]
                   }
                 ]

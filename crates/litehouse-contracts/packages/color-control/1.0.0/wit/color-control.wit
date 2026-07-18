@@ -1,10 +1,10 @@
 package litehouse:color-control@1.0.0;
 
-interface capability {
+interface types {
   use litehouse:descriptor/types@1.0.0.{facet-descriptor};
   use litehouse:errors/types@1.0.0.{core-error, retry-advice};
-  use litehouse:receipt/types@1.0.0.{command-receipt, deduplication-guarantee, operation-kind, request-context};
-  use litehouse:state/types@1.0.0.{availability, gap, hydration-barrier, observation-meta, quality, resume-position, resume-receipt, resume-request};
+  use litehouse:receipt/types@1.0.0.{command-receipt, deduplication-guarantee, operation-kind};
+  use litehouse:state/types@1.0.0.{availability, gap, hydration-barrier, observation-meta, quality};
 
   type decimal = string;
 
@@ -163,6 +163,13 @@ interface capability {
     observation(state),
     gap(gap),
   }
+
+}
+
+interface capability {
+  use litehouse:receipt/types@1.0.0.{request-context};
+  use litehouse:state/types@1.0.0.{resume-position, resume-receipt, resume-request};
+  use types.{color-descriptor, error, move-request, operation-receipt, set-request, state, state-event, step-request};
 
   resource state-subscription {
     next: async func(context: request-context) -> result<state-event, error>;

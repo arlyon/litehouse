@@ -10,6 +10,15 @@ version = "1.0.0"
 digest = "sha256:ab838b4780e79c6aa40fbfcbaf8d6a8e80c03fd4a046b6fa74bc0f7ea67dc6de"
 
 [[packages]]
+name = "litehouse:color-control"
+registry = "local.litehouse.invalid"
+
+[[packages.versions]]
+requirement = "=1.0.0"
+version = "1.0.0"
+digest = "sha256:9dff14ab3ed0ab2e45e509cc15abff4bf2b28ed0a412f2346695ba8da4c2fb85"
+
+[[packages]]
 name = "litehouse:errors"
 registry = "local.litehouse.invalid"
 
@@ -19,6 +28,15 @@ version = "1.0.0"
 digest = "sha256:31dfee4682a33480093f8a2cce1da0aab5e23e5a89684657947838185ad5eeab"
 
 [[packages]]
+name = "litehouse:level-control"
+registry = "local.litehouse.invalid"
+
+[[packages.versions]]
+requirement = "=1.0.0"
+version = "1.0.0"
+digest = "sha256:49935caf9f04d6eac53e736ea7885dda2025cc63f5b6057a0ab9341e0f7b047c"
+
+[[packages]]
 name = "litehouse:measurement"
 registry = "local.litehouse.invalid"
 
@@ -26,6 +44,15 @@ registry = "local.litehouse.invalid"
 requirement = "=1.0.0"
 version = "1.0.0"
 digest = "sha256:749e9820ce9cbce2476a4845c1ac258d6163da60095126af0c847a79cf929e86"
+
+[[packages]]
+name = "litehouse:momentary-action"
+registry = "local.litehouse.invalid"
+
+[[packages.versions]]
+requirement = "=1.0.0"
+version = "1.0.0"
+digest = "sha256:65145eb97e50339cd9a17439644fcf82350a40de0e0101f7f77630499b3d027d"
 
 [[packages]]
 name = "litehouse:notification-sink"
@@ -53,3 +80,21 @@ registry = "local.litehouse.invalid"
 requirement = "=1.0.0"
 version = "1.0.0"
 digest = "sha256:edcab5737952c82d5612fb60dae48f0b9a4d78edc2909aa58fce948e556915a0"
+
+[[packages]]
+name = "litehouse:thermostat"
+registry = "local.litehouse.invalid"
+
+[[packages.versions]]
+requirement = "=1.0.0"
+version = "1.0.0"
+digest = "sha256:fb8d1e0a0bbce4bc21ee48cf3ea4f4327db1d7a47c5730ee6ec7bc51182870ba"
+
+[[packages]]
+name = "litehouse:window-covering"
+registry = "local.litehouse.invalid"
+
+[[packages.versions]]
+requirement = "=1.0.0"
+version = "1.0.0"
+digest = "sha256:5e98760f77d8128253d4183f37ea6babc089e21c58130f1e86c5abed7f42de59"

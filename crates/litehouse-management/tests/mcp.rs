@@ -128,7 +128,7 @@ async fn three_rmcp_tools_use_canonical_handlers_and_no_generic_dispatch() -> an
     let inventory: InventorySnapshot =
         serde_json::from_value(inventory.structured_content.unwrap())?;
     assert_eq!(inventory.instances.len(), 1);
-    assert_eq!(inventory.instances[0].facets.len(), 5);
+    assert_eq!(inventory.instances[0].facets.len(), 10);
     let relay = inventory.instances[0]
         .facets
         .iter()
@@ -138,6 +138,23 @@ async fn three_rmcp_tools_use_canonical_handlers_and_no_generic_dispatch() -> an
         relay.operations,
         ["facets.query@1", "capability.on-off.set@1"]
     );
+    let dimmer = inventory.instances[0]
+        .facets
+        .iter()
+        .find(|facet| facet.label == "Dimmer 1")
+        .unwrap();
+    let level_query = client
+        .call_tool(
+            CallToolRequestParams::new("litehouse_query").with_arguments(arguments(json!({
+                "facet_id": dimmer.facet_id,
+                "facet_generation": dimmer.generation,
+                "timeout_ms": 5000
+            }))),
+        )
+        .await?;
+    let level_query: FacetQueryResult =
+        serde_json::from_value(level_query.structured_content.unwrap())?;
+    assert!(matches!(level_query.state, FacetState::Level { .. }));
 
     let query_arguments = json!({
         "facet_id": relay.facet_id,

@@ -505,3 +505,18 @@ configuration.
   host queries typed quantities, sends a typed notification, fences stale
   generations, withdraws endpoints, and still passes the full encrypted
   ESPHome Noise → Wasmtime → canonical handler → MCP regression path.
+
+### R-011 — Close the nine-family provider ABI without protocol expansion
+
+- **Resolution:** complete the same unreleased `litehouse:provider@1.0.0` ABI
+  with repeated Level Control, Color Control, Thermostat, Window Covering, and
+  Momentary Action resources. Each canonical capability now separates
+  execution-free `types` from executable `capability`; the provider imports only
+  `types`, exposes every typed command except subscriptions, and has no generic
+  payload or dispatch envelope. ESPHome supplies uninhabited placeholders only;
+  protocol mappings remain deferred.
+- **Evidence:** deterministic fixture resources cover query and representative
+  commands for all five families through the production store-local Wasmtime
+  actor. Both fixture and ESPHome components pass Component Model and runtime
+  profile admission, while the encrypted ESPHome set/observe/restore and MCP
+  regressions remain green without hardware or secret access.

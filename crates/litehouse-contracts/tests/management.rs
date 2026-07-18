@@ -286,7 +286,15 @@ fn proving_mcp_schemas_are_closed_and_typed() {
             .iter()
             .map(|schema| schema["properties"]["kind"]["const"].as_str().unwrap())
             .collect::<BTreeSet<_>>(),
-        BTreeSet::from(["boolean-state", "measurement", "on-off"])
+        BTreeSet::from([
+            "boolean-state",
+            "color",
+            "level",
+            "measurement",
+            "on-off",
+            "thermostat",
+            "window-covering",
+        ])
     );
 
     let interact = operation("capability.on-off.set@1");

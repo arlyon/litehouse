@@ -1,8 +1,12 @@
 use litehouse_contracts::management::{OAuthScope, ScopePolicy, management_manifest};
 use litehouse_provider_host::{
-    Availability as HostAvailability, CallContext, FacetKind, FacetState as HostFacetState,
-    FacetValue as HostFacetValue, ProviderHandle, ProviderHostError, Quality as HostQuality,
-    ReceiptConfidence as HostReceiptConfidence, UnavailabilityReason as HostUnavailabilityReason,
+    Availability as HostAvailability, CallContext, ColorModel as HostColorModel,
+    ColorValue as HostColorValue, CoveringAxis as HostCoveringAxis,
+    CoveringMovement as HostCoveringMovement, FacetKind, FacetState as HostFacetState,
+    FacetValue as HostFacetValue, KnownThermostatMode as HostKnownThermostatMode, ProviderHandle,
+    ProviderHostError, Quality as HostQuality, ReceiptConfidence as HostReceiptConfidence,
+    ThermostatAction as HostThermostatAction, ThermostatMode as HostThermostatMode,
+    ThermostatTargets as HostThermostatTargets, UnavailabilityReason as HostUnavailabilityReason,
 };
 use litehouse_service_fabric as fabric;
 use rmcp::{
@@ -174,6 +178,134 @@ pub enum FacetState {
     Measurement {
         current: Option<MeasurementStateValue>,
     },
+    Level {
+        current: Option<QuantityValue>,
+        target: Option<QuantityValue>,
+        transition_remaining_milliseconds: Option<u64>,
+    },
+    Color {
+        current: Option<ColorValue>,
+        target: Option<ColorValue>,
+        active_model: Option<ColorModel>,
+    },
+    Thermostat {
+        current_mode: Option<ThermostatMode>,
+        target_mode: Option<ThermostatMode>,
+        current_action: Option<ThermostatAction>,
+        running: Option<bool>,
+        targets: Option<ThermostatTargets>,
+        fan: Option<String>,
+        swing: Option<String>,
+        preset: Option<String>,
+    },
+    WindowCovering {
+        axes: Vec<CoveringAxisState>,
+        safety_status: Vec<String>,
+        fault_status: Vec<String>,
+    },
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct QuantityValue {
+    pub profile: String,
+    pub magnitude: String,
+    pub unit: String,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "model", rename_all = "kebab-case")]
+pub enum ColorValue {
+    HueSaturation {
+        hue_degrees: String,
+        saturation_ratio: String,
+    },
+    CieXy {
+        x: String,
+        y: String,
+    },
+    ColorTemperature {
+        kelvin: String,
+    },
+    CalibratedRgb {
+        red: String,
+        green: String,
+        blue: String,
+        color_space: String,
+    },
+    UncalibratedRgb {
+        red: String,
+        green: String,
+        blue: String,
+    },
+    NativeWhiteChannels {
+        white: Option<String>,
+        cold_white: Option<String>,
+        warm_white: Option<String>,
+    },
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ColorModel {
+    HueSaturation,
+    CieXy,
+    ColorTemperature,
+    CalibratedRgb,
+    UncalibratedRgb,
+    NativeWhiteChannels,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "value", rename_all = "kebab-case")]
+pub enum ThermostatMode {
+    Off,
+    Auto,
+    Heat,
+    Cool,
+    Dry,
+    FanOnly,
+    ProviderQualified(String),
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ThermostatAction {
+    Idle,
+    Heating,
+    Cooling,
+    Drying,
+    Fan,
+    Defrosting,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+pub enum ThermostatTargets {
+    Single {
+        temperature: QuantityValue,
+    },
+    HeatCool {
+        heat: QuantityValue,
+        cool: QuantityValue,
+    },
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CoveringAxisState {
+    pub axis: CoveringAxis,
+    pub current: Option<QuantityValue>,
+    pub target: Option<QuantityValue>,
+    pub movement: CoveringMovement,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum CoveringAxis {
+    Lift,
+    Tilt,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum CoveringMovement {
+    Opening,
+    Closing,
+    Stopped,
+    Idle,
+    Unknown,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -662,6 +794,41 @@ fn canonical_operations(kind: FacetKind) -> Vec<String> {
         FacetKind::OnOff => vec![QUERY_OPERATION.into(), SET_OPERATION.into()],
         FacetKind::BooleanState | FacetKind::Measurement => vec![QUERY_OPERATION.into()],
         FacetKind::NotificationSink => vec!["capability.notification.send@1".into()],
+        FacetKind::LevelControl => vec![
+            QUERY_OPERATION.into(),
+            "capability.level.set@1".into(),
+            "capability.level.step@1".into(),
+            "capability.level.move@1".into(),
+            "capability.level.stop@1".into(),
+            "capability.level.set-coupled@1".into(),
+            "capability.level.step-coupled@1".into(),
+            "capability.level.move-coupled@1".into(),
+        ],
+        FacetKind::ColorControl => vec![
+            QUERY_OPERATION.into(),
+            "capability.color.set@1".into(),
+            "capability.color.step@1".into(),
+            "capability.color.move@1".into(),
+            "capability.color.stop@1".into(),
+        ],
+        FacetKind::Thermostat => vec![
+            QUERY_OPERATION.into(),
+            "capability.thermostat.set-mode@1".into(),
+            "capability.thermostat.set-single-target@1".into(),
+            "capability.thermostat.set-dual-target@1".into(),
+            "capability.thermostat.set-fan@1".into(),
+            "capability.thermostat.set-swing@1".into(),
+            "capability.thermostat.set-preset@1".into(),
+        ],
+        FacetKind::WindowCovering => vec![
+            QUERY_OPERATION.into(),
+            "capability.covering.open@1".into(),
+            "capability.covering.close@1".into(),
+            "capability.covering.stop@1".into(),
+            "capability.covering.set-lift@1".into(),
+            "capability.covering.set-tilt@1".into(),
+        ],
+        FacetKind::MomentaryAction => vec!["capability.momentary.invoke@1".into()],
     }
 }
 
@@ -703,7 +870,131 @@ fn query_result(facet_id: String, state: HostFacetState) -> FacetQueryResult {
                     native_unit: value.native_unit,
                 }),
             },
+            HostFacetValue::Level(v) => FacetState::Level {
+                current: v.current.map(quantity_value),
+                target: v.target.map(quantity_value),
+                transition_remaining_milliseconds: v.transition_remaining_milliseconds,
+            },
+            HostFacetValue::Color(v) => FacetState::Color {
+                current: v.current.map(color_value),
+                target: v.target.map(color_value),
+                active_model: v.active_model.map(color_model),
+            },
+            HostFacetValue::Thermostat(v) => FacetState::Thermostat {
+                current_mode: v.current_mode.map(thermostat_mode),
+                target_mode: v.target_mode.map(thermostat_mode),
+                current_action: v.current_action.map(|v| match v {
+                    HostThermostatAction::Idle => ThermostatAction::Idle,
+                    HostThermostatAction::Heating => ThermostatAction::Heating,
+                    HostThermostatAction::Cooling => ThermostatAction::Cooling,
+                    HostThermostatAction::Drying => ThermostatAction::Drying,
+                    HostThermostatAction::Fan => ThermostatAction::Fan,
+                    HostThermostatAction::Defrosting => ThermostatAction::Defrosting,
+                }),
+                running: v.running,
+                targets: v.targets.map(|v| match v {
+                    HostThermostatTargets::Single(v) => ThermostatTargets::Single {
+                        temperature: quantity_value(v),
+                    },
+                    HostThermostatTargets::HeatCool { heat, cool } => ThermostatTargets::HeatCool {
+                        heat: quantity_value(heat),
+                        cool: quantity_value(cool),
+                    },
+                }),
+                fan: v.fan,
+                swing: v.swing,
+                preset: v.preset,
+            },
+            HostFacetValue::WindowCovering(v) => FacetState::WindowCovering {
+                axes: v
+                    .axes
+                    .into_iter()
+                    .map(|v| CoveringAxisState {
+                        axis: match v.axis {
+                            HostCoveringAxis::Lift => CoveringAxis::Lift,
+                            HostCoveringAxis::Tilt => CoveringAxis::Tilt,
+                        },
+                        current: v.current.map(quantity_value),
+                        target: v.target.map(quantity_value),
+                        movement: match v.movement {
+                            HostCoveringMovement::Opening => CoveringMovement::Opening,
+                            HostCoveringMovement::Closing => CoveringMovement::Closing,
+                            HostCoveringMovement::Stopped => CoveringMovement::Stopped,
+                            HostCoveringMovement::Idle => CoveringMovement::Idle,
+                            HostCoveringMovement::Unknown => CoveringMovement::Unknown,
+                        },
+                    })
+                    .collect(),
+                safety_status: v.safety_status,
+                fault_status: v.fault_status,
+            },
         },
+    }
+}
+fn quantity_value(v: litehouse_provider_host::Quantity) -> QuantityValue {
+    QuantityValue {
+        profile: v.profile,
+        magnitude: v.magnitude,
+        unit: v.unit,
+    }
+}
+fn color_model(v: HostColorModel) -> ColorModel {
+    match v {
+        HostColorModel::HueSaturation => ColorModel::HueSaturation,
+        HostColorModel::CieXy => ColorModel::CieXy,
+        HostColorModel::ColorTemperature => ColorModel::ColorTemperature,
+        HostColorModel::CalibratedRgb => ColorModel::CalibratedRgb,
+        HostColorModel::UncalibratedRgb => ColorModel::UncalibratedRgb,
+        HostColorModel::NativeWhiteChannels => ColorModel::NativeWhiteChannels,
+    }
+}
+fn color_value(v: HostColorValue) -> ColorValue {
+    match v {
+        HostColorValue::HueSaturation {
+            hue_degrees,
+            saturation_ratio,
+        } => ColorValue::HueSaturation {
+            hue_degrees,
+            saturation_ratio,
+        },
+        HostColorValue::CieXy { x, y } => ColorValue::CieXy { x, y },
+        HostColorValue::ColorTemperature { kelvin } => ColorValue::ColorTemperature { kelvin },
+        HostColorValue::CalibratedRgb {
+            red,
+            green,
+            blue,
+            color_space,
+        } => ColorValue::CalibratedRgb {
+            red,
+            green,
+            blue,
+            color_space,
+        },
+        HostColorValue::UncalibratedRgb { red, green, blue } => {
+            ColorValue::UncalibratedRgb { red, green, blue }
+        }
+        HostColorValue::NativeWhiteChannels {
+            white,
+            cold_white,
+            warm_white,
+        } => ColorValue::NativeWhiteChannels {
+            white,
+            cold_white,
+            warm_white,
+        },
+    }
+}
+fn thermostat_mode(v: HostThermostatMode) -> ThermostatMode {
+    match v {
+        HostThermostatMode::Known(v) => match v {
+            HostKnownThermostatMode::Off => ThermostatMode::Off,
+            HostKnownThermostatMode::Auto => ThermostatMode::Auto,
+            HostKnownThermostatMode::Heat => ThermostatMode::Heat,
+            HostKnownThermostatMode::Cool => ThermostatMode::Cool,
+            HostKnownThermostatMode::Dry => ThermostatMode::Dry,
+            HostKnownThermostatMode::FanOnly => ThermostatMode::FanOnly,
+        },
+        HostThermostatMode::ProviderQualified(v) => ThermostatMode::ProviderQualified(v),
     }
 }
 

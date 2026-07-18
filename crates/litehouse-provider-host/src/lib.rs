@@ -137,6 +137,11 @@ mod bindings {
             "../litehouse-contracts/packages/quantity/1.0.0/wit",
             "../litehouse-contracts/packages/measurement/1.0.0/wit",
             "../litehouse-contracts/packages/notification-sink/1.0.0/wit",
+            "../litehouse-contracts/packages/level-control/1.0.0/wit",
+            "../litehouse-contracts/packages/color-control/1.0.0/wit",
+            "../litehouse-contracts/packages/thermostat/1.0.0/wit",
+            "../litehouse-contracts/packages/window-covering/1.0.0/wit",
+            "../litehouse-contracts/packages/momentary-action/1.0.0/wit",
             "../litehouse-contracts/packages/provider/1.0.0/wit",
         ],
         world: "litehouse:provider/component@1.0.0",
@@ -148,10 +153,13 @@ mod bindings {
 
 use bindings::exports::litehouse::provider::provider as wire_provider;
 use bindings::litehouse::{
-    boolean_state::types as wire_boolean, descriptor::types as wire_descriptor,
-    errors::types as wire_error, measurement::types as wire_measurement,
-    notification_sink::types as wire_notification, on_off::types as wire_on_off,
-    quantity::types as wire_quantity, receipt::types as wire_receipt, state::types as wire_state,
+    boolean_state::types as wire_boolean, color_control::types as wire_color,
+    descriptor::types as wire_descriptor, errors::types as wire_error,
+    level_control::types as wire_level, measurement::types as wire_measurement,
+    momentary_action::types as wire_momentary, notification_sink::types as wire_notification,
+    on_off::types as wire_on_off, quantity::types as wire_quantity, receipt::types as wire_receipt,
+    state::types as wire_state, thermostat::types as wire_thermostat,
+    window_covering::types as wire_covering,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -160,6 +168,11 @@ pub enum FacetKind {
     BooleanState,
     Measurement,
     NotificationSink,
+    LevelControl,
+    ColorControl,
+    Thermostat,
+    WindowCovering,
+    MomentaryAction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -227,6 +240,10 @@ pub enum FacetValue {
     OnOff(Option<bool>),
     BooleanState(Option<bool>),
     Measurement(Option<MeasurementValue>),
+    Level(LevelState),
+    Color(ColorState),
+    Thermostat(ThermostatState),
+    WindowCovering(WindowCoveringState),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -236,6 +253,248 @@ pub struct MeasurementValue {
     pub unit: String,
     pub native_magnitude: Option<String>,
     pub native_unit: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Quantity {
+    pub profile: String,
+    pub magnitude: String,
+    pub unit: String,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LevelState {
+    pub current: Option<Quantity>,
+    pub target: Option<Quantity>,
+    pub transition_remaining_milliseconds: Option<u64>,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Transition {
+    pub duration_milliseconds: u64,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LevelSetRequest {
+    pub level: Quantity,
+    pub transition: Option<Transition>,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StepDirection {
+    Increase,
+    Decrease,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LevelStepRequest {
+    pub direction: StepDirection,
+    pub amount: Quantity,
+    pub transition: Option<Transition>,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LevelMoveRequest {
+    pub direction: StepDirection,
+    pub rate_per_second: Quantity,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CoupledLevelRequest {
+    pub level: Quantity,
+    pub on_when_nonzero: bool,
+    pub transition: Option<Transition>,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CoupledLevelStepRequest {
+    pub direction: StepDirection,
+    pub amount: Quantity,
+    pub on_when_nonzero: bool,
+    pub transition: Option<Transition>,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CoupledLevelMoveRequest {
+    pub direction: StepDirection,
+    pub rate_per_second: Quantity,
+    pub on_when_nonzero: bool,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LevelOperation {
+    SetLevel(LevelSetRequest),
+    Step(LevelStepRequest),
+    Move(LevelMoveRequest),
+    Stop,
+    SetLevelWithOnOff(CoupledLevelRequest),
+    StepWithOnOff(CoupledLevelStepRequest),
+    MoveWithOnOff(CoupledLevelMoveRequest),
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LevelOperationReceipt {
+    pub operation: LevelOperation,
+    pub receipt: CommandReceipt,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ColorValue {
+    HueSaturation {
+        hue_degrees: String,
+        saturation_ratio: String,
+    },
+    CieXy {
+        x: String,
+        y: String,
+    },
+    ColorTemperature {
+        kelvin: String,
+    },
+    CalibratedRgb {
+        red: String,
+        green: String,
+        blue: String,
+        color_space: String,
+    },
+    UncalibratedRgb {
+        red: String,
+        green: String,
+        blue: String,
+    },
+    NativeWhiteChannels {
+        white: Option<String>,
+        cold_white: Option<String>,
+        warm_white: Option<String>,
+    },
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ColorModel {
+    HueSaturation,
+    CieXy,
+    ColorTemperature,
+    CalibratedRgb,
+    UncalibratedRgb,
+    NativeWhiteChannels,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ColorState {
+    pub current: Option<ColorValue>,
+    pub target: Option<ColorValue>,
+    pub active_model: Option<ColorModel>,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ColorSetRequest {
+    pub color: ColorValue,
+    pub transition: Option<Transition>,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ColorStepRequest {
+    pub delta: ColorValue,
+    pub transition: Option<Transition>,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ColorMoveRequest {
+    pub rate_per_second: ColorValue,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ColorOperation {
+    SetColor(ColorSetRequest),
+    StepColor(ColorStepRequest),
+    MoveColor(ColorMoveRequest),
+    Stop,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ColorOperationReceipt {
+    pub operation: ColorOperation,
+    pub receipt: CommandReceipt,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KnownThermostatMode {
+    Off,
+    Auto,
+    Heat,
+    Cool,
+    Dry,
+    FanOnly,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ThermostatMode {
+    Known(KnownThermostatMode),
+    ProviderQualified(String),
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ThermostatAction {
+    Idle,
+    Heating,
+    Cooling,
+    Drying,
+    Fan,
+    Defrosting,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ThermostatTargets {
+    Single(Quantity),
+    HeatCool { heat: Quantity, cool: Quantity },
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ThermostatState {
+    pub current_mode: Option<ThermostatMode>,
+    pub target_mode: Option<ThermostatMode>,
+    pub current_action: Option<ThermostatAction>,
+    pub running: Option<bool>,
+    pub targets: Option<ThermostatTargets>,
+    pub fan: Option<String>,
+    pub swing: Option<String>,
+    pub preset: Option<String>,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ThermostatOperation {
+    SetMode(ThermostatMode),
+    SetSingleTarget(Quantity),
+    SetDualTarget { heat: Quantity, cool: Quantity },
+    SetFan(String),
+    SetSwing(String),
+    SetPreset(String),
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ThermostatOperationReceipt {
+    pub operation: ThermostatOperation,
+    pub receipt: CommandReceipt,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CoveringAxis {
+    Lift,
+    Tilt,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CoveringMovement {
+    Opening,
+    Closing,
+    Stopped,
+    Idle,
+    Unknown,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CoveringAxisState {
+    pub axis: CoveringAxis,
+    pub current: Option<Quantity>,
+    pub target: Option<Quantity>,
+    pub movement: CoveringMovement,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WindowCoveringState {
+    pub axes: Vec<CoveringAxisState>,
+    pub safety_status: Vec<String>,
+    pub fault_status: Vec<String>,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CoveringOperation {
+    Open(CoveringAxis),
+    Close(CoveringAxis),
+    Stop(CoveringAxis),
+    SetPosition {
+        axis: CoveringAxis,
+        position: Quantity,
+    },
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CoveringOperationReceipt {
+    pub operation: CoveringOperation,
+    pub receipt: CommandReceipt,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MomentaryActionReceipt {
+    pub action_id: String,
+    pub receipt: CommandReceipt,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -413,10 +672,15 @@ impl wire_error::Host for ProviderStore {}
 impl wire_receipt::Host for ProviderStore {}
 impl wire_state::Host for ProviderStore {}
 impl wire_boolean::Host for ProviderStore {}
+impl wire_color::Host for ProviderStore {}
+impl wire_level::Host for ProviderStore {}
 impl wire_measurement::Host for ProviderStore {}
+impl wire_momentary::Host for ProviderStore {}
 impl wire_notification::Host for ProviderStore {}
 impl wire_on_off::Host for ProviderStore {}
 impl wire_quantity::Host for ProviderStore {}
+impl wire_thermostat::Host for ProviderStore {}
+impl wire_covering::Host for ProviderStore {}
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct HandleKey {
@@ -499,6 +763,35 @@ enum ActorRequest {
         value: NotificationRequest,
         context: CallContext,
         reply: oneshot::Sender<Result<NotificationReceipt, ProviderHostError>>,
+    },
+    LevelCommand {
+        endpoint: fabric::EndpointIdentity,
+        operation: LevelOperation,
+        context: CallContext,
+        reply: oneshot::Sender<Result<CommandReceipt, ProviderHostError>>,
+    },
+    ColorCommand {
+        endpoint: fabric::EndpointIdentity,
+        operation: ColorOperation,
+        context: CallContext,
+        reply: oneshot::Sender<Result<CommandReceipt, ProviderHostError>>,
+    },
+    ThermostatCommand {
+        endpoint: fabric::EndpointIdentity,
+        operation: ThermostatOperation,
+        context: CallContext,
+        reply: oneshot::Sender<Result<CommandReceipt, ProviderHostError>>,
+    },
+    CoveringCommand {
+        endpoint: fabric::EndpointIdentity,
+        operation: CoveringOperation,
+        context: CallContext,
+        reply: oneshot::Sender<Result<CommandReceipt, ProviderHostError>>,
+    },
+    InvokeMomentary {
+        endpoint: fabric::EndpointIdentity,
+        context: CallContext,
+        reply: oneshot::Sender<Result<MomentaryActionReceipt, ProviderHostError>>,
     },
 }
 
@@ -618,6 +911,427 @@ impl ProviderHandle {
             .map_err(|_| ProviderHostError::ActorStopped)?
     }
 
+    pub async fn set_level(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        r: LevelSetRequest,
+        c: CallContext,
+    ) -> Result<LevelOperationReceipt, ProviderHostError> {
+        self.call_level(e, g, LevelOperation::SetLevel(r), c).await
+    }
+    pub async fn step_level(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        r: LevelStepRequest,
+        c: CallContext,
+    ) -> Result<LevelOperationReceipt, ProviderHostError> {
+        self.call_level(e, g, LevelOperation::Step(r), c).await
+    }
+    pub async fn move_level(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        r: LevelMoveRequest,
+        c: CallContext,
+    ) -> Result<LevelOperationReceipt, ProviderHostError> {
+        self.call_level(e, g, LevelOperation::Move(r), c).await
+    }
+    pub async fn stop_level(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        c: CallContext,
+    ) -> Result<LevelOperationReceipt, ProviderHostError> {
+        self.call_level(e, g, LevelOperation::Stop, c).await
+    }
+    pub async fn set_level_with_on_off(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        r: CoupledLevelRequest,
+        c: CallContext,
+    ) -> Result<LevelOperationReceipt, ProviderHostError> {
+        self.call_level(e, g, LevelOperation::SetLevelWithOnOff(r), c)
+            .await
+    }
+    pub async fn step_level_with_on_off(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        r: CoupledLevelStepRequest,
+        c: CallContext,
+    ) -> Result<LevelOperationReceipt, ProviderHostError> {
+        self.call_level(e, g, LevelOperation::StepWithOnOff(r), c)
+            .await
+    }
+    pub async fn move_level_with_on_off(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        r: CoupledLevelMoveRequest,
+        c: CallContext,
+    ) -> Result<LevelOperationReceipt, ProviderHostError> {
+        self.call_level(e, g, LevelOperation::MoveWithOnOff(r), c)
+            .await
+    }
+    async fn call_level(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        operation: LevelOperation,
+        c: CallContext,
+    ) -> Result<LevelOperationReceipt, ProviderHostError> {
+        self.validate_target(e, g)?;
+        let original = operation.clone();
+        let receipt = self.send_level(e.clone(), operation, c).await?;
+        Ok(LevelOperationReceipt {
+            operation: original,
+            receipt,
+        })
+    }
+    async fn send_level(
+        &self,
+        endpoint: fabric::EndpointIdentity,
+        operation: LevelOperation,
+        context: CallContext,
+    ) -> Result<CommandReceipt, ProviderHostError> {
+        let deadline = context.deadline;
+        let request_id = context.request_id.clone();
+        let attempt = context.attempt;
+        let key = context.idempotency_key.clone();
+        let (reply, result) = oneshot::channel();
+        let permit = tokio::time::timeout_at(deadline, self.sender.reserve())
+            .await
+            .map_err(|_| deadline_error(deadline))?
+            .map_err(|_| ProviderHostError::ActorStopped)?;
+        permit.send(ActorRequest::LevelCommand {
+            endpoint,
+            operation,
+            context,
+            reply,
+        });
+        tokio::time::timeout_at(deadline, result)
+            .await
+            .map_err(|_| {
+                outcome_unknown(
+                    fabric::UnknownOutcomeCause::DeadlineExceeded,
+                    request_id,
+                    attempt,
+                    key,
+                )
+            })?
+            .map_err(|_| ProviderHostError::ActorStopped)?
+    }
+
+    pub async fn set_color(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        r: ColorSetRequest,
+        c: CallContext,
+    ) -> Result<ColorOperationReceipt, ProviderHostError> {
+        self.call_color(e, g, ColorOperation::SetColor(r), c).await
+    }
+    pub async fn step_color(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        r: ColorStepRequest,
+        c: CallContext,
+    ) -> Result<ColorOperationReceipt, ProviderHostError> {
+        self.call_color(e, g, ColorOperation::StepColor(r), c).await
+    }
+    pub async fn move_color(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        r: ColorMoveRequest,
+        c: CallContext,
+    ) -> Result<ColorOperationReceipt, ProviderHostError> {
+        self.call_color(e, g, ColorOperation::MoveColor(r), c).await
+    }
+    pub async fn stop_color(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        c: CallContext,
+    ) -> Result<ColorOperationReceipt, ProviderHostError> {
+        self.call_color(e, g, ColorOperation::Stop, c).await
+    }
+    async fn call_color(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        operation: ColorOperation,
+        context: CallContext,
+    ) -> Result<ColorOperationReceipt, ProviderHostError> {
+        self.validate_target(e, g)?;
+        let original = operation.clone();
+        let deadline = context.deadline;
+        let request_id = context.request_id.clone();
+        let attempt = context.attempt;
+        let key = context.idempotency_key.clone();
+        let (reply, result) = oneshot::channel();
+        let permit = tokio::time::timeout_at(deadline, self.sender.reserve())
+            .await
+            .map_err(|_| deadline_error(deadline))?
+            .map_err(|_| ProviderHostError::ActorStopped)?;
+        permit.send(ActorRequest::ColorCommand {
+            endpoint: e.clone(),
+            operation,
+            context,
+            reply,
+        });
+        let receipt = tokio::time::timeout_at(deadline, result)
+            .await
+            .map_err(|_| {
+                outcome_unknown(
+                    fabric::UnknownOutcomeCause::DeadlineExceeded,
+                    request_id,
+                    attempt,
+                    key,
+                )
+            })?
+            .map_err(|_| ProviderHostError::ActorStopped)??;
+        Ok(ColorOperationReceipt {
+            operation: original,
+            receipt,
+        })
+    }
+
+    pub async fn set_thermostat_mode(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        m: ThermostatMode,
+        c: CallContext,
+    ) -> Result<ThermostatOperationReceipt, ProviderHostError> {
+        self.call_thermostat(e, g, ThermostatOperation::SetMode(m), c)
+            .await
+    }
+    pub async fn set_thermostat_single_target(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        t: Quantity,
+        c: CallContext,
+    ) -> Result<ThermostatOperationReceipt, ProviderHostError> {
+        self.call_thermostat(e, g, ThermostatOperation::SetSingleTarget(t), c)
+            .await
+    }
+    pub async fn set_thermostat_dual_target(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        h: Quantity,
+        cool: Quantity,
+        c: CallContext,
+    ) -> Result<ThermostatOperationReceipt, ProviderHostError> {
+        self.call_thermostat(
+            e,
+            g,
+            ThermostatOperation::SetDualTarget { heat: h, cool },
+            c,
+        )
+        .await
+    }
+    pub async fn set_thermostat_fan(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        v: String,
+        c: CallContext,
+    ) -> Result<ThermostatOperationReceipt, ProviderHostError> {
+        self.call_thermostat(e, g, ThermostatOperation::SetFan(v), c)
+            .await
+    }
+    pub async fn set_thermostat_swing(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        v: String,
+        c: CallContext,
+    ) -> Result<ThermostatOperationReceipt, ProviderHostError> {
+        self.call_thermostat(e, g, ThermostatOperation::SetSwing(v), c)
+            .await
+    }
+    pub async fn set_thermostat_preset(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        v: String,
+        c: CallContext,
+    ) -> Result<ThermostatOperationReceipt, ProviderHostError> {
+        self.call_thermostat(e, g, ThermostatOperation::SetPreset(v), c)
+            .await
+    }
+    async fn call_thermostat(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        operation: ThermostatOperation,
+        context: CallContext,
+    ) -> Result<ThermostatOperationReceipt, ProviderHostError> {
+        self.validate_target(e, g)?;
+        let original = operation.clone();
+        let deadline = context.deadline;
+        let request_id = context.request_id.clone();
+        let attempt = context.attempt;
+        let key = context.idempotency_key.clone();
+        let (reply, result) = oneshot::channel();
+        let permit = tokio::time::timeout_at(deadline, self.sender.reserve())
+            .await
+            .map_err(|_| deadline_error(deadline))?
+            .map_err(|_| ProviderHostError::ActorStopped)?;
+        permit.send(ActorRequest::ThermostatCommand {
+            endpoint: e.clone(),
+            operation,
+            context,
+            reply,
+        });
+        let receipt = tokio::time::timeout_at(deadline, result)
+            .await
+            .map_err(|_| {
+                outcome_unknown(
+                    fabric::UnknownOutcomeCause::DeadlineExceeded,
+                    request_id,
+                    attempt,
+                    key,
+                )
+            })?
+            .map_err(|_| ProviderHostError::ActorStopped)??;
+        Ok(ThermostatOperationReceipt {
+            operation: original,
+            receipt,
+        })
+    }
+
+    pub async fn open_covering(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        a: CoveringAxis,
+        c: CallContext,
+    ) -> Result<CoveringOperationReceipt, ProviderHostError> {
+        self.call_covering(e, g, CoveringOperation::Open(a), c)
+            .await
+    }
+    pub async fn close_covering(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        a: CoveringAxis,
+        c: CallContext,
+    ) -> Result<CoveringOperationReceipt, ProviderHostError> {
+        self.call_covering(e, g, CoveringOperation::Close(a), c)
+            .await
+    }
+    pub async fn stop_covering(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        a: CoveringAxis,
+        c: CallContext,
+    ) -> Result<CoveringOperationReceipt, ProviderHostError> {
+        self.call_covering(e, g, CoveringOperation::Stop(a), c)
+            .await
+    }
+    pub async fn set_covering_position(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        a: CoveringAxis,
+        p: Quantity,
+        c: CallContext,
+    ) -> Result<CoveringOperationReceipt, ProviderHostError> {
+        self.call_covering(
+            e,
+            g,
+            CoveringOperation::SetPosition {
+                axis: a,
+                position: p,
+            },
+            c,
+        )
+        .await
+    }
+    async fn call_covering(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        operation: CoveringOperation,
+        context: CallContext,
+    ) -> Result<CoveringOperationReceipt, ProviderHostError> {
+        self.validate_target(e, g)?;
+        let original = operation.clone();
+        let deadline = context.deadline;
+        let request_id = context.request_id.clone();
+        let attempt = context.attempt;
+        let key = context.idempotency_key.clone();
+        let (reply, result) = oneshot::channel();
+        let permit = tokio::time::timeout_at(deadline, self.sender.reserve())
+            .await
+            .map_err(|_| deadline_error(deadline))?
+            .map_err(|_| ProviderHostError::ActorStopped)?;
+        permit.send(ActorRequest::CoveringCommand {
+            endpoint: e.clone(),
+            operation,
+            context,
+            reply,
+        });
+        let receipt = tokio::time::timeout_at(deadline, result)
+            .await
+            .map_err(|_| {
+                outcome_unknown(
+                    fabric::UnknownOutcomeCause::DeadlineExceeded,
+                    request_id,
+                    attempt,
+                    key,
+                )
+            })?
+            .map_err(|_| ProviderHostError::ActorStopped)??;
+        Ok(CoveringOperationReceipt {
+            operation: original,
+            receipt,
+        })
+    }
+
+    pub async fn invoke_momentary_action(
+        &self,
+        e: &fabric::EndpointIdentity,
+        g: fabric::Generation,
+        context: CallContext,
+    ) -> Result<MomentaryActionReceipt, ProviderHostError> {
+        self.validate_target(e, g)?;
+        let deadline = context.deadline;
+        let request_id = context.request_id.clone();
+        let attempt = context.attempt;
+        let key = context.idempotency_key.clone();
+        let (reply, result) = oneshot::channel();
+        let permit = tokio::time::timeout_at(deadline, self.sender.reserve())
+            .await
+            .map_err(|_| deadline_error(deadline))?
+            .map_err(|_| ProviderHostError::ActorStopped)?;
+        permit.send(ActorRequest::InvokeMomentary {
+            endpoint: e.clone(),
+            context,
+            reply,
+        });
+        tokio::time::timeout_at(deadline, result)
+            .await
+            .map_err(|_| {
+                outcome_unknown(
+                    fabric::UnknownOutcomeCause::DeadlineExceeded,
+                    request_id,
+                    attempt,
+                    key,
+                )
+            })?
+            .map_err(|_| ProviderHostError::ActorStopped)?
+    }
+
     fn validate_target(
         &self,
         endpoint: &fabric::EndpointIdentity,
@@ -714,35 +1428,84 @@ pub async fn start_provider(
     .map_err(provider_error)?;
 
     set_store_deadline(&mut store, deadline)?;
-    let (on_off_handles, boolean_handles, measurement_handles, notification_handles) =
-        tokio::time::timeout_at(
-            deadline,
-            store.run_concurrent(async |accessor| {
-                let on_off = guest.runner().call_on_off_facets(accessor, runner).await?;
-                let boolean = guest.runner().call_boolean_facets(accessor, runner).await?;
-                let measurement = guest
-                    .runner()
-                    .call_measurement_facets(accessor, runner)
-                    .await?;
-                let notification = guest
-                    .runner()
-                    .call_notification_sink_facets(accessor, runner)
-                    .await?;
-                Ok::<_, wasmtime::Error>((on_off, boolean, measurement, notification))
-            }),
-        )
-        .await
-        .map_err(|_| deadline_error(deadline))?
-        .map_err(|_| ProviderHostError::ProviderStartFailed)?
-        .map_err(|_| ProviderHostError::ProviderStartFailed)?;
+    let (
+        on_off_handles,
+        boolean_handles,
+        measurement_handles,
+        notification_handles,
+        level_handles,
+        color_handles,
+        thermostat_handles,
+        covering_handles,
+        momentary_handles,
+    ) = tokio::time::timeout_at(
+        deadline,
+        store.run_concurrent(async |accessor| {
+            let on_off = guest.runner().call_on_off_facets(accessor, runner).await?;
+            let boolean = guest.runner().call_boolean_facets(accessor, runner).await?;
+            let measurement = guest
+                .runner()
+                .call_measurement_facets(accessor, runner)
+                .await?;
+            let notification = guest
+                .runner()
+                .call_notification_sink_facets(accessor, runner)
+                .await?;
+            let level = guest
+                .runner()
+                .call_level_control_facets(accessor, runner)
+                .await?;
+            let color = guest
+                .runner()
+                .call_color_control_facets(accessor, runner)
+                .await?;
+            let thermostat = guest
+                .runner()
+                .call_thermostat_facets(accessor, runner)
+                .await?;
+            let covering = guest
+                .runner()
+                .call_window_covering_facets(accessor, runner)
+                .await?;
+            let momentary = guest
+                .runner()
+                .call_momentary_action_facets(accessor, runner)
+                .await?;
+            Ok::<_, wasmtime::Error>((
+                on_off,
+                boolean,
+                measurement,
+                notification,
+                level,
+                color,
+                thermostat,
+                covering,
+                momentary,
+            ))
+        }),
+    )
+    .await
+    .map_err(|_| deadline_error(deadline))?
+    .map_err(|_| ProviderHostError::ProviderStartFailed)?
+    .map_err(|_| ProviderHostError::ProviderStartFailed)?;
     let on_off_handles = on_off_handles.map_err(provider_error)?;
     let boolean_handles = boolean_handles.map_err(provider_error)?;
     let measurement_handles = measurement_handles.map_err(provider_error)?;
     let notification_handles = notification_handles.map_err(provider_error)?;
+    let level_handles = level_handles.map_err(provider_error)?;
+    let color_handles = color_handles.map_err(provider_error)?;
+    let thermostat_handles = thermostat_handles.map_err(provider_error)?;
+    let covering_handles = covering_handles.map_err(provider_error)?;
+    let momentary_handles = momentary_handles.map_err(provider_error)?;
     if on_off_handles.len()
         + boolean_handles.len()
         + measurement_handles.len()
         + notification_handles.len()
+        + level_handles.len()
+        + color_handles.len()
+        + thermostat_handles.len()
+        + covering_handles.len()
+        + momentary_handles.len()
         > MAX_FACETS
     {
         return Err(ProviderHostError::TooManyFacets);
@@ -849,6 +1612,106 @@ pub async fn start_provider(
         }
         descriptors.push(descriptor);
     }
+    for handle in level_handles {
+        let (key, incarnation, descriptor) = describe_level(
+            &mut store,
+            guest,
+            handle,
+            &config.instance,
+            config.generation,
+            deadline,
+        )
+        .await?;
+        insert_handle(
+            &mut handles,
+            &mut descriptors,
+            FacetKind::LevelControl,
+            key,
+            incarnation,
+            handle,
+            descriptor,
+        )?;
+    }
+    for handle in color_handles {
+        let (key, incarnation, descriptor) = describe_color(
+            &mut store,
+            guest,
+            handle,
+            &config.instance,
+            config.generation,
+            deadline,
+        )
+        .await?;
+        insert_handle(
+            &mut handles,
+            &mut descriptors,
+            FacetKind::ColorControl,
+            key,
+            incarnation,
+            handle,
+            descriptor,
+        )?;
+    }
+    for handle in thermostat_handles {
+        let (key, incarnation, descriptor) = describe_thermostat(
+            &mut store,
+            guest,
+            handle,
+            &config.instance,
+            config.generation,
+            deadline,
+        )
+        .await?;
+        insert_handle(
+            &mut handles,
+            &mut descriptors,
+            FacetKind::Thermostat,
+            key,
+            incarnation,
+            handle,
+            descriptor,
+        )?;
+    }
+    for handle in covering_handles {
+        let (key, incarnation, descriptor) = describe_covering(
+            &mut store,
+            guest,
+            handle,
+            &config.instance,
+            config.generation,
+            deadline,
+        )
+        .await?;
+        insert_handle(
+            &mut handles,
+            &mut descriptors,
+            FacetKind::WindowCovering,
+            key,
+            incarnation,
+            handle,
+            descriptor,
+        )?;
+    }
+    for handle in momentary_handles {
+        let (key, incarnation, descriptor) = describe_momentary(
+            &mut store,
+            guest,
+            handle,
+            &config.instance,
+            config.generation,
+            deadline,
+        )
+        .await?;
+        insert_handle(
+            &mut handles,
+            &mut descriptors,
+            FacetKind::MomentaryAction,
+            key,
+            incarnation,
+            handle,
+            descriptor,
+        )?;
+    }
     descriptors.sort_by(|left, right| left.endpoint().identity().cmp(right.endpoint().identity()));
 
     let provider = fabric::InstanceGeneration::new(config.instance, config.generation);
@@ -869,6 +1732,26 @@ pub async fn start_provider(
         descriptors: Arc::new(descriptors),
         sender,
     })
+}
+
+fn insert_handle(
+    handles: &mut BTreeMap<HandleKey, ResourceAny>,
+    descriptors: &mut Vec<HostFacetDescriptor>,
+    kind: FacetKind,
+    key: String,
+    incarnation: u64,
+    handle: ResourceAny,
+    descriptor: HostFacetDescriptor,
+) -> Result<(), ProviderHostError> {
+    if incarnation == 0
+        || handles
+            .insert(HandleKey { kind, facet: key }, handle)
+            .is_some()
+    {
+        return Err(ProviderHostError::DuplicateFacet);
+    }
+    descriptors.push(descriptor);
+    Ok(())
 }
 
 async fn describe_on_off(
@@ -1051,6 +1934,80 @@ async fn describe_notification(
     Ok((key, incarnation, host))
 }
 
+macro_rules! describe_typed_facet {
+    ($name:ident,$accessor:ident,$label:literal,$host:ident,$error:ident) => {
+        async fn $name(
+            store: &mut Store<ProviderStore>,
+            guest: &wire_provider::Guest,
+            handle: ResourceAny,
+            instance: &fabric::InstanceId,
+            generation: fabric::Generation,
+            deadline: tokio::time::Instant,
+        ) -> Result<(String, u64, HostFacetDescriptor), ProviderHostError> {
+            set_store_deadline(store, deadline)?;
+            let key = guest
+                .$accessor()
+                .call_key(&mut *store, handle)
+                .await
+                .map_err(|_| ProviderHostError::InvalidDescriptor)?;
+            let incarnation = guest
+                .$accessor()
+                .call_incarnation(&mut *store, handle)
+                .await
+                .map_err(|_| ProviderHostError::InvalidDescriptor)?;
+            let context = wire_context(store.data().clock_started, deadline, $label, None, None, 0);
+            let descriptor = tokio::time::timeout_at(
+                deadline,
+                store.run_concurrent(async |a| {
+                    guest.$accessor().call_describe(a, handle, context).await
+                }),
+            )
+            .await
+            .map_err(|_| deadline_error(deadline))?
+            .map_err(|_| ProviderHostError::InvalidDescriptor)?
+            .map_err(|_| ProviderHostError::InvalidDescriptor)?
+            .map_err($error)?;
+            let host = $host(instance, generation, &key, incarnation, descriptor)?;
+            Ok((key, incarnation, host))
+        }
+    };
+}
+describe_typed_facet!(
+    describe_level,
+    level_control_facet,
+    "describe-level-control",
+    host_level_descriptor,
+    level_error
+);
+describe_typed_facet!(
+    describe_color,
+    color_control_facet,
+    "describe-color-control",
+    host_color_descriptor,
+    color_error
+);
+describe_typed_facet!(
+    describe_thermostat,
+    thermostat_facet,
+    "describe-thermostat",
+    host_thermostat_descriptor,
+    thermostat_error
+);
+describe_typed_facet!(
+    describe_covering,
+    window_covering_facet,
+    "describe-window-covering",
+    host_covering_descriptor,
+    covering_error
+);
+describe_typed_facet!(
+    describe_momentary,
+    momentary_action_facet,
+    "describe-momentary-action",
+    host_momentary_descriptor,
+    momentary_error
+);
+
 fn publish_provider(
     fabric: &Arc<Mutex<fabric::ServiceFabric>>,
     provider: &fabric::InstanceGeneration,
@@ -1106,6 +2063,55 @@ async fn run_actor(mut actor: ActorState, mut receiver: mpsc::Receiver<ActorRequ
                 let _ = reply.send(result);
                 fatal
             }
+            ActorRequest::LevelCommand {
+                endpoint,
+                operation,
+                context,
+                reply,
+            } => {
+                let (r, f) = actor.level_command(endpoint, operation, context).await;
+                let _ = reply.send(r);
+                f
+            }
+            ActorRequest::ColorCommand {
+                endpoint,
+                operation,
+                context,
+                reply,
+            } => {
+                let (r, f) = actor.color_command(endpoint, operation, context).await;
+                let _ = reply.send(r);
+                f
+            }
+            ActorRequest::ThermostatCommand {
+                endpoint,
+                operation,
+                context,
+                reply,
+            } => {
+                let (r, f) = actor.thermostat_command(endpoint, operation, context).await;
+                let _ = reply.send(r);
+                f
+            }
+            ActorRequest::CoveringCommand {
+                endpoint,
+                operation,
+                context,
+                reply,
+            } => {
+                let (r, f) = actor.covering_command(endpoint, operation, context).await;
+                let _ = reply.send(r);
+                f
+            }
+            ActorRequest::InvokeMomentary {
+                endpoint,
+                context,
+                reply,
+            } => {
+                let (r, f) = actor.invoke_momentary(endpoint, context).await;
+                let _ = reply.send(r);
+                f
+            }
         };
         if fatal {
             break;
@@ -1128,6 +2134,14 @@ impl ActorState {
             FacetKind::BooleanState
         } else if endpoint.contract().name() == "measurement" {
             FacetKind::Measurement
+        } else if endpoint.contract().name() == "level-control" {
+            FacetKind::LevelControl
+        } else if endpoint.contract().name() == "color-control" {
+            FacetKind::ColorControl
+        } else if endpoint.contract().name() == "thermostat" {
+            FacetKind::Thermostat
+        } else if endpoint.contract().name() == "window-covering" {
+            FacetKind::WindowCovering
         } else {
             return (
                 Err(service_error(
@@ -1225,7 +2239,89 @@ impl ActorState {
                     }
                 }
             }
-            FacetKind::NotificationSink => unreachable!("notification sinks are not queryable"),
+            FacetKind::LevelControl => {
+                let result = tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .level_control_facet()
+                            .call_query(a, handle, wire)
+                            .await
+                    }),
+                )
+                .await;
+                match result {
+                    Err(_) => return (Err(deadline_error(context.deadline)), true),
+                    Ok(Err(_)) | Ok(Ok(Err(_))) => return (Err(provider_trapped()), true),
+                    Ok(Ok(Ok(Err(e)))) => return (Err(level_error(e)), false),
+                    Ok(Ok(Ok(Ok(s)))) => host_level_state(endpoint, self.provider.generation(), s),
+                }
+            }
+            FacetKind::ColorControl => {
+                let result = tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .color_control_facet()
+                            .call_query(a, handle, wire)
+                            .await
+                    }),
+                )
+                .await;
+                match result {
+                    Err(_) => return (Err(deadline_error(context.deadline)), true),
+                    Ok(Err(_)) | Ok(Ok(Err(_))) => return (Err(provider_trapped()), true),
+                    Ok(Ok(Ok(Err(e)))) => return (Err(color_error(e)), false),
+                    Ok(Ok(Ok(Ok(s)))) => host_color_state(endpoint, self.provider.generation(), s),
+                }
+            }
+            FacetKind::Thermostat => {
+                let result = tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .thermostat_facet()
+                            .call_query(a, handle, wire)
+                            .await
+                    }),
+                )
+                .await;
+                match result {
+                    Err(_) => return (Err(deadline_error(context.deadline)), true),
+                    Ok(Err(_)) | Ok(Ok(Err(_))) => return (Err(provider_trapped()), true),
+                    Ok(Ok(Ok(Err(e)))) => return (Err(thermostat_error(e)), false),
+                    Ok(Ok(Ok(Ok(s)))) => {
+                        host_thermostat_state(endpoint, self.provider.generation(), s)
+                    }
+                }
+            }
+            FacetKind::WindowCovering => {
+                let result = tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .window_covering_facet()
+                            .call_query(a, handle, wire)
+                            .await
+                    }),
+                )
+                .await;
+                match result {
+                    Err(_) => return (Err(deadline_error(context.deadline)), true),
+                    Ok(Err(_)) | Ok(Ok(Err(_))) => return (Err(provider_trapped()), true),
+                    Ok(Ok(Ok(Err(e)))) => return (Err(covering_error(e)), false),
+                    Ok(Ok(Ok(Ok(s)))) => {
+                        host_covering_state(endpoint, self.provider.generation(), s)
+                    }
+                }
+            }
+            FacetKind::NotificationSink | FacetKind::MomentaryAction => {
+                unreachable!("facet is not queryable")
+            }
         };
         (call, false)
     }
@@ -1412,6 +2508,594 @@ impl ActorState {
                     attempt,
                     idempotency_key.as_deref(),
                     receipt,
+                ),
+                false,
+            ),
+        }
+    }
+    async fn level_command(
+        &mut self,
+        endpoint: fabric::EndpointIdentity,
+        operation: LevelOperation,
+        context: CallContext,
+    ) -> (Result<CommandReceipt, ProviderHostError>, bool) {
+        let Some(handle) = self
+            .handles
+            .get(&HandleKey {
+                kind: FacetKind::LevelControl,
+                facet: endpoint.facet().as_str().to_owned(),
+            })
+            .copied()
+        else {
+            return (Err(endpoint_removed()), false);
+        };
+        if let Err(e) = set_store_deadline(&mut self.store, context.deadline) {
+            return (Err(e), false);
+        }
+        let request_id = context.request_id.clone();
+        let attempt = context.attempt;
+        let key = context.idempotency_key.clone();
+        let wire = wire_context(
+            self.store.data().clock_started,
+            context.deadline,
+            &request_id,
+            context.correlation_id,
+            key.clone(),
+            attempt,
+        );
+        let expected = operation.clone();
+        let call = match operation {
+            LevelOperation::SetLevel(v) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .level_control_facet()
+                            .call_set_level(a, handle, wire, wire_level_set(v))
+                            .await
+                    }),
+                )
+                .await
+            }
+            LevelOperation::Step(v) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .level_control_facet()
+                            .call_step(a, handle, wire, wire_level_step(v))
+                            .await
+                    }),
+                )
+                .await
+            }
+            LevelOperation::Move(v) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .level_control_facet()
+                            .call_move(a, handle, wire, wire_level_move(v))
+                            .await
+                    }),
+                )
+                .await
+            }
+            LevelOperation::Stop => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .level_control_facet()
+                            .call_stop(a, handle, wire)
+                            .await
+                    }),
+                )
+                .await
+            }
+            LevelOperation::SetLevelWithOnOff(v) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .level_control_facet()
+                            .call_set_level_with_on_off(a, handle, wire, wire_coupled_level(v))
+                            .await
+                    }),
+                )
+                .await
+            }
+            LevelOperation::StepWithOnOff(v) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .level_control_facet()
+                            .call_step_with_on_off(a, handle, wire, wire_coupled_step(v))
+                            .await
+                    }),
+                )
+                .await
+            }
+            LevelOperation::MoveWithOnOff(v) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .level_control_facet()
+                            .call_move_with_on_off(a, handle, wire, wire_coupled_move(v))
+                            .await
+                    }),
+                )
+                .await
+            }
+        };
+        finish_level(
+            call,
+            endpoint,
+            self.provider.generation(),
+            &expected,
+            request_id,
+            attempt,
+            key,
+        )
+    }
+    async fn color_command(
+        &mut self,
+        endpoint: fabric::EndpointIdentity,
+        operation: ColorOperation,
+        context: CallContext,
+    ) -> (Result<CommandReceipt, ProviderHostError>, bool) {
+        let Some(handle) = self
+            .handles
+            .get(&HandleKey {
+                kind: FacetKind::ColorControl,
+                facet: endpoint.facet().as_str().to_owned(),
+            })
+            .copied()
+        else {
+            return (Err(endpoint_removed()), false);
+        };
+        if let Err(e) = set_store_deadline(&mut self.store, context.deadline) {
+            return (Err(e), false);
+        }
+        let request_id = context.request_id.clone();
+        let attempt = context.attempt;
+        let key = context.idempotency_key.clone();
+        let wire = wire_context(
+            self.store.data().clock_started,
+            context.deadline,
+            &request_id,
+            context.correlation_id,
+            key.clone(),
+            attempt,
+        );
+        let expected = operation.clone();
+        let call = match operation {
+            ColorOperation::SetColor(v) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .color_control_facet()
+                            .call_set_color(a, handle, wire, wire_color_set(v))
+                            .await
+                    }),
+                )
+                .await
+            }
+            ColorOperation::StepColor(v) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .color_control_facet()
+                            .call_step_color(a, handle, wire, wire_color_step(v))
+                            .await
+                    }),
+                )
+                .await
+            }
+            ColorOperation::MoveColor(v) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .color_control_facet()
+                            .call_move_color(a, handle, wire, wire_color_move(v))
+                            .await
+                    }),
+                )
+                .await
+            }
+            ColorOperation::Stop => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .color_control_facet()
+                            .call_stop(a, handle, wire)
+                            .await
+                    }),
+                )
+                .await
+            }
+        };
+        finish_color(
+            call,
+            endpoint,
+            self.provider.generation(),
+            &expected,
+            request_id,
+            attempt,
+            key,
+        )
+    }
+    async fn thermostat_command(
+        &mut self,
+        endpoint: fabric::EndpointIdentity,
+        operation: ThermostatOperation,
+        context: CallContext,
+    ) -> (Result<CommandReceipt, ProviderHostError>, bool) {
+        let Some(handle) = self
+            .handles
+            .get(&HandleKey {
+                kind: FacetKind::Thermostat,
+                facet: endpoint.facet().as_str().to_owned(),
+            })
+            .copied()
+        else {
+            return (Err(endpoint_removed()), false);
+        };
+        if let Err(e) = set_store_deadline(&mut self.store, context.deadline) {
+            return (Err(e), false);
+        }
+        let request_id = context.request_id.clone();
+        let attempt = context.attempt;
+        let key = context.idempotency_key.clone();
+        let wire = wire_context(
+            self.store.data().clock_started,
+            context.deadline,
+            &request_id,
+            context.correlation_id,
+            key.clone(),
+            attempt,
+        );
+        let expected = operation.clone();
+        let call = match operation {
+            ThermostatOperation::SetMode(mode) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .thermostat_facet()
+                            .call_set_mode(
+                                a,
+                                handle,
+                                wire,
+                                wire_thermostat::SetModeRequest {
+                                    mode: wire_mode(mode),
+                                },
+                            )
+                            .await
+                    }),
+                )
+                .await
+            }
+            ThermostatOperation::SetSingleTarget(target) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .thermostat_facet()
+                            .call_set_single_target(
+                                a,
+                                handle,
+                                wire,
+                                wire_thermostat::SetSingleTargetRequest {
+                                    target: wire_thermostat::SingleTarget {
+                                        temperature: wire_quantity(target),
+                                    },
+                                },
+                            )
+                            .await
+                    }),
+                )
+                .await
+            }
+            ThermostatOperation::SetDualTarget { heat, cool } => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .thermostat_facet()
+                            .call_set_dual_target(
+                                a,
+                                handle,
+                                wire,
+                                wire_thermostat::SetDualTargetRequest {
+                                    target: wire_thermostat::DualTarget {
+                                        heat: wire_quantity(heat),
+                                        cool: wire_quantity(cool),
+                                    },
+                                },
+                            )
+                            .await
+                    }),
+                )
+                .await
+            }
+            ThermostatOperation::SetFan(choice) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .thermostat_facet()
+                            .call_set_fan(
+                                a,
+                                handle,
+                                wire,
+                                wire_thermostat::SetChoiceRequest { choice },
+                            )
+                            .await
+                    }),
+                )
+                .await
+            }
+            ThermostatOperation::SetSwing(choice) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .thermostat_facet()
+                            .call_set_swing(
+                                a,
+                                handle,
+                                wire,
+                                wire_thermostat::SetChoiceRequest { choice },
+                            )
+                            .await
+                    }),
+                )
+                .await
+            }
+            ThermostatOperation::SetPreset(choice) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .thermostat_facet()
+                            .call_set_preset(
+                                a,
+                                handle,
+                                wire,
+                                wire_thermostat::SetChoiceRequest { choice },
+                            )
+                            .await
+                    }),
+                )
+                .await
+            }
+        };
+        finish_thermostat(
+            call,
+            endpoint,
+            self.provider.generation(),
+            &expected,
+            request_id,
+            attempt,
+            key,
+        )
+    }
+    async fn covering_command(
+        &mut self,
+        endpoint: fabric::EndpointIdentity,
+        operation: CoveringOperation,
+        context: CallContext,
+    ) -> (Result<CommandReceipt, ProviderHostError>, bool) {
+        let Some(handle) = self
+            .handles
+            .get(&HandleKey {
+                kind: FacetKind::WindowCovering,
+                facet: endpoint.facet().as_str().to_owned(),
+            })
+            .copied()
+        else {
+            return (Err(endpoint_removed()), false);
+        };
+        if let Err(e) = set_store_deadline(&mut self.store, context.deadline) {
+            return (Err(e), false);
+        }
+        let request_id = context.request_id.clone();
+        let attempt = context.attempt;
+        let key = context.idempotency_key.clone();
+        let wire = wire_context(
+            self.store.data().clock_started,
+            context.deadline,
+            &request_id,
+            context.correlation_id,
+            key.clone(),
+            attempt,
+        );
+        let expected = operation.clone();
+        let call = match operation {
+            CoveringOperation::Open(axis) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .window_covering_facet()
+                            .call_open(
+                                a,
+                                handle,
+                                wire,
+                                wire_covering::AxisRequest {
+                                    axis: wire_axis(axis),
+                                },
+                            )
+                            .await
+                    }),
+                )
+                .await
+            }
+            CoveringOperation::Close(axis) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .window_covering_facet()
+                            .call_close(
+                                a,
+                                handle,
+                                wire,
+                                wire_covering::AxisRequest {
+                                    axis: wire_axis(axis),
+                                },
+                            )
+                            .await
+                    }),
+                )
+                .await
+            }
+            CoveringOperation::Stop(axis) => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .window_covering_facet()
+                            .call_stop(
+                                a,
+                                handle,
+                                wire,
+                                wire_covering::AxisRequest {
+                                    axis: wire_axis(axis),
+                                },
+                            )
+                            .await
+                    }),
+                )
+                .await
+            }
+            CoveringOperation::SetPosition { axis, position } => {
+                tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |a| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .window_covering_facet()
+                            .call_set_position(
+                                a,
+                                handle,
+                                wire,
+                                wire_covering::PositionRequest {
+                                    axis: wire_axis(axis),
+                                    position: wire_quantity(position),
+                                },
+                            )
+                            .await
+                    }),
+                )
+                .await
+            }
+        };
+        finish_covering(
+            call,
+            endpoint,
+            self.provider.generation(),
+            &expected,
+            request_id,
+            attempt,
+            key,
+        )
+    }
+    async fn invoke_momentary(
+        &mut self,
+        endpoint: fabric::EndpointIdentity,
+        context: CallContext,
+    ) -> (Result<MomentaryActionReceipt, ProviderHostError>, bool) {
+        let Some(handle) = self
+            .handles
+            .get(&HandleKey {
+                kind: FacetKind::MomentaryAction,
+                facet: endpoint.facet().as_str().to_owned(),
+            })
+            .copied()
+        else {
+            return (Err(endpoint_removed()), false);
+        };
+        if let Err(e) = set_store_deadline(&mut self.store, context.deadline) {
+            return (Err(e), false);
+        }
+        let request_id = context.request_id.clone();
+        let attempt = context.attempt;
+        let key = context.idempotency_key.clone();
+        let wire = wire_context(
+            self.store.data().clock_started,
+            context.deadline,
+            &request_id,
+            context.correlation_id,
+            key.clone(),
+            attempt,
+        );
+        let call = tokio::time::timeout_at(
+            context.deadline,
+            self.store.run_concurrent(async |a| {
+                self.component
+                    .litehouse_provider_provider()
+                    .momentary_action_facet()
+                    .call_invoke(a, handle, wire)
+                    .await
+            }),
+        )
+        .await;
+        match call {
+            Err(_) => (
+                Err(outcome_unknown(
+                    fabric::UnknownOutcomeCause::DeadlineExceeded,
+                    request_id,
+                    attempt,
+                    key,
+                )),
+                true,
+            ),
+            Ok(Err(_)) | Ok(Ok(Err(_))) => (
+                Err(outcome_unknown(
+                    fabric::UnknownOutcomeCause::ProviderFailed,
+                    request_id,
+                    attempt,
+                    key,
+                )),
+                true,
+            ),
+            Ok(Ok(Ok(Err(e)))) => (Err(momentary_error(e)), false),
+            Ok(Ok(Ok(Ok(r)))) => (
+                host_momentary_receipt(
+                    endpoint,
+                    self.provider.generation(),
+                    &request_id,
+                    attempt,
+                    key.as_deref(),
+                    r,
                 ),
                 false,
             ),
@@ -1627,6 +3311,208 @@ fn host_notification_descriptor(
     })
 }
 
+fn host_level_descriptor(
+    i: &fabric::InstanceId,
+    g: fabric::Generation,
+    k: &str,
+    n: u64,
+    d: wire_level::LevelDescriptor,
+) -> Result<HostFacetDescriptor, ProviderHostError> {
+    let ops = d.operations.into_iter().map(|v| match v {
+        wire_level::Operation::SetLevel => "set-level",
+        wire_level::Operation::Step => "step",
+        wire_level::Operation::Move => "move",
+        wire_level::Operation::Stop => "stop",
+        wire_level::Operation::SetLevelWithOnOff => "set-level-with-on-off",
+        wire_level::Operation::StepWithOnOff => "step-with-on-off",
+        wire_level::Operation::MoveWithOnOff => "move-with-on-off",
+    });
+    let fs = d.features.into_iter().map(|v| match v {
+        wire_level::Feature::TargetLevel => "target-level",
+        wire_level::Feature::NativeRange => "native-range",
+        wire_level::Feature::Transition => "transition",
+        wire_level::Feature::RelativeStep => "relative-step",
+        wire_level::Feature::ContinuousMove => "continuous-move",
+        wire_level::Feature::CoupledOnOff => "coupled-on-off",
+    });
+    host_typed_descriptor(
+        i,
+        g,
+        k,
+        n,
+        d.common,
+        ("level-control", FacetKind::LevelControl, ops, fs),
+    )
+}
+fn host_color_descriptor(
+    i: &fabric::InstanceId,
+    g: fabric::Generation,
+    k: &str,
+    n: u64,
+    d: wire_color::ColorDescriptor,
+) -> Result<HostFacetDescriptor, ProviderHostError> {
+    let ops = d.operations.into_iter().map(|v| match v {
+        wire_color::Operation::SetColor => "set-color",
+        wire_color::Operation::StepColor => "step-color",
+        wire_color::Operation::MoveColor => "move-color",
+        wire_color::Operation::Stop => "stop",
+    });
+    host_typed_descriptor(
+        i,
+        g,
+        k,
+        n,
+        d.common,
+        (
+            "color-control",
+            FacetKind::ColorControl,
+            ops,
+            std::iter::empty(),
+        ),
+    )
+}
+fn host_thermostat_descriptor(
+    i: &fabric::InstanceId,
+    g: fabric::Generation,
+    k: &str,
+    n: u64,
+    d: wire_thermostat::ThermostatDescriptor,
+) -> Result<HostFacetDescriptor, ProviderHostError> {
+    let ops = d.operations.into_iter().map(|v| match v {
+        wire_thermostat::Operation::SetMode => "set-mode",
+        wire_thermostat::Operation::SetSingleTarget => "set-single-target",
+        wire_thermostat::Operation::SetDualTarget => "set-dual-target",
+        wire_thermostat::Operation::SetFan => "set-fan",
+        wire_thermostat::Operation::SetSwing => "set-swing",
+        wire_thermostat::Operation::SetPreset => "set-preset",
+    });
+    let fs = d.features.into_iter().map(|v| match v {
+        wire_thermostat::Feature::FanChoice => "fan-choice",
+        wire_thermostat::Feature::SwingChoice => "swing-choice",
+        wire_thermostat::Feature::PresetChoice => "preset-choice",
+    });
+    host_typed_descriptor(
+        i,
+        g,
+        k,
+        n,
+        d.common,
+        ("thermostat", FacetKind::Thermostat, ops, fs),
+    )
+}
+fn host_covering_descriptor(
+    i: &fabric::InstanceId,
+    g: fabric::Generation,
+    k: &str,
+    n: u64,
+    d: wire_covering::CoveringDescriptor,
+) -> Result<HostFacetDescriptor, ProviderHostError> {
+    let ops = d.operations.into_iter().map(|v| match v {
+        wire_covering::Operation::Open => "open",
+        wire_covering::Operation::Close => "close",
+        wire_covering::Operation::Stop => "stop",
+        wire_covering::Operation::SetPosition => "set-position",
+    });
+    let fs = d.features.into_iter().map(|v| match v {
+        wire_covering::Feature::Lift => "lift",
+        wire_covering::Feature::Tilt => "tilt",
+        wire_covering::Feature::TargetPosition => "target-position",
+        wire_covering::Feature::Stop => "stop",
+        wire_covering::Feature::SafetyStatus => "safety-status",
+        wire_covering::Feature::FaultStatus => "fault-status",
+    });
+    host_typed_descriptor(
+        i,
+        g,
+        k,
+        n,
+        d.common,
+        ("window-covering", FacetKind::WindowCovering, ops, fs),
+    )
+}
+fn host_momentary_descriptor(
+    i: &fabric::InstanceId,
+    g: fabric::Generation,
+    k: &str,
+    n: u64,
+    d: wire_momentary::ActionDescriptor,
+) -> Result<HostFacetDescriptor, ProviderHostError> {
+    if d.action_id.is_empty() || d.action_id.len() > 128 {
+        return Err(ProviderHostError::InvalidDescriptor);
+    }
+    host_typed_descriptor(
+        i,
+        g,
+        k,
+        n,
+        d.common,
+        (
+            "momentary-action",
+            FacetKind::MomentaryAction,
+            ["invoke"],
+            std::iter::empty(),
+        ),
+    )
+}
+fn host_typed_descriptor<O, F>(
+    i: &fabric::InstanceId,
+    g: fabric::Generation,
+    k: &str,
+    n: u64,
+    c: wire_descriptor::FacetDescriptor,
+    projection: (&str, FacetKind, O, F),
+) -> Result<HostFacetDescriptor, ProviderHostError>
+where
+    O: IntoIterator<Item = &'static str>,
+    F: IntoIterator<Item = &'static str>,
+{
+    let (contract, kind, operations, features) = projection;
+    validate_common(&c, i, k, n, contract)?;
+    let incarnation =
+        fabric::Incarnation::new(n).map_err(|_| ProviderHostError::InvalidDescriptor)?;
+    let identity = fabric::EndpointIdentity::new(
+        i.clone(),
+        fabric::FacetKey::new(k).map_err(|_| ProviderHostError::InvalidDescriptor)?,
+        fabric::ContractId::new("litehouse", contract, 1)
+            .map_err(|_| ProviderHostError::InvalidDescriptor)?,
+    );
+    let mut ops = Vec::new();
+    if kind != FacetKind::MomentaryAction {
+        ops.push(operation("query")?)
+    }
+    ops.extend(
+        operations
+            .into_iter()
+            .map(operation)
+            .collect::<Result<Vec<_>, _>>()?,
+    );
+    let fs = features
+        .into_iter()
+        .map(fabric::FeatureId::new)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| ProviderHostError::InvalidDescriptor)?;
+    let endpoint = fabric::EndpointDescriptor::new(
+        identity,
+        Version {
+            major: 1,
+            minor: 0,
+            patch: 0,
+        },
+        g,
+        incarnation,
+        ops,
+        fs,
+    )
+    .map_err(|_| ProviderHostError::InvalidDescriptor)?;
+    Ok(HostFacetDescriptor {
+        endpoint,
+        kind,
+        label: c.label,
+        semantic_profile: c.semantic_profile,
+        tags: host_tags(c.tags)?,
+    })
+}
+
 fn host_tags(
     tags: Vec<wire_descriptor::SemanticTag>,
 ) -> Result<Vec<SemanticTag>, ProviderHostError> {
@@ -1755,6 +3641,217 @@ fn host_measurement_state(
     )
 }
 
+fn host_level_state(
+    e: fabric::EndpointIdentity,
+    g: fabric::Generation,
+    s: wire_level::State,
+) -> Result<FacetState, ProviderHostError> {
+    let v = LevelState {
+        current: s.current.map(host_quantity).transpose()?,
+        target: s.target.map(host_quantity).transpose()?,
+        transition_remaining_milliseconds: s.transition_remaining_milliseconds,
+    };
+    host_state(
+        e,
+        g,
+        s.meta,
+        s.availability,
+        s.quality,
+        FacetValue::Level(v),
+    )
+}
+fn host_color_state(
+    e: fabric::EndpointIdentity,
+    g: fabric::Generation,
+    s: wire_color::State,
+) -> Result<FacetState, ProviderHostError> {
+    let v = ColorState {
+        current: s.current.map(host_color).transpose()?,
+        target: s.target.map(host_color).transpose()?,
+        active_model: s.active_model.map(host_color_model),
+    };
+    host_state(
+        e,
+        g,
+        s.meta,
+        s.availability,
+        s.quality,
+        FacetValue::Color(v),
+    )
+}
+fn host_thermostat_state(
+    e: fabric::EndpointIdentity,
+    g: fabric::Generation,
+    s: wire_thermostat::State,
+) -> Result<FacetState, ProviderHostError> {
+    let targets = s
+        .targets
+        .map(|v| match v {
+            wire_thermostat::Targets::Single(v) => {
+                Ok(ThermostatTargets::Single(host_quantity(v.temperature)?))
+            }
+            wire_thermostat::Targets::HeatCool(v) => Ok(ThermostatTargets::HeatCool {
+                heat: host_quantity(v.heat)?,
+                cool: host_quantity(v.cool)?,
+            }),
+        })
+        .transpose()?;
+    let v = ThermostatState {
+        current_mode: s.current_mode.map(host_mode),
+        target_mode: s.target_mode.map(host_mode),
+        current_action: s.current_action.map(|v| match v {
+            wire_thermostat::Action::Idle => ThermostatAction::Idle,
+            wire_thermostat::Action::Heating => ThermostatAction::Heating,
+            wire_thermostat::Action::Cooling => ThermostatAction::Cooling,
+            wire_thermostat::Action::Drying => ThermostatAction::Drying,
+            wire_thermostat::Action::Fan => ThermostatAction::Fan,
+            wire_thermostat::Action::Defrosting => ThermostatAction::Defrosting,
+        }),
+        running: s.running,
+        targets,
+        fan: s.fan,
+        swing: s.swing,
+        preset: s.preset,
+    };
+    host_state(
+        e,
+        g,
+        s.meta,
+        s.availability,
+        s.quality,
+        FacetValue::Thermostat(v),
+    )
+}
+fn host_covering_state(
+    e: fabric::EndpointIdentity,
+    g: fabric::Generation,
+    s: wire_covering::State,
+) -> Result<FacetState, ProviderHostError> {
+    let axes = s
+        .axes
+        .into_iter()
+        .map(|v| {
+            Ok(CoveringAxisState {
+                axis: host_axis(v.axis),
+                current: v.current.map(host_quantity).transpose()?,
+                target: v.target.map(host_quantity).transpose()?,
+                movement: match v.movement {
+                    wire_covering::Movement::Opening => CoveringMovement::Opening,
+                    wire_covering::Movement::Closing => CoveringMovement::Closing,
+                    wire_covering::Movement::Stopped => CoveringMovement::Stopped,
+                    wire_covering::Movement::Idle => CoveringMovement::Idle,
+                    wire_covering::Movement::Unknown => CoveringMovement::Unknown,
+                },
+            })
+        })
+        .collect::<Result<Vec<_>, ProviderHostError>>()?;
+    let v = WindowCoveringState {
+        axes,
+        safety_status: s.safety_status,
+        fault_status: s.fault_status,
+    };
+    host_state(
+        e,
+        g,
+        s.meta,
+        s.availability,
+        s.quality,
+        FacetValue::WindowCovering(v),
+    )
+}
+fn host_quantity(v: wire_quantity::Quantity) -> Result<Quantity, ProviderHostError> {
+    if v.profile.is_empty()
+        || v.profile.len() > 128
+        || v.magnitude.is_empty()
+        || v.magnitude.len() > 128
+        || v.unit.is_empty()
+        || v.unit.len() > 64
+    {
+        return Err(ProviderHostError::InvalidDescriptor);
+    }
+    Ok(Quantity {
+        profile: v.profile,
+        magnitude: v.magnitude,
+        unit: v.unit,
+    })
+}
+fn host_color(v: wire_color::ColorValue) -> Result<ColorValue, ProviderHostError> {
+    let valid = |v: &str| !v.is_empty() && v.len() <= 128;
+    Ok(match v {
+        wire_color::ColorValue::HueSaturation(v)
+            if valid(&v.hue_degrees) && valid(&v.saturation_ratio) =>
+        {
+            ColorValue::HueSaturation {
+                hue_degrees: v.hue_degrees,
+                saturation_ratio: v.saturation_ratio,
+            }
+        }
+        wire_color::ColorValue::CieXy(v) if valid(&v.x) && valid(&v.y) => {
+            ColorValue::CieXy { x: v.x, y: v.y }
+        }
+        wire_color::ColorValue::ColorTemperature(v) if valid(&v.kelvin) => {
+            ColorValue::ColorTemperature { kelvin: v.kelvin }
+        }
+        wire_color::ColorValue::CalibratedRgb(v)
+            if valid(&v.channels.red)
+                && valid(&v.channels.green)
+                && valid(&v.channels.blue)
+                && valid(&v.color_space) =>
+        {
+            ColorValue::CalibratedRgb {
+                red: v.channels.red,
+                green: v.channels.green,
+                blue: v.channels.blue,
+                color_space: v.color_space,
+            }
+        }
+        wire_color::ColorValue::UncalibratedRgb(v)
+            if valid(&v.red) && valid(&v.green) && valid(&v.blue) =>
+        {
+            ColorValue::UncalibratedRgb {
+                red: v.red,
+                green: v.green,
+                blue: v.blue,
+            }
+        }
+        wire_color::ColorValue::NativeWhiteChannels(v) => ColorValue::NativeWhiteChannels {
+            white: v.white,
+            cold_white: v.cold_white,
+            warm_white: v.warm_white,
+        },
+        _ => return Err(ProviderHostError::InvalidDescriptor),
+    })
+}
+fn host_color_model(v: wire_color::ColorModel) -> ColorModel {
+    match v {
+        wire_color::ColorModel::HueSaturation => ColorModel::HueSaturation,
+        wire_color::ColorModel::CieXy => ColorModel::CieXy,
+        wire_color::ColorModel::ColorTemperature => ColorModel::ColorTemperature,
+        wire_color::ColorModel::CalibratedRgb => ColorModel::CalibratedRgb,
+        wire_color::ColorModel::UncalibratedRgb => ColorModel::UncalibratedRgb,
+        wire_color::ColorModel::NativeWhiteChannels => ColorModel::NativeWhiteChannels,
+    }
+}
+fn host_mode(v: wire_thermostat::Mode) -> ThermostatMode {
+    match v {
+        wire_thermostat::Mode::Known(v) => ThermostatMode::Known(match v {
+            wire_thermostat::KnownMode::Off => KnownThermostatMode::Off,
+            wire_thermostat::KnownMode::Auto => KnownThermostatMode::Auto,
+            wire_thermostat::KnownMode::Heat => KnownThermostatMode::Heat,
+            wire_thermostat::KnownMode::Cool => KnownThermostatMode::Cool,
+            wire_thermostat::KnownMode::Dry => KnownThermostatMode::Dry,
+            wire_thermostat::KnownMode::FanOnly => KnownThermostatMode::FanOnly,
+        }),
+        wire_thermostat::Mode::ProviderQualified(v) => ThermostatMode::ProviderQualified(v),
+    }
+}
+fn host_axis(v: wire_covering::Axis) -> CoveringAxis {
+    match v {
+        wire_covering::Axis::Lift => CoveringAxis::Lift,
+        wire_covering::Axis::Tilt => CoveringAxis::Tilt,
+    }
+}
+
 fn host_state(
     endpoint: fabric::EndpointIdentity,
     generation: fabric::Generation,
@@ -1846,6 +3943,522 @@ fn host_receipt(
         idempotency_key: receipt.receipt.idempotency_key,
         deduplicated: false,
     })
+}
+
+fn wire_quantity(v: Quantity) -> wire_quantity::Quantity {
+    wire_quantity::Quantity {
+        profile: v.profile,
+        magnitude: v.magnitude,
+        unit: v.unit,
+    }
+}
+fn wire_direction(v: StepDirection) -> wire_level::StepDirection {
+    match v {
+        StepDirection::Increase => wire_level::StepDirection::Increase,
+        StepDirection::Decrease => wire_level::StepDirection::Decrease,
+    }
+}
+fn wire_transition(v: Option<Transition>) -> Option<wire_level::Transition> {
+    v.map(|v| wire_level::Transition {
+        duration_milliseconds: v.duration_milliseconds,
+    })
+}
+fn wire_level_set(v: LevelSetRequest) -> wire_level::SetRequest {
+    wire_level::SetRequest {
+        level: wire_quantity(v.level),
+        transition: wire_transition(v.transition),
+    }
+}
+fn wire_level_step(v: LevelStepRequest) -> wire_level::StepRequest {
+    wire_level::StepRequest {
+        direction: wire_direction(v.direction),
+        amount: wire_quantity(v.amount),
+        transition: wire_transition(v.transition),
+    }
+}
+fn wire_level_move(v: LevelMoveRequest) -> wire_level::MoveRequest {
+    wire_level::MoveRequest {
+        direction: wire_direction(v.direction),
+        rate_per_second: wire_quantity(v.rate_per_second),
+    }
+}
+fn wire_coupled_level(v: CoupledLevelRequest) -> wire_level::CoupledRequest {
+    wire_level::CoupledRequest {
+        level: wire_quantity(v.level),
+        on_when_nonzero: v.on_when_nonzero,
+        transition: wire_transition(v.transition),
+    }
+}
+fn wire_coupled_step(v: CoupledLevelStepRequest) -> wire_level::CoupledStepRequest {
+    wire_level::CoupledStepRequest {
+        direction: wire_direction(v.direction),
+        amount: wire_quantity(v.amount),
+        on_when_nonzero: v.on_when_nonzero,
+        transition: wire_transition(v.transition),
+    }
+}
+fn wire_coupled_move(v: CoupledLevelMoveRequest) -> wire_level::CoupledMoveRequest {
+    wire_level::CoupledMoveRequest {
+        direction: wire_direction(v.direction),
+        rate_per_second: wire_quantity(v.rate_per_second),
+        on_when_nonzero: v.on_when_nonzero,
+    }
+}
+fn wire_color(v: ColorValue) -> wire_color::ColorValue {
+    match v {
+        ColorValue::HueSaturation {
+            hue_degrees,
+            saturation_ratio,
+        } => wire_color::ColorValue::HueSaturation(wire_color::HueSaturation {
+            hue_degrees,
+            saturation_ratio,
+        }),
+        ColorValue::CieXy { x, y } => wire_color::ColorValue::CieXy(wire_color::CieXy { x, y }),
+        ColorValue::ColorTemperature { kelvin } => {
+            wire_color::ColorValue::ColorTemperature(wire_color::ColorTemperature { kelvin })
+        }
+        ColorValue::CalibratedRgb {
+            red,
+            green,
+            blue,
+            color_space,
+        } => wire_color::ColorValue::CalibratedRgb(wire_color::CalibratedRgb {
+            channels: wire_color::RgbChannels { red, green, blue },
+            color_space,
+        }),
+        ColorValue::UncalibratedRgb { red, green, blue } => {
+            wire_color::ColorValue::UncalibratedRgb(wire_color::RgbChannels { red, green, blue })
+        }
+        ColorValue::NativeWhiteChannels {
+            white,
+            cold_white,
+            warm_white,
+        } => wire_color::ColorValue::NativeWhiteChannels(wire_color::WhiteChannels {
+            white,
+            cold_white,
+            warm_white,
+        }),
+    }
+}
+fn wire_color_transition(v: Option<Transition>) -> Option<wire_color::Transition> {
+    v.map(|v| wire_color::Transition {
+        duration_milliseconds: v.duration_milliseconds,
+    })
+}
+fn wire_color_set(v: ColorSetRequest) -> wire_color::SetRequest {
+    wire_color::SetRequest {
+        color: wire_color(v.color),
+        transition: wire_color_transition(v.transition),
+    }
+}
+fn wire_color_step(v: ColorStepRequest) -> wire_color::StepRequest {
+    wire_color::StepRequest {
+        delta: wire_color(v.delta),
+        transition: wire_color_transition(v.transition),
+    }
+}
+fn wire_color_move(v: ColorMoveRequest) -> wire_color::MoveRequest {
+    wire_color::MoveRequest {
+        rate_per_second: wire_color(v.rate_per_second),
+    }
+}
+fn wire_mode(v: ThermostatMode) -> wire_thermostat::Mode {
+    match v {
+        ThermostatMode::Known(v) => wire_thermostat::Mode::Known(match v {
+            KnownThermostatMode::Off => wire_thermostat::KnownMode::Off,
+            KnownThermostatMode::Auto => wire_thermostat::KnownMode::Auto,
+            KnownThermostatMode::Heat => wire_thermostat::KnownMode::Heat,
+            KnownThermostatMode::Cool => wire_thermostat::KnownMode::Cool,
+            KnownThermostatMode::Dry => wire_thermostat::KnownMode::Dry,
+            KnownThermostatMode::FanOnly => wire_thermostat::KnownMode::FanOnly,
+        }),
+        ThermostatMode::ProviderQualified(v) => wire_thermostat::Mode::ProviderQualified(v),
+    }
+}
+fn wire_axis(v: CoveringAxis) -> wire_covering::Axis {
+    match v {
+        CoveringAxis::Lift => wire_covering::Axis::Lift,
+        CoveringAxis::Tilt => wire_covering::Axis::Tilt,
+    }
+}
+
+type LevelCall = Result<
+    Result<
+        Result<Result<wire_level::OperationReceipt, wire_level::Error>, wasmtime::Error>,
+        wasmtime::Error,
+    >,
+    tokio::time::error::Elapsed,
+>;
+type ColorCall = Result<
+    Result<
+        Result<Result<wire_color::OperationReceipt, wire_color::Error>, wasmtime::Error>,
+        wasmtime::Error,
+    >,
+    tokio::time::error::Elapsed,
+>;
+type ThermostatCall = Result<
+    Result<
+        Result<Result<wire_thermostat::OperationReceipt, wire_thermostat::Error>, wasmtime::Error>,
+        wasmtime::Error,
+    >,
+    tokio::time::error::Elapsed,
+>;
+type CoveringCall = Result<
+    Result<
+        Result<Result<wire_covering::OperationReceipt, wire_covering::Error>, wasmtime::Error>,
+        wasmtime::Error,
+    >,
+    tokio::time::error::Elapsed,
+>;
+fn finish_level(
+    c: LevelCall,
+    e: fabric::EndpointIdentity,
+    g: fabric::Generation,
+    x: &LevelOperation,
+    id: String,
+    a: u32,
+    k: Option<String>,
+) -> (Result<CommandReceipt, ProviderHostError>, bool) {
+    match c {
+        Err(_) => (
+            Err(outcome_unknown(
+                fabric::UnknownOutcomeCause::DeadlineExceeded,
+                id,
+                a,
+                k,
+            )),
+            true,
+        ),
+        Ok(Err(_)) | Ok(Ok(Err(_))) => (
+            Err(outcome_unknown(
+                fabric::UnknownOutcomeCause::ProviderFailed,
+                id,
+                a,
+                k,
+            )),
+            true,
+        ),
+        Ok(Ok(Ok(Err(v)))) => (Err(level_error(v)), false),
+        Ok(Ok(Ok(Ok(v)))) => (host_level_receipt(e, g, x, &id, a, k.as_deref(), v), false),
+    }
+}
+fn finish_color(
+    c: ColorCall,
+    e: fabric::EndpointIdentity,
+    g: fabric::Generation,
+    x: &ColorOperation,
+    id: String,
+    a: u32,
+    k: Option<String>,
+) -> (Result<CommandReceipt, ProviderHostError>, bool) {
+    match c {
+        Err(_) => (
+            Err(outcome_unknown(
+                fabric::UnknownOutcomeCause::DeadlineExceeded,
+                id,
+                a,
+                k,
+            )),
+            true,
+        ),
+        Ok(Err(_)) | Ok(Ok(Err(_))) => (
+            Err(outcome_unknown(
+                fabric::UnknownOutcomeCause::ProviderFailed,
+                id,
+                a,
+                k,
+            )),
+            true,
+        ),
+        Ok(Ok(Ok(Err(v)))) => (Err(color_error(v)), false),
+        Ok(Ok(Ok(Ok(v)))) => (host_color_receipt(e, g, x, &id, a, k.as_deref(), v), false),
+    }
+}
+fn finish_thermostat(
+    c: ThermostatCall,
+    e: fabric::EndpointIdentity,
+    g: fabric::Generation,
+    x: &ThermostatOperation,
+    id: String,
+    a: u32,
+    k: Option<String>,
+) -> (Result<CommandReceipt, ProviderHostError>, bool) {
+    match c {
+        Err(_) => (
+            Err(outcome_unknown(
+                fabric::UnknownOutcomeCause::DeadlineExceeded,
+                id,
+                a,
+                k,
+            )),
+            true,
+        ),
+        Ok(Err(_)) | Ok(Ok(Err(_))) => (
+            Err(outcome_unknown(
+                fabric::UnknownOutcomeCause::ProviderFailed,
+                id,
+                a,
+                k,
+            )),
+            true,
+        ),
+        Ok(Ok(Ok(Err(v)))) => (Err(thermostat_error(v)), false),
+        Ok(Ok(Ok(Ok(v)))) => (
+            host_thermostat_receipt(e, g, x, &id, a, k.as_deref(), v),
+            false,
+        ),
+    }
+}
+fn finish_covering(
+    c: CoveringCall,
+    e: fabric::EndpointIdentity,
+    g: fabric::Generation,
+    x: &CoveringOperation,
+    id: String,
+    a: u32,
+    k: Option<String>,
+) -> (Result<CommandReceipt, ProviderHostError>, bool) {
+    match c {
+        Err(_) => (
+            Err(outcome_unknown(
+                fabric::UnknownOutcomeCause::DeadlineExceeded,
+                id,
+                a,
+                k,
+            )),
+            true,
+        ),
+        Ok(Err(_)) | Ok(Ok(Err(_))) => (
+            Err(outcome_unknown(
+                fabric::UnknownOutcomeCause::ProviderFailed,
+                id,
+                a,
+                k,
+            )),
+            true,
+        ),
+        Ok(Ok(Ok(Err(v)))) => (Err(covering_error(v)), false),
+        Ok(Ok(Ok(Ok(v)))) => (
+            host_covering_receipt(e, g, x, &id, a, k.as_deref(), v),
+            false,
+        ),
+    }
+}
+
+fn host_level_receipt(
+    e: fabric::EndpointIdentity,
+    g: fabric::Generation,
+    x: &LevelOperation,
+    id: &str,
+    a: u32,
+    k: Option<&str>,
+    r: wire_level::OperationReceipt,
+) -> Result<CommandReceipt, ProviderHostError> {
+    let actual = match r.operation {
+        wire_level::OperationIntent::SetLevel(v) => LevelOperation::SetLevel(LevelSetRequest {
+            level: host_quantity(v.level)?,
+            transition: v.transition.map(|v| Transition {
+                duration_milliseconds: v.duration_milliseconds,
+            }),
+        }),
+        wire_level::OperationIntent::Step(v) => LevelOperation::Step(LevelStepRequest {
+            direction: match v.direction {
+                wire_level::StepDirection::Increase => StepDirection::Increase,
+                wire_level::StepDirection::Decrease => StepDirection::Decrease,
+            },
+            amount: host_quantity(v.amount)?,
+            transition: v.transition.map(|v| Transition {
+                duration_milliseconds: v.duration_milliseconds,
+            }),
+        }),
+        wire_level::OperationIntent::Move(v) => LevelOperation::Move(LevelMoveRequest {
+            direction: match v.direction {
+                wire_level::StepDirection::Increase => StepDirection::Increase,
+                wire_level::StepDirection::Decrease => StepDirection::Decrease,
+            },
+            rate_per_second: host_quantity(v.rate_per_second)?,
+        }),
+        wire_level::OperationIntent::Stop => LevelOperation::Stop,
+        wire_level::OperationIntent::SetLevelWithOnOff(v) => {
+            LevelOperation::SetLevelWithOnOff(CoupledLevelRequest {
+                level: host_quantity(v.level)?,
+                on_when_nonzero: v.on_when_nonzero,
+                transition: v.transition.map(|v| Transition {
+                    duration_milliseconds: v.duration_milliseconds,
+                }),
+            })
+        }
+        wire_level::OperationIntent::StepWithOnOff(v) => {
+            LevelOperation::StepWithOnOff(CoupledLevelStepRequest {
+                direction: match v.direction {
+                    wire_level::StepDirection::Increase => StepDirection::Increase,
+                    wire_level::StepDirection::Decrease => StepDirection::Decrease,
+                },
+                amount: host_quantity(v.amount)?,
+                on_when_nonzero: v.on_when_nonzero,
+                transition: v.transition.map(|v| Transition {
+                    duration_milliseconds: v.duration_milliseconds,
+                }),
+            })
+        }
+        wire_level::OperationIntent::MoveWithOnOff(v) => {
+            LevelOperation::MoveWithOnOff(CoupledLevelMoveRequest {
+                direction: match v.direction {
+                    wire_level::StepDirection::Increase => StepDirection::Increase,
+                    wire_level::StepDirection::Decrease => StepDirection::Decrease,
+                },
+                rate_per_second: host_quantity(v.rate_per_second)?,
+                on_when_nonzero: v.on_when_nonzero,
+            })
+        }
+    };
+    if &actual != x {
+        return Err(contract_error());
+    }
+    host_command_receipt(e, g, id, a, k, r.receipt)
+}
+fn host_color_receipt(
+    e: fabric::EndpointIdentity,
+    g: fabric::Generation,
+    x: &ColorOperation,
+    id: &str,
+    a: u32,
+    k: Option<&str>,
+    r: wire_color::OperationReceipt,
+) -> Result<CommandReceipt, ProviderHostError> {
+    let actual = match r.operation {
+        wire_color::OperationIntent::SetColor(v) => ColorOperation::SetColor(ColorSetRequest {
+            color: host_color(v.color)?,
+            transition: v.transition.map(|v| Transition {
+                duration_milliseconds: v.duration_milliseconds,
+            }),
+        }),
+        wire_color::OperationIntent::StepColor(v) => ColorOperation::StepColor(ColorStepRequest {
+            delta: host_color(v.delta)?,
+            transition: v.transition.map(|v| Transition {
+                duration_milliseconds: v.duration_milliseconds,
+            }),
+        }),
+        wire_color::OperationIntent::MoveColor(v) => ColorOperation::MoveColor(ColorMoveRequest {
+            rate_per_second: host_color(v.rate_per_second)?,
+        }),
+        wire_color::OperationIntent::Stop => ColorOperation::Stop,
+    };
+    if &actual != x {
+        return Err(contract_error());
+    }
+    host_command_receipt(e, g, id, a, k, r.receipt)
+}
+fn host_thermostat_receipt(
+    e: fabric::EndpointIdentity,
+    g: fabric::Generation,
+    x: &ThermostatOperation,
+    id: &str,
+    a: u32,
+    k: Option<&str>,
+    r: wire_thermostat::OperationReceipt,
+) -> Result<CommandReceipt, ProviderHostError> {
+    let actual = match r.operation {
+        wire_thermostat::OperationIntent::SetMode(v) => {
+            ThermostatOperation::SetMode(host_mode(v.mode))
+        }
+        wire_thermostat::OperationIntent::SetSingleTarget(v) => {
+            ThermostatOperation::SetSingleTarget(host_quantity(v.target.temperature)?)
+        }
+        wire_thermostat::OperationIntent::SetDualTarget(v) => ThermostatOperation::SetDualTarget {
+            heat: host_quantity(v.target.heat)?,
+            cool: host_quantity(v.target.cool)?,
+        },
+        wire_thermostat::OperationIntent::SetFan(v) => ThermostatOperation::SetFan(v.choice),
+        wire_thermostat::OperationIntent::SetSwing(v) => ThermostatOperation::SetSwing(v.choice),
+        wire_thermostat::OperationIntent::SetPreset(v) => ThermostatOperation::SetPreset(v.choice),
+    };
+    if &actual != x {
+        return Err(contract_error());
+    }
+    host_command_receipt(e, g, id, a, k, r.receipt)
+}
+fn host_covering_receipt(
+    e: fabric::EndpointIdentity,
+    g: fabric::Generation,
+    x: &CoveringOperation,
+    id: &str,
+    a: u32,
+    k: Option<&str>,
+    r: wire_covering::OperationReceipt,
+) -> Result<CommandReceipt, ProviderHostError> {
+    let actual = match r.operation {
+        wire_covering::OperationIntent::Open(v) => CoveringOperation::Open(host_axis(v.axis)),
+        wire_covering::OperationIntent::Close(v) => CoveringOperation::Close(host_axis(v.axis)),
+        wire_covering::OperationIntent::Stop(v) => CoveringOperation::Stop(host_axis(v.axis)),
+        wire_covering::OperationIntent::SetPosition(v) => CoveringOperation::SetPosition {
+            axis: host_axis(v.axis),
+            position: host_quantity(v.position)?,
+        },
+    };
+    if &actual != x {
+        return Err(contract_error());
+    }
+    host_command_receipt(e, g, id, a, k, r.receipt)
+}
+fn host_momentary_receipt(
+    e: fabric::EndpointIdentity,
+    g: fabric::Generation,
+    id: &str,
+    a: u32,
+    k: Option<&str>,
+    r: wire_momentary::InvokeReceipt,
+) -> Result<MomentaryActionReceipt, ProviderHostError> {
+    if r.action_id.is_empty() || r.action_id.len() > 128 {
+        return Err(contract_error());
+    }
+    Ok(MomentaryActionReceipt {
+        action_id: r.action_id,
+        receipt: host_command_receipt(e, g, id, a, k, r.receipt)?,
+    })
+}
+fn host_command_receipt(
+    e: fabric::EndpointIdentity,
+    g: fabric::Generation,
+    id: &str,
+    a: u32,
+    k: Option<&str>,
+    r: wire_receipt::CommandReceipt,
+) -> Result<CommandReceipt, ProviderHostError> {
+    if r.request_id != id || r.attempt != a || r.idempotency_key.as_deref() != k {
+        return Err(contract_error());
+    }
+    Ok(CommandReceipt {
+        endpoint: e,
+        request_id: r.request_id,
+        attempt: r.attempt,
+        provider_generation: g,
+        confidence: match r.confidence {
+            wire_receipt::ReceiptConfidence::AcceptedForDelivery => {
+                ReceiptConfidence::AcceptedForDelivery
+            }
+            wire_receipt::ReceiptConfidence::ProtocolOrTargetAcknowledged => {
+                ReceiptConfidence::ProtocolOrTargetAcknowledged
+            }
+            wire_receipt::ReceiptConfidence::Completed => ReceiptConfidence::Completed,
+            wire_receipt::ReceiptConfidence::ObservedCompleted => {
+                ReceiptConfidence::ObservedCompleted
+            }
+        },
+        accepted_at_unix_milliseconds: r.accepted_at_unix_milliseconds,
+        completed_at_unix_milliseconds: r.completed_at_unix_milliseconds,
+        idempotency_key: r.idempotency_key,
+        deduplicated: false,
+    })
+}
+fn contract_error() -> ProviderHostError {
+    service_error(fabric::CoreError::ContractError, fabric::RetryAdvice::Never)
+}
+fn endpoint_removed() -> ProviderHostError {
+    service_error(
+        fabric::CoreError::Binding(fabric::BindingError::EndpointRemoved),
+        fabric::RetryAdvice::Rebind,
+    )
 }
 
 fn host_notification_receipt(
@@ -1941,6 +4554,21 @@ fn measurement_error(error: wire_measurement::Error) -> ProviderHostError {
 }
 
 fn notification_error(error: wire_notification::Error) -> ProviderHostError {
+    service_from_wire(error.inner, error.retry)
+}
+fn level_error(error: wire_level::Error) -> ProviderHostError {
+    service_from_wire(error.inner, error.retry)
+}
+fn color_error(error: wire_color::Error) -> ProviderHostError {
+    service_from_wire(error.inner, error.retry)
+}
+fn thermostat_error(error: wire_thermostat::Error) -> ProviderHostError {
+    service_from_wire(error.inner, error.retry)
+}
+fn covering_error(error: wire_covering::Error) -> ProviderHostError {
+    service_from_wire(error.inner, error.retry)
+}
+fn momentary_error(error: wire_momentary::Error) -> ProviderHostError {
     service_from_wire(error.inner, error.retry)
 }
 

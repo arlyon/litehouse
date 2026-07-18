@@ -1,6 +1,7 @@
 use litehouse_provider_host::{
-    CallContext, FacetValue, MeasurementValue, NotificationPriority, NotificationRequest,
-    ProviderConfig, ProviderHostError, ReceiptConfidence, start_provider,
+    CallContext, ColorSetRequest, ColorValue, CoveringAxis, FacetValue, KnownThermostatMode,
+    LevelSetRequest, MeasurementValue, NotificationPriority, NotificationRequest, ProviderConfig,
+    ProviderHostError, Quantity, ReceiptConfidence, ThermostatMode, start_provider,
 };
 use litehouse_service_fabric as fabric;
 use std::{
@@ -64,8 +65,8 @@ async fn typed_handles_stay_in_actor_while_host_routes_query_set_send_and_withdr
     .await
     .unwrap();
 
-    assert_eq!(handle.descriptors().len(), 5);
-    assert_eq!(fabric.lock().unwrap().registry().len(), 5);
+    assert_eq!(handle.descriptors().len(), 10);
+    assert_eq!(fabric.lock().unwrap().registry().len(), 10);
     let relay = handle
         .descriptors()
         .iter()
@@ -122,6 +123,132 @@ async fn typed_handles_stay_in_actor_while_host_routes_query_set_send_and_withdr
             native_magnitude: Some("21.5".into()),
             native_unit: Some("°C".into()),
         }))
+    );
+
+    let endpoint = |key: &str| {
+        handle
+            .descriptors()
+            .iter()
+            .find(|d| d.endpoint().identity().facet().as_str() == key)
+            .unwrap()
+            .endpoint()
+            .identity()
+            .clone()
+    };
+    let level = endpoint("dimmer-1");
+    assert!(matches!(
+        handle
+            .query(&level, generation, context("query-level", None))
+            .await
+            .unwrap()
+            .value,
+        FacetValue::Level(_)
+    ));
+    assert_eq!(
+        handle
+            .set_level(
+                &level,
+                generation,
+                LevelSetRequest {
+                    level: Quantity {
+                        profile: "ratio".into(),
+                        magnitude: "0.8".into(),
+                        unit: "1".into()
+                    },
+                    transition: None
+                },
+                context("set-level", None)
+            )
+            .await
+            .unwrap()
+            .receipt
+            .confidence,
+        ReceiptConfidence::AcceptedForDelivery
+    );
+    let color = endpoint("color-1");
+    assert!(matches!(
+        handle
+            .query(&color, generation, context("query-color", None))
+            .await
+            .unwrap()
+            .value,
+        FacetValue::Color(_)
+    ));
+    assert_eq!(
+        handle
+            .set_color(
+                &color,
+                generation,
+                ColorSetRequest {
+                    color: ColorValue::HueSaturation {
+                        hue_degrees: "240".into(),
+                        saturation_ratio: "1".into()
+                    },
+                    transition: None
+                },
+                context("set-color", None)
+            )
+            .await
+            .unwrap()
+            .receipt
+            .confidence,
+        ReceiptConfidence::AcceptedForDelivery
+    );
+    let thermostat = endpoint("thermostat-1");
+    assert!(matches!(
+        handle
+            .query(&thermostat, generation, context("query-thermostat", None))
+            .await
+            .unwrap()
+            .value,
+        FacetValue::Thermostat(_)
+    ));
+    assert_eq!(
+        handle
+            .set_thermostat_mode(
+                &thermostat,
+                generation,
+                ThermostatMode::Known(KnownThermostatMode::Heat),
+                context("set-mode", None)
+            )
+            .await
+            .unwrap()
+            .receipt
+            .confidence,
+        ReceiptConfidence::AcceptedForDelivery
+    );
+    let covering = endpoint("covering-1");
+    assert!(matches!(
+        handle
+            .query(&covering, generation, context("query-covering", None))
+            .await
+            .unwrap()
+            .value,
+        FacetValue::WindowCovering(_)
+    ));
+    assert_eq!(
+        handle
+            .open_covering(
+                &covering,
+                generation,
+                CoveringAxis::Lift,
+                context("open-covering", None)
+            )
+            .await
+            .unwrap()
+            .receipt
+            .confidence,
+        ReceiptConfidence::AcceptedForDelivery
+    );
+    let action = endpoint("action-1");
+    let invoked = handle
+        .invoke_momentary_action(&action, generation, context("invoke-action", None))
+        .await
+        .unwrap();
+    assert_eq!(invoked.action_id, "fixture-action");
+    assert_eq!(
+        invoked.receipt.confidence,
+        ReceiptConfidence::AcceptedForDelivery
     );
 
     let notification = handle

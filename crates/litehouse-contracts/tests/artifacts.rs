@@ -165,11 +165,21 @@ fn provider_reuses_execution_free_capability_types() {
     assert!(provider.contains("litehouse:boolean-state/types@1.0.0"));
     assert!(provider.contains("litehouse:measurement/types@1.0.0"));
     assert!(provider.contains("litehouse:notification-sink/types@1.0.0"));
+    assert!(provider.contains("litehouse:level-control/types@1.0.0"));
+    assert!(provider.contains("litehouse:color-control/types@1.0.0"));
+    assert!(provider.contains("litehouse:thermostat/types@1.0.0"));
+    assert!(provider.contains("litehouse:window-covering/types@1.0.0"));
+    assert!(provider.contains("litehouse:momentary-action/types@1.0.0"));
     for package in [
         "on-off",
         "boolean-state",
         "measurement",
         "notification-sink",
+        "level-control",
+        "color-control",
+        "thermostat",
+        "window-covering",
+        "momentary-action",
     ] {
         assert!(!provider.contains(&format!("litehouse:{package}/capability@1.0.0")));
     }
@@ -188,6 +198,11 @@ fn provider_reuses_execution_free_capability_types() {
         "boolean-state",
         "measurement",
         "notification-sink",
+        "level-control",
+        "color-control",
+        "thermostat",
+        "window-covering",
+        "momentary-action",
     ] {
         let source = groups
             .iter()

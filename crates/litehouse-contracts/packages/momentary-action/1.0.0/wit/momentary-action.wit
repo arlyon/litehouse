@@ -1,9 +1,9 @@
 package litehouse:momentary-action@1.0.0;
 
-interface capability {
+interface types {
   use litehouse:descriptor/types@1.0.0.{facet-descriptor};
   use litehouse:errors/types@1.0.0.{core-error, retry-advice};
-  use litehouse:receipt/types@1.0.0.{command-receipt, deduplication-guarantee, operation-kind, request-context};
+  use litehouse:receipt/types@1.0.0.{command-receipt, deduplication-guarantee, operation-kind};
 
   enum risk {
     routine,
@@ -48,6 +48,12 @@ interface capability {
     message: option<string>,
     error-id: string,
   }
+
+}
+
+interface capability {
+  use litehouse:receipt/types@1.0.0.{request-context};
+  use types.{action-descriptor, error, invoke-receipt};
 
   describe: async func(context: request-context) -> result<action-descriptor, error>;
   invoke: async func(context: request-context) -> result<invoke-receipt, error>;

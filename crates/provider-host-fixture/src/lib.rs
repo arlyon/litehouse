@@ -11,6 +11,11 @@ wit_bindgen::generate!({
         "../litehouse-contracts/packages/quantity/1.0.0/wit",
         "../litehouse-contracts/packages/measurement/1.0.0/wit",
         "../litehouse-contracts/packages/notification-sink/1.0.0/wit",
+        "../litehouse-contracts/packages/level-control/1.0.0/wit",
+        "../litehouse-contracts/packages/color-control/1.0.0/wit",
+        "../litehouse-contracts/packages/thermostat/1.0.0/wit",
+        "../litehouse-contracts/packages/window-covering/1.0.0/wit",
+        "../litehouse-contracts/packages/momentary-action/1.0.0/wit",
         "../litehouse-contracts/packages/provider/1.0.0/wit",
     ],
     world: "litehouse:provider/component@1.0.0",
@@ -19,10 +24,12 @@ wit_bindgen::generate!({
 
 use exports::litehouse::provider::provider;
 use litehouse::{
-    boolean_state::types as boolean, descriptor::types as descriptor, errors::types as errors,
-    measurement::types as measurement, notification_sink::types as notification,
-    on_off::types as on_off, quantity::types as quantity, receipt::types as receipt,
-    state::types as state,
+    boolean_state::types as boolean, color_control::types as color,
+    descriptor::types as descriptor, errors::types as errors, level_control::types as level,
+    measurement::types as measurement, momentary_action::types as momentary,
+    notification_sink::types as notification, on_off::types as on_off, quantity::types as quantity,
+    receipt::types as receipt, state::types as state, thermostat::types as thermostat,
+    window_covering::types as covering,
 };
 use std::sync::{
     Arc,
@@ -46,6 +53,11 @@ struct BooleanFacet {
 
 struct MeasurementFacet;
 struct NotificationSinkFacet;
+struct LevelControlFacet;
+struct ColorControlFacet;
+struct ThermostatFacet;
+struct WindowCoveringFacet;
+struct MomentaryActionFacet;
 
 fn common(
     key: &str,
@@ -93,6 +105,24 @@ fn meta(revision: u64) -> state::ObservationMeta {
 
 fn never_error() -> errors::RetryAdvice {
     errors::RetryAdvice::Never
+}
+fn quantity(profile: &str, magnitude: &str, unit: &str) -> quantity::Quantity {
+    quantity::Quantity {
+        profile: profile.into(),
+        magnitude: magnitude.into(),
+        unit: unit.into(),
+    }
+}
+fn command_receipt(context: receipt::RequestContext) -> receipt::CommandReceipt {
+    receipt::CommandReceipt {
+        request_id: context.request_id,
+        attempt: context.attempt,
+        provider_generation: 0,
+        confidence: receipt::ReceiptConfidence::AcceptedForDelivery,
+        accepted_at_unix_milliseconds: 1_700_000_000_300,
+        completed_at_unix_milliseconds: None,
+        idempotency_key: context.idempotency.map(|value| value.key),
+    }
 }
 
 impl provider::GuestMeasurementFacet for MeasurementFacet {
@@ -309,6 +339,475 @@ impl provider::GuestBooleanFacet for BooleanFacet {
     }
 }
 
+impl provider::GuestLevelControlFacet for LevelControlFacet {
+    fn key(&self) -> String {
+        "dimmer-1".into()
+    }
+    fn incarnation(&self) -> u64 {
+        1
+    }
+    async fn describe(
+        &self,
+        _: receipt::RequestContext,
+    ) -> Result<level::LevelDescriptor, level::Error> {
+        Ok(level::LevelDescriptor {
+            common: common(
+                "dimmer-1",
+                "Dimmer 1",
+                1,
+                "level-control",
+                &[
+                    "query",
+                    "set-level",
+                    "step",
+                    "move",
+                    "stop",
+                    "set-level-with-on-off",
+                    "step-with-on-off",
+                    "move-with-on-off",
+                ],
+            ),
+            role: level::LevelRole::Brightness,
+            features: vec![level::Feature::CoupledOnOff],
+            operations: vec![
+                level::Operation::SetLevel,
+                level::Operation::Step,
+                level::Operation::Move,
+                level::Operation::Stop,
+                level::Operation::SetLevelWithOnOff,
+                level::Operation::StepWithOnOff,
+                level::Operation::MoveWithOnOff,
+            ],
+            state_fields: vec![level::StateField::CurrentLevel],
+            events: vec![level::EventKind::StateObservation],
+            native_range: None,
+            operation_support: vec![],
+        })
+    }
+    async fn query(&self, _: receipt::RequestContext) -> Result<level::State, level::Error> {
+        Ok(level::State {
+            meta: meta(1),
+            availability: state::Availability::Available,
+            quality: Some(state::Quality::SourceReported),
+            current: Some(quantity("ratio", "0.5", "1")),
+            target: None,
+            transition_remaining_milliseconds: None,
+        })
+    }
+    async fn set_level(
+        &self,
+        c: receipt::RequestContext,
+        r: level::SetRequest,
+    ) -> Result<level::OperationReceipt, level::Error> {
+        Ok(level::OperationReceipt {
+            operation: level::OperationIntent::SetLevel(r),
+            receipt: command_receipt(c),
+        })
+    }
+    async fn step(
+        &self,
+        c: receipt::RequestContext,
+        r: level::StepRequest,
+    ) -> Result<level::OperationReceipt, level::Error> {
+        Ok(level::OperationReceipt {
+            operation: level::OperationIntent::Step(r),
+            receipt: command_receipt(c),
+        })
+    }
+    async fn move_(
+        &self,
+        c: receipt::RequestContext,
+        r: level::MoveRequest,
+    ) -> Result<level::OperationReceipt, level::Error> {
+        Ok(level::OperationReceipt {
+            operation: level::OperationIntent::Move(r),
+            receipt: command_receipt(c),
+        })
+    }
+    async fn stop(
+        &self,
+        c: receipt::RequestContext,
+    ) -> Result<level::OperationReceipt, level::Error> {
+        Ok(level::OperationReceipt {
+            operation: level::OperationIntent::Stop,
+            receipt: command_receipt(c),
+        })
+    }
+    async fn set_level_with_on_off(
+        &self,
+        c: receipt::RequestContext,
+        r: level::CoupledRequest,
+    ) -> Result<level::OperationReceipt, level::Error> {
+        Ok(level::OperationReceipt {
+            operation: level::OperationIntent::SetLevelWithOnOff(r),
+            receipt: command_receipt(c),
+        })
+    }
+    async fn step_with_on_off(
+        &self,
+        c: receipt::RequestContext,
+        r: level::CoupledStepRequest,
+    ) -> Result<level::OperationReceipt, level::Error> {
+        Ok(level::OperationReceipt {
+            operation: level::OperationIntent::StepWithOnOff(r),
+            receipt: command_receipt(c),
+        })
+    }
+    async fn move_with_on_off(
+        &self,
+        c: receipt::RequestContext,
+        r: level::CoupledMoveRequest,
+    ) -> Result<level::OperationReceipt, level::Error> {
+        Ok(level::OperationReceipt {
+            operation: level::OperationIntent::MoveWithOnOff(r),
+            receipt: command_receipt(c),
+        })
+    }
+}
+impl provider::GuestColorControlFacet for ColorControlFacet {
+    fn key(&self) -> String {
+        "color-1".into()
+    }
+    fn incarnation(&self) -> u64 {
+        1
+    }
+    async fn describe(
+        &self,
+        _: receipt::RequestContext,
+    ) -> Result<color::ColorDescriptor, color::Error> {
+        Ok(color::ColorDescriptor {
+            common: common(
+                "color-1",
+                "Color 1",
+                1,
+                "color-control",
+                &["query", "set-color", "step-color", "move-color", "stop"],
+            ),
+            models: vec![color::ColorModel::HueSaturation],
+            operations: vec![
+                color::Operation::SetColor,
+                color::Operation::StepColor,
+                color::Operation::MoveColor,
+                color::Operation::Stop,
+            ],
+            state_fields: vec![color::StateField::CurrentColor],
+            events: vec![color::EventKind::StateObservation],
+            ranges: vec![],
+            operation_support: vec![],
+        })
+    }
+    async fn query(&self, _: receipt::RequestContext) -> Result<color::State, color::Error> {
+        Ok(color::State {
+            meta: meta(1),
+            availability: state::Availability::Available,
+            quality: Some(state::Quality::SourceReported),
+            current: Some(color::ColorValue::HueSaturation(color::HueSaturation {
+                hue_degrees: "120".into(),
+                saturation_ratio: "0.5".into(),
+            })),
+            target: None,
+            active_model: Some(color::ColorModel::HueSaturation),
+        })
+    }
+    async fn set_color(
+        &self,
+        c: receipt::RequestContext,
+        r: color::SetRequest,
+    ) -> Result<color::OperationReceipt, color::Error> {
+        Ok(color::OperationReceipt {
+            operation: color::OperationIntent::SetColor(r),
+            receipt: command_receipt(c),
+        })
+    }
+    async fn step_color(
+        &self,
+        c: receipt::RequestContext,
+        r: color::StepRequest,
+    ) -> Result<color::OperationReceipt, color::Error> {
+        Ok(color::OperationReceipt {
+            operation: color::OperationIntent::StepColor(r),
+            receipt: command_receipt(c),
+        })
+    }
+    async fn move_color(
+        &self,
+        c: receipt::RequestContext,
+        r: color::MoveRequest,
+    ) -> Result<color::OperationReceipt, color::Error> {
+        Ok(color::OperationReceipt {
+            operation: color::OperationIntent::MoveColor(r),
+            receipt: command_receipt(c),
+        })
+    }
+    async fn stop(
+        &self,
+        c: receipt::RequestContext,
+    ) -> Result<color::OperationReceipt, color::Error> {
+        Ok(color::OperationReceipt {
+            operation: color::OperationIntent::Stop,
+            receipt: command_receipt(c),
+        })
+    }
+}
+impl provider::GuestThermostatFacet for ThermostatFacet {
+    fn key(&self) -> String {
+        "thermostat-1".into()
+    }
+    fn incarnation(&self) -> u64 {
+        1
+    }
+    async fn describe(
+        &self,
+        _: receipt::RequestContext,
+    ) -> Result<thermostat::ThermostatDescriptor, thermostat::Error> {
+        Ok(thermostat::ThermostatDescriptor {
+            common: common(
+                "thermostat-1",
+                "Thermostat 1",
+                1,
+                "thermostat",
+                &[
+                    "query",
+                    "set-mode",
+                    "set-single-target",
+                    "set-dual-target",
+                    "set-fan",
+                    "set-swing",
+                    "set-preset",
+                ],
+            ),
+            modes: vec![thermostat::Mode::Known(thermostat::KnownMode::Heat)],
+            target_policy: thermostat::TargetPolicy {
+                model: thermostat::SetpointModel::Single,
+                minimum: quantity("temperature", "10", "Cel"),
+                maximum: quantity("temperature", "30", "Cel"),
+                step: quantity("temperature-delta", "0.5", "K"),
+                minimum_deadband: None,
+            },
+            features: vec![],
+            operations: vec![
+                thermostat::Operation::SetMode,
+                thermostat::Operation::SetSingleTarget,
+                thermostat::Operation::SetDualTarget,
+                thermostat::Operation::SetFan,
+                thermostat::Operation::SetSwing,
+                thermostat::Operation::SetPreset,
+            ],
+            state_fields: vec![thermostat::StateField::CurrentMode],
+            events: vec![thermostat::EventKind::StateObservation],
+            fan_choices: vec![],
+            swing_choices: vec![],
+            preset_choices: vec![],
+            operation_support: vec![],
+        })
+    }
+    async fn query(
+        &self,
+        _: receipt::RequestContext,
+    ) -> Result<thermostat::State, thermostat::Error> {
+        Ok(thermostat::State {
+            meta: meta(1),
+            availability: state::Availability::Available,
+            quality: Some(state::Quality::SourceReported),
+            current_mode: Some(thermostat::Mode::Known(thermostat::KnownMode::Heat)),
+            target_mode: None,
+            current_action: Some(thermostat::Action::Heating),
+            running: Some(true),
+            targets: Some(thermostat::Targets::Single(thermostat::SingleTarget {
+                temperature: quantity("temperature", "21", "Cel"),
+            })),
+            fan: None,
+            swing: None,
+            preset: None,
+        })
+    }
+    async fn set_mode(
+        &self,
+        c: receipt::RequestContext,
+        r: thermostat::SetModeRequest,
+    ) -> Result<thermostat::OperationReceipt, thermostat::Error> {
+        Ok(thermostat::OperationReceipt {
+            operation: thermostat::OperationIntent::SetMode(r),
+            receipt: command_receipt(c),
+        })
+    }
+    async fn set_single_target(
+        &self,
+        c: receipt::RequestContext,
+        r: thermostat::SetSingleTargetRequest,
+    ) -> Result<thermostat::OperationReceipt, thermostat::Error> {
+        Ok(thermostat::OperationReceipt {
+            operation: thermostat::OperationIntent::SetSingleTarget(r),
+            receipt: command_receipt(c),
+        })
+    }
+    async fn set_dual_target(
+        &self,
+        c: receipt::RequestContext,
+        r: thermostat::SetDualTargetRequest,
+    ) -> Result<thermostat::OperationReceipt, thermostat::Error> {
+        Ok(thermostat::OperationReceipt {
+            operation: thermostat::OperationIntent::SetDualTarget(r),
+            receipt: command_receipt(c),
+        })
+    }
+    async fn set_fan(
+        &self,
+        c: receipt::RequestContext,
+        r: thermostat::SetChoiceRequest,
+    ) -> Result<thermostat::OperationReceipt, thermostat::Error> {
+        Ok(thermostat::OperationReceipt {
+            operation: thermostat::OperationIntent::SetFan(r),
+            receipt: command_receipt(c),
+        })
+    }
+    async fn set_swing(
+        &self,
+        c: receipt::RequestContext,
+        r: thermostat::SetChoiceRequest,
+    ) -> Result<thermostat::OperationReceipt, thermostat::Error> {
+        Ok(thermostat::OperationReceipt {
+            operation: thermostat::OperationIntent::SetSwing(r),
+            receipt: command_receipt(c),
+        })
+    }
+    async fn set_preset(
+        &self,
+        c: receipt::RequestContext,
+        r: thermostat::SetChoiceRequest,
+    ) -> Result<thermostat::OperationReceipt, thermostat::Error> {
+        Ok(thermostat::OperationReceipt {
+            operation: thermostat::OperationIntent::SetPreset(r),
+            receipt: command_receipt(c),
+        })
+    }
+}
+impl provider::GuestWindowCoveringFacet for WindowCoveringFacet {
+    fn key(&self) -> String {
+        "covering-1".into()
+    }
+    fn incarnation(&self) -> u64 {
+        1
+    }
+    async fn describe(
+        &self,
+        _: receipt::RequestContext,
+    ) -> Result<covering::CoveringDescriptor, covering::Error> {
+        Ok(covering::CoveringDescriptor {
+            common: common(
+                "covering-1",
+                "Covering 1",
+                1,
+                "window-covering",
+                &["query", "open", "close", "stop", "set-position"],
+            ),
+            axes: vec![covering::AxisDescriptor {
+                axis: covering::Axis::Lift,
+                awareness: covering::PositionAwareness::SourceReported,
+                native_step: None,
+            }],
+            features: vec![covering::Feature::Lift],
+            operations: vec![
+                covering::Operation::Open,
+                covering::Operation::Close,
+                covering::Operation::Stop,
+                covering::Operation::SetPosition,
+            ],
+            state_fields: vec![covering::StateField::CurrentPosition],
+            events: vec![covering::EventKind::StateObservation],
+            operation_support: vec![],
+        })
+    }
+    async fn query(&self, _: receipt::RequestContext) -> Result<covering::State, covering::Error> {
+        Ok(covering::State {
+            meta: meta(1),
+            availability: state::Availability::Available,
+            quality: Some(state::Quality::SourceReported),
+            axes: vec![covering::AxisState {
+                axis: covering::Axis::Lift,
+                current: Some(quantity("ratio", "0.25", "1")),
+                target: None,
+                movement: covering::Movement::Idle,
+            }],
+            safety_status: vec![],
+            fault_status: vec![],
+        })
+    }
+    async fn open(
+        &self,
+        c: receipt::RequestContext,
+        r: covering::AxisRequest,
+    ) -> Result<covering::OperationReceipt, covering::Error> {
+        Ok(covering::OperationReceipt {
+            operation: covering::OperationIntent::Open(r),
+            receipt: command_receipt(c),
+        })
+    }
+    async fn close(
+        &self,
+        c: receipt::RequestContext,
+        r: covering::AxisRequest,
+    ) -> Result<covering::OperationReceipt, covering::Error> {
+        Ok(covering::OperationReceipt {
+            operation: covering::OperationIntent::Close(r),
+            receipt: command_receipt(c),
+        })
+    }
+    async fn stop(
+        &self,
+        c: receipt::RequestContext,
+        r: covering::AxisRequest,
+    ) -> Result<covering::OperationReceipt, covering::Error> {
+        Ok(covering::OperationReceipt {
+            operation: covering::OperationIntent::Stop(r),
+            receipt: command_receipt(c),
+        })
+    }
+    async fn set_position(
+        &self,
+        c: receipt::RequestContext,
+        r: covering::PositionRequest,
+    ) -> Result<covering::OperationReceipt, covering::Error> {
+        Ok(covering::OperationReceipt {
+            operation: covering::OperationIntent::SetPosition(r),
+            receipt: command_receipt(c),
+        })
+    }
+}
+impl provider::GuestMomentaryActionFacet for MomentaryActionFacet {
+    fn key(&self) -> String {
+        "action-1".into()
+    }
+    fn incarnation(&self) -> u64 {
+        1
+    }
+    async fn describe(
+        &self,
+        _: receipt::RequestContext,
+    ) -> Result<momentary::ActionDescriptor, momentary::Error> {
+        Ok(momentary::ActionDescriptor {
+            common: common("action-1", "Action 1", 1, "momentary-action", &["invoke"]),
+            action_id: "fixture-action".into(),
+            risk: momentary::Risk::Routine,
+            operation: momentary::OperationSupport {
+                kind: receipt::OperationKind::Momentary,
+                deduplication: receipt::DeduplicationGuarantee::None,
+                default_deadline_milliseconds: 5_000,
+                maximum_deadline_milliseconds: 5_000,
+            },
+        })
+    }
+    async fn invoke(
+        &self,
+        c: receipt::RequestContext,
+    ) -> Result<momentary::InvokeReceipt, momentary::Error> {
+        Ok(momentary::InvokeReceipt {
+            action_id: "fixture-action".into(),
+            receipt: command_receipt(c),
+        })
+    }
+}
+
 impl provider::GuestRunner for Runner {
     async fn on_off_facets(&self) -> Result<Vec<provider::OnOffFacet>, provider::Error> {
         Ok(vec![
@@ -345,6 +844,33 @@ impl provider::GuestRunner for Runner {
             NotificationSinkFacet,
         )])
     }
+    async fn level_control_facets(
+        &self,
+    ) -> Result<Vec<provider::LevelControlFacet>, provider::Error> {
+        Ok(vec![provider::LevelControlFacet::new(LevelControlFacet)])
+    }
+    async fn color_control_facets(
+        &self,
+    ) -> Result<Vec<provider::ColorControlFacet>, provider::Error> {
+        Ok(vec![provider::ColorControlFacet::new(ColorControlFacet)])
+    }
+    async fn thermostat_facets(&self) -> Result<Vec<provider::ThermostatFacet>, provider::Error> {
+        Ok(vec![provider::ThermostatFacet::new(ThermostatFacet)])
+    }
+    async fn window_covering_facets(
+        &self,
+    ) -> Result<Vec<provider::WindowCoveringFacet>, provider::Error> {
+        Ok(vec![provider::WindowCoveringFacet::new(
+            WindowCoveringFacet,
+        )])
+    }
+    async fn momentary_action_facets(
+        &self,
+    ) -> Result<Vec<provider::MomentaryActionFacet>, provider::Error> {
+        Ok(vec![provider::MomentaryActionFacet::new(
+            MomentaryActionFacet,
+        )])
+    }
 }
 
 impl provider::Guest for Provider {
@@ -353,6 +879,11 @@ impl provider::Guest for Provider {
     type BooleanFacet = BooleanFacet;
     type MeasurementFacet = MeasurementFacet;
     type NotificationSinkFacet = NotificationSinkFacet;
+    type LevelControlFacet = LevelControlFacet;
+    type ColorControlFacet = ColorControlFacet;
+    type ThermostatFacet = ThermostatFacet;
+    type WindowCoveringFacet = WindowCoveringFacet;
+    type MomentaryActionFacet = MomentaryActionFacet;
 
     async fn start(
         instance_id: String,
