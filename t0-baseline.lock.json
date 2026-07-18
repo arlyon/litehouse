@@ -132,13 +132,13 @@
     },
     {
       "edition": "workspace",
-      "name": "mqtt",
-      "path": "plugins/mqtt/Cargo.toml"
+      "name": "noop",
+      "path": "plugins/noop/Cargo.toml"
     },
     {
       "edition": "workspace",
-      "name": "noop",
-      "path": "plugins/noop/Cargo.toml"
+      "name": "ntfy",
+      "path": "plugins/ntfy/Cargo.toml"
     },
     {
       "edition": "workspace",
@@ -152,28 +152,13 @@
     },
     {
       "edition": "workspace",
-      "name": "presence",
-      "path": "plugins/presence/Cargo.toml"
-    },
-    {
-      "edition": "workspace",
       "name": "samsung",
       "path": "plugins/samsung/Cargo.toml"
     },
     {
       "edition": "workspace",
-      "name": "sonoff",
-      "path": "plugins/sonoff/Cargo.toml"
-    },
-    {
-      "edition": "workspace",
       "name": "tasmota",
       "path": "plugins/tasmota/Cargo.toml"
-    },
-    {
-      "edition": "workspace",
-      "name": "weather",
-      "path": "plugins/weather/Cargo.toml"
     }
   ],
   "wit_tree_sha256": "46542161cd249a84d53a374e464f7fa8601ba3d7d059ccb56f7c55cbe20f7701",

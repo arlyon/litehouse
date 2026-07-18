@@ -547,3 +547,28 @@ configuration.
   deterministic compile/plan tests for Boolean/string/i64/quantity comparison;
   explicit false/unknown/stale/error routes; graph, cycle, type, order, bound, and
   unknown-field rejection; immutable-input proof; and stale-assumption rejection.
+
+### R-013 — Keep interim MCP HTTP explicitly reachability-authorized
+
+- **Resolution:** T13a mounts only the existing three-tool `McpAdapter` at
+  `/mcp` over stateful Streamable HTTP. The bind address, allowed hosts, and
+  exact origins are explicit; wildcard authority is rejected. There is no
+  authentication in this tranche: any reachable client receives the fixed
+  adapter principal. One adapter factory remains the sole later-auth seam, and
+  startup emits a prominent structured security warning.
+- **Evidence:** deterministic network transport tests initialize an MCP client,
+  list exactly the three closed tools, call one tool, reject an unknown tool,
+  enforce session capacity and origin policy, and prove bounded graceful
+  shutdown.
+
+### R-014 — Enforce the four-provider first-party release portfolio
+
+- **Resolution:** the published provider group is exactly ESPHome, Tasmota HTTP,
+  ntfy, and Open-Meteo. `noop` and `persistent-task` remain development assets;
+  Samsung remains deferred outside the release group. Empty MQTT, Presence,
+  Sonoff, and legacy Weather shells are removed rather than remapped to broader
+  authority.
+- **Evidence:** Cargo workspace metadata names only the four production provider
+  paths in the release group. Tasmota, ntfy, and Open-Meteo pass deterministic
+  protocol tests and Component Model/runtime-profile admission without live
+  service or hardware access.

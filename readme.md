@@ -46,18 +46,17 @@ First, let's set up a settings file, and a schema file.
 litehouse init && litehouse generate
 ```
 
-Next, we should add some plugins to the import field in `settings.json`.
+The connected-release first-party provider portfolio is deliberately closed to
+ESPHome, Tasmota HTTP, ntfy, and Open-Meteo. Each configured provider instance
+represents one physical device or one explicit remote subject. `noop` and
+`persistent-task` remain development fixtures, while Samsung is deferred and is
+not part of the published provider group.
 
-```diff
-{
-  "$schema": "schema.json",
-- "plugins": {}
-+ "plugins": {},
-+ "imports": ["weather", "tasmota", "samsung"]
-}
-```
+Provider components use `litehouse:provider@1.0.0` and exact per-instance network
+authority. The legacy registry-backed plugin flow below remains available only
+for compatible development plugins.
 
-From there, we can fetch the plugins from the registry, and re-run the
+From there, fetch compatible development plugins from the registry and re-run the
 generate command to update the schema file.
 
 ```bash
@@ -103,10 +102,9 @@ exact HTTP origin or TCP socket to one configured instance:
 ```jsonc
 {
   "plugins": {
-    "weather": {
-      "plugin": "weather@0.1.1",
-      "capabilities": ["http-client:https://api.open-meteo.com"],
-      "config": { "lat": 51.5, "lon": -0.1 }
+    "example": {
+      "plugin": "example@0.1.0",
+      "capabilities": ["http-client:https://api.example.test"]
     }
   }
 }

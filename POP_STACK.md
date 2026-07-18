@@ -1,6 +1,6 @@
 # POP Stack
 
-> Compact execution map for Litehouse's first connected release. Updated 2026-07-17.
+> Compact execution map for Litehouse's first connected release. Updated 2026-07-18.
 
 ## Current position
 
@@ -23,6 +23,14 @@ Current committed foundation:
 | Production provider host | `4254b15` | Store-local typed-resource actor with exact TCP authority and generation fencing |
 | ESPHome component | `e24f212` | Encrypted single-session ESPHome switch and binary-sensor provider |
 | Canonical MCP slice | `62fdbc8` | Three `rmcp` tools over authorized typed handlers with deterministic end-to-end proof |
+| Supervised ESPHome proof | `c81ee1c` | Relay 1 absolute set, observe, restore, and observe through the three MCP tools |
+| Provider HTTP foundation | `428e4d5` | Typed Measurement/Notification resources and exact-origin WASI HTTP authority |
+| Tasmota HTTP | `31f402a` | Bounded private-LAN absolute relay and measurement provider |
+| Complete provider ABI | `263bea6` | All nine typed provider resource families and host projections |
+| Open-Meteo | `e8331a4` | Four attributed current-condition measurements with bounded polling |
+| MCP Streamable HTTP | `20f4685` | Explicit-bind, bounded, intentionally unauthenticated `/mcp` transport |
+| Rule JSON planner | `f8c0bb0` | Closed schema, typed DAG compiler, immutable inputs, and pure effect planning |
+| ntfy | `0030efe` | Fixed-origin/topic notification sink with acceptance-only receipts |
 
 The production worktree should be clean before each phase. Build output belongs under `/home/arlyon/.cache/litehouse-connected-release-target` and project tools run through `mise --no-config`.
 
@@ -56,15 +64,17 @@ Production provider host adapter
   handle-free EndpointDescriptors published to service fabric
           │
           ▼
-ESPHome wasm32-wasip2 component
-  one configured instance = one physical node
-  one encrypted Native API session/cache
-  switch → on-off@1
-  binary sensor → boolean-state@1
+Four first-party wasm32-wasip2 providers
+  ESPHome Native API (one encrypted session/cache)
+  Tasmota exact private-LAN HTTP
+  ntfy exact origin/topic HTTP
+  Open-Meteo fixed non-commercial endpoint
           │
           ▼
-Configured test ESPHome node
-  four switch entities + three binary sensors
+Nine typed provider families
+  On/Off, Boolean, Level, Color, Measurement,
+  Thermostat, Window Covering, Momentary Action,
+  Notification Sink
 ```
 
 The MCP adapter invokes canonical handlers; it never calls Wasmtime directly. The host adapter invokes generated methods on typed `Resource<T>` handles. Those opaque handles never enter another store or the service-fabric registry.
@@ -154,11 +164,13 @@ runtime-only credential material left with the proof process.
 |---|---|---|
 | T5 / T5b | Deferred | Registry replacement, protected publisher, and signing custody; existing registry retained |
 | T6a + MCP proving slice | Completed | ESPHome component, production host adapter, three MCP tools, supervised Relay 1 proof |
-| T6b | Pending | Tasmota HTTP provider |
-| T6c | Pending | ntfy notification provider |
-| T6d | Pending | attributed Open-Meteo provider |
-| T6e | Pending | Enforce the four-provider release portfolio and remove/defer old shells |
-| T7 | Pending | Rule JSON schema, compiler, and pure planner |
+| T6b | Completed | Tasmota HTTP provider |
+| T6c | Completed | ntfy notification provider |
+| T6d | Completed | attributed Open-Meteo provider |
+| T6e | Completed | Four-provider release group; empty MQTT, Presence, Sonoff, and Weather shells removed |
+| T6f | In progress | Expand ESPHome across every conservatively representable typed facet |
+| T7 | Completed | Rule JSON schema, typed compiler, immutable input, and pure planner subset |
+| T13a | Completed | Network-reachable bounded Streamable HTTP with explicit no-auth warning |
 | T8 | Pending | Durable canonical management core and rule execution; adopt the proving handlers |
 | T9 | Pending | Portable local server/container and thin Butane/Quadlet output |
 | T10 | Pending | Clean D1 identity, owner account, inventory, and pairing |
@@ -184,8 +196,8 @@ runtime-only credential material left with the proof process.
 
 - Workspace-wide `cargo check --workspace --all-targets` remains blocked by the pre-existing registry test reference to unresolved `crate::registry` in `partitioned_store.rs`.
 - `cargo groups test bin` may remain unavailable because `cargo-groups`/`cargo-binstall` is not installed; run the documented clean-worktree package equivalents and report the limitation.
-- The initial MCP proof transport is not a production remote endpoint. Authenticated `/mcp` remains T13 work.
-- The first vertical slice supports ESPHome switches and binary sensors. Light Level/Color, measurements, climate, covering, and momentary actions build out through the same proven resource pattern afterward.
+- `/mcp` is network-reachable but intentionally unauthenticated in T13a: reachability grants use. Authenticated `/mcp` remains T13 work.
+- ESPHome switches and binary sensors are proven. Light Level/Color, measurements, climate, covering, and momentary actions are the active T6f expansion.
 - Shared-store T3 failures still require process restart for reactivation; this provider uses the default per-instance strategy.
 
 ## Compaction handoff
@@ -198,4 +210,4 @@ After context compaction, reorient in this order:
 4. `git status --short` and `git log --oneline -8`
 5. The active combined T6a + MCP todo subtree
 
-The next implementation action is **T6b: implement the Tasmota HTTP provider** after the final combined-slice validation commit. Do not reopen T0–T4, the typed-resource feasibility question, or the proven three-tool adapter unless a demonstrated regression requires it.
+The next implementation action is **finish T6f: expand ESPHome across the complete typed provider surface**, then run the combined provider/MCP/Rule JSON release validation. Do not reopen T0–T4, the typed-resource feasibility question, or the proven three-tool adapter unless a demonstrated regression requires it.
