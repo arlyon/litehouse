@@ -8,6 +8,9 @@ wit_bindgen::generate!({
         "../litehouse-contracts/packages/receipt/1.0.0/wit",
         "../litehouse-contracts/packages/on-off/1.0.0/wit",
         "../litehouse-contracts/packages/boolean-state/1.0.0/wit",
+        "../litehouse-contracts/packages/quantity/1.0.0/wit",
+        "../litehouse-contracts/packages/measurement/1.0.0/wit",
+        "../litehouse-contracts/packages/notification-sink/1.0.0/wit",
         "../litehouse-contracts/packages/provider/1.0.0/wit",
     ],
     world: "litehouse:provider/component@1.0.0",
@@ -17,7 +20,9 @@ wit_bindgen::generate!({
 use exports::litehouse::provider::provider;
 use litehouse::{
     boolean_state::types as boolean, descriptor::types as descriptor, errors::types as errors,
-    on_off::types as on_off, receipt::types as receipt, state::types as state,
+    measurement::types as measurement, notification_sink::types as notification,
+    on_off::types as on_off, quantity::types as quantity, receipt::types as receipt,
+    state::types as state,
 };
 use std::sync::{
     Arc,
@@ -38,6 +43,9 @@ struct BooleanFacet {
     current: AtomicBool,
     revision: AtomicU64,
 }
+
+struct MeasurementFacet;
+struct NotificationSinkFacet;
 
 fn common(
     key: &str,
@@ -85,6 +93,123 @@ fn meta(revision: u64) -> state::ObservationMeta {
 
 fn never_error() -> errors::RetryAdvice {
     errors::RetryAdvice::Never
+}
+
+impl provider::GuestMeasurementFacet for MeasurementFacet {
+    fn key(&self) -> String {
+        "temperature-1".into()
+    }
+
+    fn incarnation(&self) -> u64 {
+        1
+    }
+
+    async fn describe(
+        &self,
+        _context: receipt::RequestContext,
+    ) -> Result<measurement::MeasurementDescriptor, measurement::Error> {
+        Ok(measurement::MeasurementDescriptor {
+            common: common(
+                "temperature-1",
+                "Temperature 1",
+                1,
+                "measurement",
+                &["query"],
+            ),
+            profile: "temperature".into(),
+            kind: measurement::MeasurementKind::Instantaneous,
+            state_fields: vec![
+                measurement::StateField::Current,
+                measurement::StateField::NativeRepresentation,
+            ],
+            events: vec![measurement::EventKind::Observation],
+            bounds: measurement::MeasurementBounds {
+                minimum: None,
+                maximum: None,
+                resolution: None,
+                step: None,
+                tolerance: None,
+            },
+        })
+    }
+
+    async fn query(
+        &self,
+        _context: receipt::RequestContext,
+    ) -> Result<measurement::State, measurement::Error> {
+        Ok(measurement::State {
+            meta: meta(1),
+            availability: state::Availability::Available,
+            quality: Some(state::Quality::SourceReported),
+            current: Some(quantity::Quantity {
+                profile: "temperature".into(),
+                magnitude: "21.5".into(),
+                unit: "Cel".into(),
+            }),
+            native: Some(quantity::NativeRepresentation {
+                magnitude: "21.5".into(),
+                unit: "°C".into(),
+                quantization: None,
+            }),
+        })
+    }
+}
+
+impl provider::GuestNotificationSinkFacet for NotificationSinkFacet {
+    fn key(&self) -> String {
+        "notification".into()
+    }
+
+    fn incarnation(&self) -> u64 {
+        1
+    }
+
+    async fn describe(
+        &self,
+        _context: receipt::RequestContext,
+    ) -> Result<notification::NotificationDescriptor, notification::Error> {
+        Ok(notification::NotificationDescriptor {
+            common: common(
+                "notification",
+                "Notification",
+                1,
+                "notification-sink",
+                &["send"],
+            ),
+            supported_fields: vec![
+                notification::OptionalField::Title,
+                notification::OptionalField::Priority,
+            ],
+            maximum_title_bytes: 256,
+            maximum_body_bytes: 4096,
+            maximum_receipt_confidence: receipt::ReceiptConfidence::AcceptedForDelivery,
+            operation: notification::OperationSupport {
+                kind: receipt::OperationKind::Momentary,
+                deduplication: receipt::DeduplicationGuarantee::None,
+                default_deadline_milliseconds: 8_000,
+                maximum_deadline_milliseconds: 8_000,
+            },
+        })
+    }
+
+    async fn send(
+        &self,
+        context: receipt::RequestContext,
+        _value: notification::Notification,
+    ) -> Result<notification::SendReceipt, notification::Error> {
+        Ok(notification::SendReceipt {
+            receipt: receipt::CommandReceipt {
+                request_id: context.request_id,
+                attempt: context.attempt,
+                provider_generation: 0,
+                confidence: receipt::ReceiptConfidence::AcceptedForDelivery,
+                accepted_at_unix_milliseconds: 1_700_000_000_200,
+                completed_at_unix_milliseconds: None,
+                idempotency_key: context.idempotency.map(|value| value.key),
+            },
+            provider_message_id: Some("fixture-message".into()),
+        })
+    }
 }
 
 impl provider::GuestOnOffFacet for OnOffFacet {
@@ -208,12 +333,26 @@ impl provider::GuestRunner for Runner {
             revision: AtomicU64::new(1),
         })])
     }
+
+    async fn measurement_facets(&self) -> Result<Vec<provider::MeasurementFacet>, provider::Error> {
+        Ok(vec![provider::MeasurementFacet::new(MeasurementFacet)])
+    }
+
+    async fn notification_sink_facets(
+        &self,
+    ) -> Result<Vec<provider::NotificationSinkFacet>, provider::Error> {
+        Ok(vec![provider::NotificationSinkFacet::new(
+            NotificationSinkFacet,
+        )])
+    }
 }
 
 impl provider::Guest for Provider {
     type Runner = Runner;
     type OnOffFacet = OnOffFacet;
     type BooleanFacet = BooleanFacet;
+    type MeasurementFacet = MeasurementFacet;
+    type NotificationSinkFacet = NotificationSinkFacet;
 
     async fn start(
         instance_id: String,

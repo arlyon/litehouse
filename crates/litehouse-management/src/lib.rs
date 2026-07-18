@@ -162,11 +162,30 @@ pub enum Quality {
     SourceAssumed,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum FacetState {
-    OnOff { current: Option<bool> },
-    BooleanState { current: Option<bool> },
+    OnOff {
+        current: Option<bool>,
+    },
+    BooleanState {
+        current: Option<bool>,
+    },
+    Measurement {
+        current: Option<MeasurementStateValue>,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MeasurementStateValue {
+    pub profile: String,
+    pub magnitude: String,
+    pub unit: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub native_magnitude: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub native_unit: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -641,7 +660,8 @@ fn tool_result<T: Serialize>(result: Result<T, ManagementError>) -> CallToolResu
 fn canonical_operations(kind: FacetKind) -> Vec<String> {
     match kind {
         FacetKind::OnOff => vec![QUERY_OPERATION.into(), SET_OPERATION.into()],
-        FacetKind::BooleanState => vec![QUERY_OPERATION.into()],
+        FacetKind::BooleanState | FacetKind::Measurement => vec![QUERY_OPERATION.into()],
+        FacetKind::NotificationSink => vec!["capability.notification.send@1".into()],
     }
 }
 
@@ -674,6 +694,15 @@ fn query_result(facet_id: String, state: HostFacetState) -> FacetQueryResult {
         state: match state.value {
             HostFacetValue::OnOff(current) => FacetState::OnOff { current },
             HostFacetValue::BooleanState(current) => FacetState::BooleanState { current },
+            HostFacetValue::Measurement(current) => FacetState::Measurement {
+                current: current.map(|value| MeasurementStateValue {
+                    profile: value.profile,
+                    magnitude: value.magnitude,
+                    unit: value.unit,
+                    native_magnitude: value.native_magnitude,
+                    native_unit: value.native_unit,
+                }),
+            },
         },
     }
 }

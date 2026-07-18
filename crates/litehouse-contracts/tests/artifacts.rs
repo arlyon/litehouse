@@ -163,8 +163,16 @@ fn provider_reuses_execution_free_capability_types() {
     let provider = fs::read_to_string(root.join("provider/1.0.0/wit/provider.wit")).unwrap();
     assert!(provider.contains("litehouse:on-off/types@1.0.0"));
     assert!(provider.contains("litehouse:boolean-state/types@1.0.0"));
-    assert!(!provider.contains("litehouse:on-off/capability@1.0.0"));
-    assert!(!provider.contains("litehouse:boolean-state/capability@1.0.0"));
+    assert!(provider.contains("litehouse:measurement/types@1.0.0"));
+    assert!(provider.contains("litehouse:notification-sink/types@1.0.0"));
+    for package in [
+        "on-off",
+        "boolean-state",
+        "measurement",
+        "notification-sink",
+    ] {
+        assert!(!provider.contains(&format!("litehouse:{package}/capability@1.0.0")));
+    }
 
     let mut package_roots = fs::read_dir(&root)
         .unwrap()
@@ -175,7 +183,12 @@ fn provider_reuses_execution_free_capability_types() {
         .iter()
         .map(|path| UnresolvedPackageGroup::parse_dir(path).unwrap())
         .collect::<Vec<_>>();
-    for package in ["on-off", "boolean-state"] {
+    for package in [
+        "on-off",
+        "boolean-state",
+        "measurement",
+        "notification-sink",
+    ] {
         let source = groups
             .iter()
             .position(|group| group.main.name.name == package)

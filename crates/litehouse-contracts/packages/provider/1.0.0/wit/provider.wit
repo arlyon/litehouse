@@ -3,6 +3,8 @@ package litehouse:provider@1.0.0;
 interface provider {
   use litehouse:boolean-state/types@1.0.0.{boolean-descriptor, error as boolean-error, state as boolean-state};
   use litehouse:errors/types@1.0.0.{core-error, retry-advice};
+  use litehouse:measurement/types@1.0.0.{error as measurement-error, measurement-descriptor, state as measurement-state};
+  use litehouse:notification-sink/types@1.0.0.{error as notification-error, notification, notification-descriptor, send-receipt};
   use litehouse:on-off/types@1.0.0.{error as on-off-error, on-off-descriptor, operation-receipt, set-request, state as on-off-state};
   use litehouse:receipt/types@1.0.0.{request-context};
 
@@ -28,9 +30,25 @@ interface provider {
     query: async func(context: request-context) -> result<boolean-state, boolean-error>;
   }
 
+  resource measurement-facet {
+    key: func() -> string;
+    incarnation: func() -> u64;
+    describe: async func(context: request-context) -> result<measurement-descriptor, measurement-error>;
+    query: async func(context: request-context) -> result<measurement-state, measurement-error>;
+  }
+
+  resource notification-sink-facet {
+    key: func() -> string;
+    incarnation: func() -> u64;
+    describe: async func(context: request-context) -> result<notification-descriptor, notification-error>;
+    send: async func(context: request-context, value: notification) -> result<send-receipt, notification-error>;
+  }
+
   resource runner {
     on-off-facets: async func() -> result<list<own<on-off-facet>>, error>;
     boolean-facets: async func() -> result<list<own<boolean-facet>>, error>;
+    measurement-facets: async func() -> result<list<own<measurement-facet>>, error>;
+    notification-sink-facets: async func() -> result<list<own<notification-sink-facet>>, error>;
   }
 
   start: async func(instance-id: string, config: string) -> result<own<runner>, error>;

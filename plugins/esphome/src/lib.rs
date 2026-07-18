@@ -14,6 +14,9 @@ wit_bindgen::generate!({
         "../../crates/litehouse-contracts/packages/receipt/1.0.0/wit",
         "../../crates/litehouse-contracts/packages/on-off/1.0.0/wit",
         "../../crates/litehouse-contracts/packages/boolean-state/1.0.0/wit",
+        "../../crates/litehouse-contracts/packages/quantity/1.0.0/wit",
+        "../../crates/litehouse-contracts/packages/measurement/1.0.0/wit",
+        "../../crates/litehouse-contracts/packages/notification-sink/1.0.0/wit",
         "../../crates/litehouse-contracts/packages/provider/1.0.0/wit",
     ],
     world: "litehouse:provider/component@1.0.0",
@@ -23,6 +26,7 @@ wit_bindgen::generate!({
 use exports::litehouse::provider::provider;
 use litehouse::{
     boolean_state::types as boolean, descriptor::types as descriptor, errors::types as errors,
+    measurement::types as measurement, notification_sink::types as notification,
     on_off::types as on_off, receipt::types as receipt, state::types as state,
 };
 use session::{BooleanProfile, Locator, NodeSession, SessionError, now_unix_milliseconds};
@@ -59,10 +63,15 @@ struct BooleanFacet {
     session: Arc<Mutex<NodeSession>>,
 }
 
+enum NeverMeasurementFacet {}
+enum NeverNotificationSinkFacet {}
+
 impl provider::Guest for EspHomeProvider {
     type Runner = Runner;
     type OnOffFacet = OnOffFacet;
     type BooleanFacet = BooleanFacet;
+    type MeasurementFacet = NeverMeasurementFacet;
+    type NotificationSinkFacet = NeverNotificationSinkFacet;
 
     async fn start(
         instance_id: String,
@@ -116,6 +125,65 @@ impl provider::GuestRunner for Runner {
                 })
             })
             .collect())
+    }
+
+    async fn measurement_facets(&self) -> Result<Vec<provider::MeasurementFacet>, provider::Error> {
+        Ok(Vec::new())
+    }
+
+    async fn notification_sink_facets(
+        &self,
+    ) -> Result<Vec<provider::NotificationSinkFacet>, provider::Error> {
+        Ok(Vec::new())
+    }
+}
+
+impl provider::GuestMeasurementFacet for NeverMeasurementFacet {
+    fn key(&self) -> String {
+        match *self {}
+    }
+
+    fn incarnation(&self) -> u64 {
+        match *self {}
+    }
+
+    async fn describe(
+        &self,
+        _context: receipt::RequestContext,
+    ) -> Result<measurement::MeasurementDescriptor, measurement::Error> {
+        match *self {}
+    }
+
+    async fn query(
+        &self,
+        _context: receipt::RequestContext,
+    ) -> Result<measurement::State, measurement::Error> {
+        match *self {}
+    }
+}
+
+impl provider::GuestNotificationSinkFacet for NeverNotificationSinkFacet {
+    fn key(&self) -> String {
+        match *self {}
+    }
+
+    fn incarnation(&self) -> u64 {
+        match *self {}
+    }
+
+    async fn describe(
+        &self,
+        _context: receipt::RequestContext,
+    ) -> Result<notification::NotificationDescriptor, notification::Error> {
+        match *self {}
+    }
+
+    async fn send(
+        &self,
+        _context: receipt::RequestContext,
+        _value: notification::Notification,
+    ) -> Result<notification::SendReceipt, notification::Error> {
+        match *self {}
     }
 }
 

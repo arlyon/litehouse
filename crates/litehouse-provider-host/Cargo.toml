@@ -10,6 +10,9 @@ repository.workspace = true
 publish = false
 
 [dependencies]
+bytes = "1.7.1"
+http-body-util = "0.1.2"
+hyper = "1.4.1"
 litehouse-contracts = { version = "0.1.0", path = "../litehouse-contracts" }
 litehouse-service-fabric = { version = "0.1.0", path = "../litehouse-service-fabric" }
 tokio = { version = "1.48.0", features = [
@@ -19,7 +22,11 @@ tokio = { version = "1.48.0", features = [
   "time",
 ] }
 wasmtime = "46.0.1"
-wasmtime-wasi = "46.0.1"
+wasmtime-wasi = { version = "46.0.1", features = ["p3"] }
+wasmtime-wasi-http = { version = "46.0.1", default-features = false, features = [
+  "default-send-request",
+  "p3",
+] }
 
 [dev-dependencies]
 anyhow = "1.0.86"

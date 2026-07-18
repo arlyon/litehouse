@@ -54,6 +54,7 @@ async fn three_rmcp_tools_use_canonical_handlers_and_no_generic_dispatch() -> an
             generation,
             config_json: "fixture".into(),
             allowed_tcp_addresses: BTreeSet::new(),
+            allowed_http_origins: BTreeSet::new(),
             startup_timeout: Duration::from_secs(5),
         },
         Arc::new(Mutex::new(fabric::ServiceFabric::default())),
@@ -127,7 +128,7 @@ async fn three_rmcp_tools_use_canonical_handlers_and_no_generic_dispatch() -> an
     let inventory: InventorySnapshot =
         serde_json::from_value(inventory.structured_content.unwrap())?;
     assert_eq!(inventory.instances.len(), 1);
-    assert_eq!(inventory.instances[0].facets.len(), 3);
+    assert_eq!(inventory.instances[0].facets.len(), 5);
     let relay = inventory.instances[0]
         .facets
         .iter()

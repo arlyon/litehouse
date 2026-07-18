@@ -490,3 +490,18 @@ configuration.
   observation reached revision 2, and the restored Off observation reached
   revision 3. The proof process exited successfully and retained no credential
   file or child process.
+
+### R-010 — Complete provider v1 in place before external release
+
+- **Resolution:** complete the unreleased `litehouse:provider@1.0.0` execution
+  ABI in bounded additive phases rather than maintaining a second pre-release
+  ABI. Measurement and Notification Sink now use execution-free `types`
+  interfaces and repeated typed guest resources; no generic facet or operation
+  envelope is introduced. Existing ESPHome and fixture components are rebuilt
+  against the completed world. The host retains tags as structured metadata and
+  grants HTTP only by exact scheme, host, and port.
+- **Evidence:** deterministic component tests return On/Off, Boolean,
+  Measurement, and Notification Sink resources from one store; the production
+  host queries typed quantities, sends a typed notification, fences stale
+  generations, withdraws endpoints, and still passes the full encrypted
+  ESPHome Noise → Wasmtime → canonical handler → MCP regression path.

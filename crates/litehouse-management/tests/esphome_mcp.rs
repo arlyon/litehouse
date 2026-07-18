@@ -121,6 +121,7 @@ async fn noise_to_wasmtime_to_canonical_handlers_to_rmcp_is_one_path() -> anyhow
             generation,
             config_json: format!(r#"{{"address":"{address}","noise_key":"{FIXTURE_KEY}"}}"#),
             allowed_tcp_addresses: BTreeSet::from([address]),
+            allowed_http_origins: BTreeSet::new(),
             startup_timeout: Duration::from_secs(10),
         },
         Arc::new(Mutex::new(fabric::ServiceFabric::default())),

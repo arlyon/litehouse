@@ -3244,12 +3244,16 @@ name = "litehouse-provider-host"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bytes",
  "esphome-native-api",
+ "http-body-util",
+ "hyper 1.10.1",
  "litehouse-contracts",
  "litehouse-service-fabric",
  "tokio",
  "wasmtime",
  "wasmtime-wasi",
+ "wasmtime-wasi-http",
 ]
 
 [[package]]

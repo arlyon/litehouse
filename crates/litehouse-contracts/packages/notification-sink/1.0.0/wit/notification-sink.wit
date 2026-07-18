@@ -1,9 +1,9 @@
 package litehouse:notification-sink@1.0.0;
 
-interface capability {
+interface types {
   use litehouse:descriptor/types@1.0.0.{facet-descriptor};
   use litehouse:errors/types@1.0.0.{core-error, retry-advice};
-  use litehouse:receipt/types@1.0.0.{command-receipt, deduplication-guarantee, operation-kind, receipt-confidence, request-context};
+  use litehouse:receipt/types@1.0.0.{command-receipt, deduplication-guarantee, operation-kind, receipt-confidence};
 
   enum priority {
     low,
@@ -67,6 +67,11 @@ interface capability {
     message: option<string>,
     error-id: string,
   }
+}
+
+interface capability {
+  use litehouse:receipt/types@1.0.0.{request-context};
+  use types.{error, notification, notification-descriptor, send-receipt};
 
   describe: async func(context: request-context) -> result<notification-descriptor, error>;
   send: async func(context: request-context, notification: notification) -> result<send-receipt, error>;

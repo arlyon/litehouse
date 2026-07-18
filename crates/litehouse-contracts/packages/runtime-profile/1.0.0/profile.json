@@ -48,7 +48,8 @@
       "package": "litehouse:measurement",
       "version": "1.0.0",
       "interfaces": [
-        "capability"
+        "capability",
+        "types"
       ]
     },
     {
@@ -62,7 +63,8 @@
       "package": "litehouse:notification-sink",
       "version": "1.0.0",
       "interfaces": [
-        "capability"
+        "capability",
+        "types"
       ]
     },
     {

@@ -71,6 +71,7 @@ async fn main() -> anyhow::Result<()> {
                 "noise_key": noise_key.as_str()
             }))?,
             allowed_tcp_addresses: BTreeSet::from([address]),
+            allowed_http_origins: BTreeSet::new(),
             startup_timeout: Duration::from_secs(15),
         },
         Arc::new(Mutex::new(fabric::ServiceFabric::default())),

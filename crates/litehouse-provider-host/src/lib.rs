@@ -3,12 +3,15 @@
 //! Guest resource handles remain in the actor that owns their store. Public
 //! inventory contains only host-owned identities and descriptors.
 
+use bytes::Bytes;
+use http_body_util::{BodyExt, combinators::UnsyncBoxBody};
 use litehouse_contracts::identity::Version;
 use litehouse_service_fabric as fabric;
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
     error::Error,
     fmt,
+    future::Future,
     net::SocketAddr,
     sync::{
         Arc, Mutex,
@@ -22,7 +25,15 @@ use wasmtime::component::{
 };
 use wasmtime::{Engine, Store};
 use wasmtime_wasi::{
-    HostMonotonicClock, WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView, sockets::SocketAddrUse,
+    HostMonotonicClock, TrappableError, WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView,
+    sockets::SocketAddrUse,
+};
+use wasmtime_wasi_http::{
+    WasiHttpCtx,
+    p3::{
+        RequestOptions, WasiHttpCtxView, WasiHttpHooks, WasiHttpView,
+        bindings::http::types::ErrorCode, default_send_request,
+    },
 };
 
 const MAX_FACETS: usize = 512;
@@ -38,6 +49,82 @@ fn tcp_address_allowed(
     matches!(usage, SocketAddrUse::TcpConnect) && allowed.contains(&address)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct HttpOrigin {
+    scheme: String,
+    host: String,
+    port: u16,
+}
+
+impl HttpOrigin {
+    pub fn new(scheme: &str, host: &str, port: u16) -> Result<Self, &'static str> {
+        let scheme = scheme.to_ascii_lowercase();
+        let host = host.to_ascii_lowercase();
+        if !matches!(scheme.as_str(), "http" | "https")
+            || host.is_empty()
+            || host.len() > 253
+            || !host.is_ascii()
+            || host
+                .bytes()
+                .any(|byte| byte.is_ascii_control() || matches!(byte, b'/' | b'@' | b'#' | b'?'))
+            || port == 0
+        {
+            return Err("invalid exact HTTP origin");
+        }
+        Ok(Self { scheme, host, port })
+    }
+
+    fn permits(&self, scheme: &str, authority: &hyper::http::uri::Authority) -> bool {
+        let request_port = authority.port_u16().or(match scheme {
+            "http" => Some(80),
+            "https" => Some(443),
+            _ => None,
+        });
+        self.scheme.eq_ignore_ascii_case(scheme)
+            && self.host.eq_ignore_ascii_case(authority.host())
+            && request_port == Some(self.port)
+    }
+}
+
+type HttpBody = UnsyncBoxBody<Bytes, ErrorCode>;
+type HttpIo = Box<dyn Future<Output = Result<(), ErrorCode>> + Send>;
+type HttpResponse = (hyper::Response<HttpBody>, HttpIo);
+type HttpFuture = Box<dyn Future<Output = Result<HttpResponse, TrappableError<ErrorCode>>> + Send>;
+
+struct ProviderHttpHooks {
+    allowed_origins: BTreeSet<HttpOrigin>,
+}
+
+impl WasiHttpHooks for ProviderHttpHooks {
+    fn send_request(
+        &mut self,
+        request: hyper::Request<HttpBody>,
+        options: Option<RequestOptions>,
+        response_io: HttpIo,
+    ) -> HttpFuture {
+        let permitted = request
+            .uri()
+            .scheme_str()
+            .zip(request.uri().authority())
+            .is_some_and(|(scheme, authority)| {
+                self.allowed_origins
+                    .iter()
+                    .any(|origin| origin.permits(scheme, authority))
+            });
+        if !permitted {
+            return Box::new(async { Err(ErrorCode::HttpRequestDenied.into()) });
+        }
+        drop(response_io);
+        Box::new(async move {
+            let (response, response_io) = default_send_request(request, options).await?;
+            Ok((
+                response.map(BodyExt::boxed_unsync),
+                Box::new(response_io) as HttpIo,
+            ))
+        })
+    }
+}
+
 mod bindings {
     wasmtime::component::bindgen!({
         path: [
@@ -47,6 +134,9 @@ mod bindings {
             "../litehouse-contracts/packages/receipt/1.0.0/wit",
             "../litehouse-contracts/packages/on-off/1.0.0/wit",
             "../litehouse-contracts/packages/boolean-state/1.0.0/wit",
+            "../litehouse-contracts/packages/quantity/1.0.0/wit",
+            "../litehouse-contracts/packages/measurement/1.0.0/wit",
+            "../litehouse-contracts/packages/notification-sink/1.0.0/wit",
             "../litehouse-contracts/packages/provider/1.0.0/wit",
         ],
         world: "litehouse:provider/component@1.0.0",
@@ -59,14 +149,17 @@ mod bindings {
 use bindings::exports::litehouse::provider::provider as wire_provider;
 use bindings::litehouse::{
     boolean_state::types as wire_boolean, descriptor::types as wire_descriptor,
-    errors::types as wire_error, on_off::types as wire_on_off, receipt::types as wire_receipt,
-    state::types as wire_state,
+    errors::types as wire_error, measurement::types as wire_measurement,
+    notification_sink::types as wire_notification, on_off::types as wire_on_off,
+    quantity::types as wire_quantity, receipt::types as wire_receipt, state::types as wire_state,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FacetKind {
     OnOff,
     BooleanState,
+    Measurement,
+    NotificationSink,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -75,6 +168,7 @@ pub struct HostFacetDescriptor {
     kind: FacetKind,
     label: Option<String>,
     semantic_profile: Option<String>,
+    tags: Vec<SemanticTag>,
 }
 
 impl HostFacetDescriptor {
@@ -93,6 +187,17 @@ impl HostFacetDescriptor {
     pub fn semantic_profile(&self) -> Option<&str> {
         self.semantic_profile.as_deref()
     }
+
+    pub fn tags(&self) -> &[SemanticTag] {
+        &self.tags
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SemanticTag {
+    pub namespace: String,
+    pub name: String,
+    pub value: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -117,10 +222,20 @@ pub enum Availability {
     Stale { since_unix_milliseconds: u64 },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FacetValue {
     OnOff(Option<bool>),
     BooleanState(Option<bool>),
+    Measurement(Option<MeasurementValue>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MeasurementValue {
+    pub profile: String,
+    pub magnitude: String,
+    pub unit: String,
+    pub native_magnitude: Option<String>,
+    pub native_unit: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -155,6 +270,34 @@ pub struct CommandReceipt {
     pub deduplicated: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NotificationPriority {
+    Low,
+    Normal,
+    High,
+    Urgent,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NotificationRequest {
+    pub body: String,
+    pub title: Option<String>,
+    pub priority: Option<NotificationPriority>,
+    pub expires_at_unix_milliseconds: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NotificationReceipt {
+    pub endpoint: fabric::EndpointIdentity,
+    pub request_id: String,
+    pub attempt: u32,
+    pub provider_generation: fabric::Generation,
+    pub confidence: ReceiptConfidence,
+    pub accepted_at_unix_milliseconds: u64,
+    pub idempotency_key: Option<String>,
+    pub provider_message_id: Option<String>,
+}
+
 #[derive(Debug, Clone)]
 pub struct CallContext {
     pub request_id: String,
@@ -170,6 +313,7 @@ pub struct ProviderConfig {
     pub generation: fabric::Generation,
     pub config_json: String,
     pub allowed_tcp_addresses: BTreeSet<SocketAddr>,
+    pub allowed_http_origins: BTreeSet<HttpOrigin>,
     pub startup_timeout: Duration,
 }
 
@@ -240,6 +384,8 @@ impl HostMonotonicClock for SharedMonotonicClock {
 struct ProviderStore {
     table: ResourceTable,
     wasi: WasiCtx,
+    http: WasiHttpCtx,
+    http_hooks: ProviderHttpHooks,
     clock_started: StdInstant,
 }
 
@@ -252,12 +398,25 @@ impl WasiView for ProviderStore {
     }
 }
 
+impl WasiHttpView for ProviderStore {
+    fn http(&mut self) -> WasiHttpCtxView<'_> {
+        WasiHttpCtxView {
+            ctx: &mut self.http,
+            table: &mut self.table,
+            hooks: &mut self.http_hooks,
+        }
+    }
+}
+
 impl wire_descriptor::Host for ProviderStore {}
 impl wire_error::Host for ProviderStore {}
 impl wire_receipt::Host for ProviderStore {}
 impl wire_state::Host for ProviderStore {}
 impl wire_boolean::Host for ProviderStore {}
+impl wire_measurement::Host for ProviderStore {}
+impl wire_notification::Host for ProviderStore {}
 impl wire_on_off::Host for ProviderStore {}
+impl wire_quantity::Host for ProviderStore {}
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct HandleKey {
@@ -334,6 +493,12 @@ enum ActorRequest {
         value: bool,
         context: CallContext,
         reply: oneshot::Sender<Result<CommandReceipt, ProviderHostError>>,
+    },
+    SendNotification {
+        endpoint: fabric::EndpointIdentity,
+        value: NotificationRequest,
+        context: CallContext,
+        reply: oneshot::Sender<Result<NotificationReceipt, ProviderHostError>>,
     },
 }
 
@@ -417,6 +582,42 @@ impl ProviderHandle {
             .map_err(|_| ProviderHostError::ActorStopped)?
     }
 
+    pub async fn send_notification(
+        &self,
+        endpoint: &fabric::EndpointIdentity,
+        expected_generation: fabric::Generation,
+        value: NotificationRequest,
+        context: CallContext,
+    ) -> Result<NotificationReceipt, ProviderHostError> {
+        self.validate_target(endpoint, expected_generation)?;
+        let deadline = context.deadline;
+        let request_id = context.request_id.clone();
+        let attempt = context.attempt;
+        let idempotency_key = context.idempotency_key.clone();
+        let (reply, result) = oneshot::channel();
+        let permit = tokio::time::timeout_at(deadline, self.sender.reserve())
+            .await
+            .map_err(|_| deadline_error(deadline))?
+            .map_err(|_| ProviderHostError::ActorStopped)?;
+        permit.send(ActorRequest::SendNotification {
+            endpoint: endpoint.clone(),
+            value,
+            context,
+            reply,
+        });
+        tokio::time::timeout_at(deadline, result)
+            .await
+            .map_err(|_| {
+                outcome_unknown(
+                    fabric::UnknownOutcomeCause::DeadlineExceeded,
+                    request_id,
+                    attempt,
+                    idempotency_key,
+                )
+            })?
+            .map_err(|_| ProviderHostError::ActorStopped)?
+    }
+
     fn validate_target(
         &self,
         endpoint: &fabric::EndpointIdentity,
@@ -459,6 +660,7 @@ pub async fn start_provider(
         started: clock_started,
     };
     let allowed_tcp_addresses = config.allowed_tcp_addresses;
+    let allowed_http_origins = config.allowed_http_origins;
     let mut wasi = WasiCtxBuilder::new();
     wasi.monotonic_clock(clock)
         .socket_addr_check(move |address, usage| {
@@ -470,6 +672,10 @@ pub async fn start_provider(
         ProviderStore {
             table: ResourceTable::new(),
             wasi: wasi.build(),
+            http: WasiHttpCtx::new(),
+            http_hooks: ProviderHttpHooks {
+                allowed_origins: allowed_http_origins,
+            },
             clock_started,
         },
     );
@@ -477,6 +683,8 @@ pub async fn start_provider(
 
     let mut linker = Linker::new(engine);
     wasmtime_wasi::p2::add_to_linker_async(&mut linker)
+        .map_err(|_| ProviderHostError::ComponentLinkFailed)?;
+    wasmtime_wasi_http::p3::add_to_linker(&mut linker)
         .map_err(|_| ProviderHostError::ComponentLinkFailed)?;
     bindings::Component::add_to_linker::<_, HasSelf<_>>(&mut linker, |data| data)
         .map_err(|_| ProviderHostError::ComponentLinkFailed)?;
@@ -506,21 +714,37 @@ pub async fn start_provider(
     .map_err(provider_error)?;
 
     set_store_deadline(&mut store, deadline)?;
-    let (on_off_handles, boolean_handles) = tokio::time::timeout_at(
-        deadline,
-        store.run_concurrent(async |accessor| {
-            let on_off = guest.runner().call_on_off_facets(accessor, runner).await?;
-            let boolean = guest.runner().call_boolean_facets(accessor, runner).await?;
-            Ok::<_, wasmtime::Error>((on_off, boolean))
-        }),
-    )
-    .await
-    .map_err(|_| deadline_error(deadline))?
-    .map_err(|_| ProviderHostError::ProviderStartFailed)?
-    .map_err(|_| ProviderHostError::ProviderStartFailed)?;
+    let (on_off_handles, boolean_handles, measurement_handles, notification_handles) =
+        tokio::time::timeout_at(
+            deadline,
+            store.run_concurrent(async |accessor| {
+                let on_off = guest.runner().call_on_off_facets(accessor, runner).await?;
+                let boolean = guest.runner().call_boolean_facets(accessor, runner).await?;
+                let measurement = guest
+                    .runner()
+                    .call_measurement_facets(accessor, runner)
+                    .await?;
+                let notification = guest
+                    .runner()
+                    .call_notification_sink_facets(accessor, runner)
+                    .await?;
+                Ok::<_, wasmtime::Error>((on_off, boolean, measurement, notification))
+            }),
+        )
+        .await
+        .map_err(|_| deadline_error(deadline))?
+        .map_err(|_| ProviderHostError::ProviderStartFailed)?
+        .map_err(|_| ProviderHostError::ProviderStartFailed)?;
     let on_off_handles = on_off_handles.map_err(provider_error)?;
     let boolean_handles = boolean_handles.map_err(provider_error)?;
-    if on_off_handles.len() + boolean_handles.len() > MAX_FACETS {
+    let measurement_handles = measurement_handles.map_err(provider_error)?;
+    let notification_handles = notification_handles.map_err(provider_error)?;
+    if on_off_handles.len()
+        + boolean_handles.len()
+        + measurement_handles.len()
+        + notification_handles.len()
+        > MAX_FACETS
+    {
         return Err(ProviderHostError::TooManyFacets);
     }
 
@@ -565,6 +789,56 @@ pub async fn start_provider(
                 .insert(
                     HandleKey {
                         kind: FacetKind::BooleanState,
+                        facet: key,
+                    },
+                    handle,
+                )
+                .is_some()
+        {
+            return Err(ProviderHostError::DuplicateFacet);
+        }
+        descriptors.push(descriptor);
+    }
+    for handle in measurement_handles {
+        let (key, incarnation, descriptor) = describe_measurement(
+            &mut store,
+            guest,
+            handle,
+            &config.instance,
+            config.generation,
+            deadline,
+        )
+        .await?;
+        if incarnation == 0
+            || handles
+                .insert(
+                    HandleKey {
+                        kind: FacetKind::Measurement,
+                        facet: key,
+                    },
+                    handle,
+                )
+                .is_some()
+        {
+            return Err(ProviderHostError::DuplicateFacet);
+        }
+        descriptors.push(descriptor);
+    }
+    for handle in notification_handles {
+        let (key, incarnation, descriptor) = describe_notification(
+            &mut store,
+            guest,
+            handle,
+            &config.instance,
+            config.generation,
+            deadline,
+        )
+        .await?;
+        if incarnation == 0
+            || handles
+                .insert(
+                    HandleKey {
+                        kind: FacetKind::NotificationSink,
                         facet: key,
                     },
                     handle,
@@ -687,6 +961,96 @@ async fn describe_boolean(
     Ok((key, incarnation, host))
 }
 
+async fn describe_measurement(
+    store: &mut Store<ProviderStore>,
+    guest: &wire_provider::Guest,
+    handle: ResourceAny,
+    instance: &fabric::InstanceId,
+    generation: fabric::Generation,
+    deadline: tokio::time::Instant,
+) -> Result<(String, u64, HostFacetDescriptor), ProviderHostError> {
+    set_store_deadline(store, deadline)?;
+    let key = guest
+        .measurement_facet()
+        .call_key(&mut *store, handle)
+        .await
+        .map_err(|_| ProviderHostError::InvalidDescriptor)?;
+    let incarnation = guest
+        .measurement_facet()
+        .call_incarnation(&mut *store, handle)
+        .await
+        .map_err(|_| ProviderHostError::InvalidDescriptor)?;
+    let context = wire_context(
+        store.data().clock_started,
+        deadline,
+        "describe-measurement",
+        None,
+        None,
+        0,
+    );
+    let descriptor = tokio::time::timeout_at(
+        deadline,
+        store.run_concurrent(async |accessor| {
+            guest
+                .measurement_facet()
+                .call_describe(accessor, handle, context)
+                .await
+        }),
+    )
+    .await
+    .map_err(|_| deadline_error(deadline))?
+    .map_err(|_| ProviderHostError::InvalidDescriptor)?
+    .map_err(|_| ProviderHostError::InvalidDescriptor)?
+    .map_err(measurement_error)?;
+    let host = host_measurement_descriptor(instance, generation, &key, incarnation, descriptor)?;
+    Ok((key, incarnation, host))
+}
+
+async fn describe_notification(
+    store: &mut Store<ProviderStore>,
+    guest: &wire_provider::Guest,
+    handle: ResourceAny,
+    instance: &fabric::InstanceId,
+    generation: fabric::Generation,
+    deadline: tokio::time::Instant,
+) -> Result<(String, u64, HostFacetDescriptor), ProviderHostError> {
+    set_store_deadline(store, deadline)?;
+    let key = guest
+        .notification_sink_facet()
+        .call_key(&mut *store, handle)
+        .await
+        .map_err(|_| ProviderHostError::InvalidDescriptor)?;
+    let incarnation = guest
+        .notification_sink_facet()
+        .call_incarnation(&mut *store, handle)
+        .await
+        .map_err(|_| ProviderHostError::InvalidDescriptor)?;
+    let context = wire_context(
+        store.data().clock_started,
+        deadline,
+        "describe-notification-sink",
+        None,
+        None,
+        0,
+    );
+    let descriptor = tokio::time::timeout_at(
+        deadline,
+        store.run_concurrent(async |accessor| {
+            guest
+                .notification_sink_facet()
+                .call_describe(accessor, handle, context)
+                .await
+        }),
+    )
+    .await
+    .map_err(|_| deadline_error(deadline))?
+    .map_err(|_| ProviderHostError::InvalidDescriptor)?
+    .map_err(|_| ProviderHostError::InvalidDescriptor)?
+    .map_err(notification_error)?;
+    let host = host_notification_descriptor(instance, generation, &key, incarnation, descriptor)?;
+    Ok((key, incarnation, host))
+}
+
 fn publish_provider(
     fabric: &Arc<Mutex<fabric::ServiceFabric>>,
     provider: &fabric::InstanceGeneration,
@@ -732,6 +1096,16 @@ async fn run_actor(mut actor: ActorState, mut receiver: mpsc::Receiver<ActorRequ
                 let _ = reply.send(result);
                 fatal
             }
+            ActorRequest::SendNotification {
+                endpoint,
+                value,
+                context,
+                reply,
+            } => {
+                let (result, fatal) = actor.send_notification(endpoint, value, context).await;
+                let _ = reply.send(result);
+                fatal
+            }
         };
         if fatal {
             break;
@@ -752,6 +1126,8 @@ impl ActorState {
             FacetKind::OnOff
         } else if endpoint.contract().name() == "boolean-state" {
             FacetKind::BooleanState
+        } else if endpoint.contract().name() == "measurement" {
+            FacetKind::Measurement
         } else {
             return (
                 Err(service_error(
@@ -828,6 +1204,28 @@ impl ActorState {
                     }
                 }
             }
+            FacetKind::Measurement => {
+                let result = tokio::time::timeout_at(
+                    context.deadline,
+                    self.store.run_concurrent(async |accessor| {
+                        self.component
+                            .litehouse_provider_provider()
+                            .measurement_facet()
+                            .call_query(accessor, handle, wire)
+                            .await
+                    }),
+                )
+                .await;
+                match result {
+                    Err(_) => return (Err(deadline_error(context.deadline)), true),
+                    Ok(Err(_)) | Ok(Ok(Err(_))) => return (Err(provider_trapped()), true),
+                    Ok(Ok(Ok(Err(error)))) => return (Err(measurement_error(error)), false),
+                    Ok(Ok(Ok(Ok(state)))) => {
+                        host_measurement_state(endpoint, self.provider.generation(), state)
+                    }
+                }
+            }
+            FacetKind::NotificationSink => unreachable!("notification sinks are not queryable"),
         };
         (call, false)
     }
@@ -930,6 +1328,95 @@ impl ActorState {
         }
         (result, fatal)
     }
+
+    async fn send_notification(
+        &mut self,
+        endpoint: fabric::EndpointIdentity,
+        value: NotificationRequest,
+        context: CallContext,
+    ) -> (Result<NotificationReceipt, ProviderHostError>, bool) {
+        let handle_key = HandleKey {
+            kind: FacetKind::NotificationSink,
+            facet: endpoint.facet().as_str().to_owned(),
+        };
+        let Some(handle) = self.handles.get(&handle_key).copied() else {
+            return (
+                Err(service_error(
+                    fabric::CoreError::Binding(fabric::BindingError::EndpointRemoved),
+                    fabric::RetryAdvice::Rebind,
+                )),
+                false,
+            );
+        };
+        if let Err(error) = set_store_deadline(&mut self.store, context.deadline) {
+            return (Err(error), false);
+        }
+        let request_id = context.request_id.clone();
+        let attempt = context.attempt;
+        let idempotency_key = context.idempotency_key.clone();
+        let wire_context = wire_context(
+            self.store.data().clock_started,
+            context.deadline,
+            &request_id,
+            context.correlation_id,
+            idempotency_key.clone(),
+            attempt,
+        );
+        let notification = wire_notification::Notification {
+            body: value.body,
+            title: value.title,
+            priority: value.priority.map(|priority| match priority {
+                NotificationPriority::Low => wire_notification::Priority::Low,
+                NotificationPriority::Normal => wire_notification::Priority::Normal,
+                NotificationPriority::High => wire_notification::Priority::High,
+                NotificationPriority::Urgent => wire_notification::Priority::Urgent,
+            }),
+            expires_at_unix_milliseconds: value.expires_at_unix_milliseconds,
+        };
+        let call = tokio::time::timeout_at(
+            context.deadline,
+            self.store.run_concurrent(async |accessor| {
+                self.component
+                    .litehouse_provider_provider()
+                    .notification_sink_facet()
+                    .call_send(accessor, handle, wire_context, notification)
+                    .await
+            }),
+        )
+        .await;
+        match call {
+            Err(_) => (
+                Err(outcome_unknown(
+                    fabric::UnknownOutcomeCause::DeadlineExceeded,
+                    request_id,
+                    attempt,
+                    idempotency_key,
+                )),
+                true,
+            ),
+            Ok(Err(_)) | Ok(Ok(Err(_))) => (
+                Err(outcome_unknown(
+                    fabric::UnknownOutcomeCause::ProviderFailed,
+                    request_id,
+                    attempt,
+                    idempotency_key,
+                )),
+                true,
+            ),
+            Ok(Ok(Ok(Err(error)))) => (Err(notification_error(error)), false),
+            Ok(Ok(Ok(Ok(receipt)))) => (
+                host_notification_receipt(
+                    endpoint,
+                    self.provider.generation(),
+                    &request_id,
+                    attempt,
+                    idempotency_key.as_deref(),
+                    receipt,
+                ),
+                false,
+            ),
+        }
+    }
 }
 
 fn host_on_off_descriptor(
@@ -984,6 +1471,7 @@ fn host_on_off_descriptor(
         kind: FacetKind::OnOff,
         label: descriptor.common.label,
         semantic_profile: descriptor.common.semantic_profile,
+        tags: host_tags(descriptor.common.tags)?,
     })
 }
 
@@ -1038,7 +1526,141 @@ fn host_boolean_descriptor(
             }
             .to_owned(),
         ),
+        tags: host_tags(descriptor.common.tags)?,
     })
+}
+
+fn host_measurement_descriptor(
+    instance: &fabric::InstanceId,
+    generation: fabric::Generation,
+    key: &str,
+    incarnation: u64,
+    descriptor: wire_measurement::MeasurementDescriptor,
+) -> Result<HostFacetDescriptor, ProviderHostError> {
+    validate_common(
+        &descriptor.common,
+        instance,
+        key,
+        incarnation,
+        "measurement",
+    )?;
+    if descriptor.profile.is_empty() || descriptor.profile.len() > 128 {
+        return Err(ProviderHostError::InvalidDescriptor);
+    }
+    let incarnation =
+        fabric::Incarnation::new(incarnation).map_err(|_| ProviderHostError::InvalidDescriptor)?;
+    let identity = fabric::EndpointIdentity::new(
+        instance.clone(),
+        fabric::FacetKey::new(key).map_err(|_| ProviderHostError::InvalidDescriptor)?,
+        fabric::ContractId::new("litehouse", "measurement", 1)
+            .map_err(|_| ProviderHostError::InvalidDescriptor)?,
+    );
+    let endpoint = fabric::EndpointDescriptor::new(
+        identity,
+        Version {
+            major: 1,
+            minor: 0,
+            patch: 0,
+        },
+        generation,
+        incarnation,
+        [operation("query")?],
+        [],
+    )
+    .map_err(|_| ProviderHostError::InvalidDescriptor)?;
+    Ok(HostFacetDescriptor {
+        endpoint,
+        kind: FacetKind::Measurement,
+        label: descriptor.common.label,
+        semantic_profile: Some(descriptor.profile),
+        tags: host_tags(descriptor.common.tags)?,
+    })
+}
+
+fn host_notification_descriptor(
+    instance: &fabric::InstanceId,
+    generation: fabric::Generation,
+    key: &str,
+    incarnation: u64,
+    descriptor: wire_notification::NotificationDescriptor,
+) -> Result<HostFacetDescriptor, ProviderHostError> {
+    validate_common(
+        &descriptor.common,
+        instance,
+        key,
+        incarnation,
+        "notification-sink",
+    )?;
+    if descriptor.maximum_body_bytes == 0
+        || descriptor.maximum_receipt_confidence
+            != wire_receipt::ReceiptConfidence::AcceptedForDelivery
+    {
+        return Err(ProviderHostError::InvalidDescriptor);
+    }
+    let incarnation =
+        fabric::Incarnation::new(incarnation).map_err(|_| ProviderHostError::InvalidDescriptor)?;
+    let identity = fabric::EndpointIdentity::new(
+        instance.clone(),
+        fabric::FacetKey::new(key).map_err(|_| ProviderHostError::InvalidDescriptor)?,
+        fabric::ContractId::new("litehouse", "notification-sink", 1)
+            .map_err(|_| ProviderHostError::InvalidDescriptor)?,
+    );
+    let endpoint = fabric::EndpointDescriptor::new(
+        identity,
+        Version {
+            major: 1,
+            minor: 0,
+            patch: 0,
+        },
+        generation,
+        incarnation,
+        [operation("send")?],
+        [],
+    )
+    .map_err(|_| ProviderHostError::InvalidDescriptor)?;
+    Ok(HostFacetDescriptor {
+        endpoint,
+        kind: FacetKind::NotificationSink,
+        label: descriptor.common.label,
+        semantic_profile: descriptor.common.semantic_profile,
+        tags: host_tags(descriptor.common.tags)?,
+    })
+}
+
+fn host_tags(
+    tags: Vec<wire_descriptor::SemanticTag>,
+) -> Result<Vec<SemanticTag>, ProviderHostError> {
+    if tags.len() > 32 {
+        return Err(ProviderHostError::InvalidDescriptor);
+    }
+    tags.into_iter()
+        .map(|tag| {
+            let valid_token = |value: &str| {
+                !value.is_empty()
+                    && value.len() <= 64
+                    && value.bytes().all(|byte| {
+                        byte.is_ascii_lowercase()
+                            || byte.is_ascii_digit()
+                            || matches!(byte, b'-' | b'.')
+                    })
+            };
+            if !valid_token(&tag.namespace)
+                || !valid_token(&tag.name)
+                || tag.value.as_ref().is_some_and(|value| {
+                    value.is_empty()
+                        || value.len() > 256
+                        || value.bytes().any(|byte| byte.is_ascii_control())
+                })
+            {
+                return Err(ProviderHostError::InvalidDescriptor);
+            }
+            Ok(SemanticTag {
+                namespace: tag.namespace,
+                name: tag.name,
+                value: tag.value,
+            })
+        })
+        .collect()
 }
 
 fn validate_common(
@@ -1094,6 +1716,42 @@ fn host_boolean_state(
         state.availability,
         state.quality,
         FacetValue::BooleanState(state.current),
+    )
+}
+
+fn host_measurement_state(
+    endpoint: fabric::EndpointIdentity,
+    generation: fabric::Generation,
+    state: wire_measurement::State,
+) -> Result<FacetState, ProviderHostError> {
+    let current = state
+        .current
+        .map(|value| {
+            if value.profile.is_empty()
+                || value.profile.len() > 128
+                || value.magnitude.is_empty()
+                || value.magnitude.len() > 128
+                || value.unit.is_empty()
+                || value.unit.len() > 64
+            {
+                return Err(ProviderHostError::InvalidDescriptor);
+            }
+            Ok(MeasurementValue {
+                profile: value.profile,
+                magnitude: value.magnitude,
+                unit: value.unit,
+                native_magnitude: state.native.as_ref().map(|native| native.magnitude.clone()),
+                native_unit: state.native.as_ref().map(|native| native.unit.clone()),
+            })
+        })
+        .transpose()?;
+    host_state(
+        endpoint,
+        generation,
+        state.meta,
+        state.availability,
+        state.quality,
+        FacetValue::Measurement(current),
     )
 }
 
@@ -1190,6 +1848,40 @@ fn host_receipt(
     })
 }
 
+fn host_notification_receipt(
+    endpoint: fabric::EndpointIdentity,
+    generation: fabric::Generation,
+    request_id: &str,
+    attempt: u32,
+    idempotency_key: Option<&str>,
+    receipt: wire_notification::SendReceipt,
+) -> Result<NotificationReceipt, ProviderHostError> {
+    if receipt.receipt.request_id != request_id
+        || receipt.receipt.attempt != attempt
+        || receipt.receipt.idempotency_key.as_deref() != idempotency_key
+        || receipt.receipt.confidence != wire_receipt::ReceiptConfidence::AcceptedForDelivery
+        || receipt
+            .provider_message_id
+            .as_ref()
+            .is_some_and(|value| value.is_empty() || value.len() > 64 || !value.is_ascii())
+    {
+        return Err(service_error(
+            fabric::CoreError::ContractError,
+            fabric::RetryAdvice::Never,
+        ));
+    }
+    Ok(NotificationReceipt {
+        endpoint,
+        request_id: receipt.receipt.request_id,
+        attempt: receipt.receipt.attempt,
+        provider_generation: generation,
+        confidence: ReceiptConfidence::AcceptedForDelivery,
+        accepted_at_unix_milliseconds: receipt.receipt.accepted_at_unix_milliseconds,
+        idempotency_key: receipt.receipt.idempotency_key,
+        provider_message_id: receipt.provider_message_id,
+    })
+}
+
 fn wire_context(
     clock_started: StdInstant,
     deadline: tokio::time::Instant,
@@ -1241,6 +1933,14 @@ fn on_off_error(error: wire_on_off::Error) -> ProviderHostError {
 }
 
 fn boolean_error(error: wire_boolean::Error) -> ProviderHostError {
+    service_from_wire(error.inner, error.retry)
+}
+
+fn measurement_error(error: wire_measurement::Error) -> ProviderHostError {
+    service_from_wire(error.inner, error.retry)
+}
+
+fn notification_error(error: wire_notification::Error) -> ProviderHostError {
     service_from_wire(error.inner, error.retry)
 }
 
@@ -1393,9 +2093,20 @@ fn service_error(inner: fabric::CoreError, retry: fabric::RetryAdvice) -> Provid
 
 #[cfg(test)]
 mod tests {
-    use super::tcp_address_allowed;
+    use super::{HttpOrigin, tcp_address_allowed};
     use std::{collections::BTreeSet, net::SocketAddr};
     use wasmtime_wasi::sockets::SocketAddrUse;
+
+    #[test]
+    fn http_authority_is_exact_by_scheme_host_and_port() {
+        let origin = HttpOrigin::new("https", "api.example.com", 443).unwrap();
+        assert!(origin.permits("https", &"api.example.com".parse().unwrap()));
+        assert!(origin.permits("https", &"api.example.com:443".parse().unwrap()));
+        assert!(!origin.permits("http", &"api.example.com".parse().unwrap()));
+        assert!(!origin.permits("https", &"other.example.com".parse().unwrap()));
+        assert!(!origin.permits("https", &"api.example.com:444".parse().unwrap()));
+        assert!(HttpOrigin::new("https", "bad.example/path", 443).is_err());
+    }
 
     #[test]
     fn tcp_authority_is_exact_and_connect_only() {

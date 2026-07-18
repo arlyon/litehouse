@@ -1,5 +1,7 @@
 # `litehouse:measurement@1.0.0`
 
+The execution-free `types` interface is shared by capability consumers and the provider-host ABI; executable query/subscription functions remain only in `capability`.
+
 A measurement publishes an optional canonical `litehouse:quantity@1` plus optional source/native representation. Kind is instantaneous, total, or total-increasing. Min/max, resolution, step, tolerance, and native quantization are source claims; display digits are not sensor resolution.
 
 The immutable profile fixes semantic meaning and canonical UCUM unit. Providers MUST map source device class and unit unambiguously to an approved profile. Unknown/ambiguous mappings are diagnostic and MUST NOT publish a misleading facet. Custom profiles and units are unsupported in v1.

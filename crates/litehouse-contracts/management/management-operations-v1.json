@@ -14717,7 +14717,7 @@
           }
         },
         "output": {
-          "sha256": "86961eda2d7a98d6695372efb7a911d5d55ab64f17ec7215f95e194e69da8cc8",
+          "sha256": "9f33b7894917d6156b4d1354453e4ec2b74b0bea57e3bb91260714543f7a3d89",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "facets.query@1 canonical output",
@@ -14808,6 +14808,65 @@
                         "type": [
                           "boolean",
                           "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "current"
+                    ]
+                  },
+                  {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "facets.query@1 measurement state",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "measurement"
+                      },
+                      "current": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "profile": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "magnitude": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "unit": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64
+                              },
+                              "native_magnitude": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "native_unit": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64
+                              }
+                            },
+                            "required": [
+                              "profile",
+                              "magnitude",
+                              "unit"
+                            ]
+                          }
                         ]
                       }
                     },

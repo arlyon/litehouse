@@ -1,5 +1,6 @@
 use litehouse_provider_host::{
-    CallContext, FacetValue, ProviderConfig, ProviderHostError, ReceiptConfidence, start_provider,
+    CallContext, FacetValue, MeasurementValue, NotificationPriority, NotificationRequest,
+    ProviderConfig, ProviderHostError, ReceiptConfidence, start_provider,
 };
 use litehouse_service_fabric as fabric;
 use std::{
@@ -32,7 +33,7 @@ fn context(request_id: &str, idempotency_key: Option<&str>) -> CallContext {
 
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "requires LITEHOUSE_PROVIDER_FIXTURE_WASM built for wasm32-wasip2"]
-async fn typed_handles_stay_in_actor_while_host_routes_query_set_and_withdrawal() {
+async fn typed_handles_stay_in_actor_while_host_routes_query_set_send_and_withdrawal() {
     let engine = engine();
     let epoch_engine = engine.clone();
     tokio::spawn(async move {
@@ -55,6 +56,7 @@ async fn typed_handles_stay_in_actor_while_host_routes_query_set_and_withdrawal(
             generation,
             config_json: "fixture".into(),
             allowed_tcp_addresses: BTreeSet::new(),
+            allowed_http_origins: BTreeSet::new(),
             startup_timeout: Duration::from_secs(5),
         },
         fabric.clone(),
@@ -62,8 +64,8 @@ async fn typed_handles_stay_in_actor_while_host_routes_query_set_and_withdrawal(
     .await
     .unwrap();
 
-    assert_eq!(handle.descriptors().len(), 3);
-    assert_eq!(fabric.lock().unwrap().registry().len(), 3);
+    assert_eq!(handle.descriptors().len(), 5);
+    assert_eq!(fabric.lock().unwrap().registry().len(), 5);
     let relay = handle
         .descriptors()
         .iter()
@@ -98,6 +100,60 @@ async fn typed_handles_stay_in_actor_while_host_routes_query_set_and_withdrawal(
         .unwrap();
     assert_eq!(after.value, FacetValue::OnOff(Some(true)));
     assert!(after.revision > before.revision);
+
+    let measurement = handle
+        .descriptors()
+        .iter()
+        .find(|descriptor| descriptor.endpoint().identity().facet().as_str() == "temperature-1")
+        .unwrap()
+        .endpoint()
+        .identity()
+        .clone();
+    let measured = handle
+        .query(&measurement, generation, context("query-temperature", None))
+        .await
+        .unwrap();
+    assert_eq!(
+        measured.value,
+        FacetValue::Measurement(Some(MeasurementValue {
+            profile: "temperature".into(),
+            magnitude: "21.5".into(),
+            unit: "Cel".into(),
+            native_magnitude: Some("21.5".into()),
+            native_unit: Some("°C".into()),
+        }))
+    );
+
+    let notification = handle
+        .descriptors()
+        .iter()
+        .find(|descriptor| descriptor.endpoint().identity().facet().as_str() == "notification")
+        .unwrap()
+        .endpoint()
+        .identity()
+        .clone();
+    let notification_receipt = handle
+        .send_notification(
+            &notification,
+            generation,
+            NotificationRequest {
+                body: "fixture body".into(),
+                title: Some("Fixture".into()),
+                priority: Some(NotificationPriority::Normal),
+                expires_at_unix_milliseconds: None,
+            },
+            context("send-notification", None),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        notification_receipt.provider_message_id.as_deref(),
+        Some("fixture-message")
+    );
+    assert_eq!(
+        notification_receipt.confidence,
+        ReceiptConfidence::AcceptedForDelivery
+    );
 
     let stale = handle
         .query(

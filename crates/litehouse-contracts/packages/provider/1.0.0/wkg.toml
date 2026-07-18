@@ -7,5 +7,7 @@ repository = "https://github.com/arlyon/litehouse"
 [overrides]
 "litehouse:boolean-state" = { path = "../../boolean-state/1.0.0/wit" }
 "litehouse:errors" = { path = "../../errors/1.0.0/wit" }
+"litehouse:measurement" = { path = "../../measurement/1.0.0/wit" }
+"litehouse:notification-sink" = { path = "../../notification-sink/1.0.0/wit" }
 "litehouse:on-off" = { path = "../../on-off/1.0.0/wit" }
 "litehouse:receipt" = { path = "../../receipt/1.0.0/wit" }

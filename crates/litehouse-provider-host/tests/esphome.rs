@@ -129,6 +129,7 @@ async fn real_component_uses_one_noise_session_for_discovery_query_and_absolute_
             generation,
             config_json: format!(r#"{{"address":"{address}","noise_key":"{FIXTURE_KEY}"}}"#),
             allowed_tcp_addresses: BTreeSet::from([address]),
+            allowed_http_origins: BTreeSet::new(),
             startup_timeout: Duration::from_secs(10),
         },
         fabric,

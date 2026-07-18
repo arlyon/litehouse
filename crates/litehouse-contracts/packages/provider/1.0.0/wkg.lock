@@ -19,6 +19,24 @@ version = "1.0.0"
 digest = "sha256:31dfee4682a33480093f8a2cce1da0aab5e23e5a89684657947838185ad5eeab"
 
 [[packages]]
+name = "litehouse:measurement"
+registry = "local.litehouse.invalid"
+
+[[packages.versions]]
+requirement = "=1.0.0"
+version = "1.0.0"
+digest = "sha256:749e9820ce9cbce2476a4845c1ac258d6163da60095126af0c847a79cf929e86"
+
+[[packages]]
+name = "litehouse:notification-sink"
+registry = "local.litehouse.invalid"
+
+[[packages.versions]]
+requirement = "=1.0.0"
+version = "1.0.0"
+digest = "sha256:79993adbc82fae9e83bb52cf8c443338a2d0d43e1986f2a15e2b721bb0c7f524"
+
+[[packages]]
 name = "litehouse:on-off"
 registry = "local.litehouse.invalid"
 
