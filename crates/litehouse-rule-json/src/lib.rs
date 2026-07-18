@@ -15,6 +15,7 @@ mod condition;
 mod fixtures;
 mod model;
 mod planner;
+mod planner_model;
 pub mod schema;
 
 pub use compile::{
@@ -25,8 +26,9 @@ pub use compile::{
 pub use condition::CheckedCelProgram;
 pub use model::*;
 pub use planner::{
-    Assumption, AssumptionError, AssumptionKind, EffectIntent, EvaluationErrorCode,
-    EvaluationInput, Freshness, InputError, ObservationValue, ObservedRevision, OnOffOperation,
-    OnOffSetArguments, PlanError, PlanOutcome, ScalarValue, SnapshotInput, StateObservationInput,
-    TargetInput, Timestamp, TransitionPlan, UnknownReason, plan,
+    Assumption, AssumptionError, AssumptionKind, EvaluationErrorCode, EvaluationInput, Freshness,
+    InputError, ObservationValue, ObservedRevision, OnOffOperation, OnOffSetArguments, PlanError,
+    PlanOutcome, ScalarValue, SnapshotInput, StateObservationInput, TargetInput, UnknownReason,
+    plan,
 };
+pub use planner_model::*;
