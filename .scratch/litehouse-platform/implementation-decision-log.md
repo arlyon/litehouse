@@ -382,6 +382,36 @@ configuration.
   plus bounded polling, and adopts one canonical management core, but it does not
   add a durable workflow journal, outbox, or lifetime idempotency tombstones.
 
+### D-026 — T8 implementation and dependency locks
+
+- **Status:** user-authorized
+- **Blocks:** nothing
+- **Question:** Which concrete storage, canonicalization, CEL, timezone, provider-
+  observation, and management-contract seams implement D-025 without reopening
+  the provider ABI or publishing misleading V1 operations?
+- **Resolution:** revise the unreleased management V1 catalog in place and remove
+  top-level CEL/manual triggering. Rule source is JSON-only and bounded to 128
+  KiB; provider-safe config is bounded JSON checked against exact component
+  metadata with closed authority grants; run/result/stream cursors carry a fresh
+  process epoch. Standardize on Fjall 3.1.7 `SingleWriterTxDatabase` in a fresh
+  V3 directory, one `SyncAll` cross-keyspace transaction per authored mutation,
+  its exclusive path lock, and a separate Litehouse application-format marker.
+  Use `serde_json_canonicalizer` 0.3.2 for JCS after strict JSON validation, `cel`
+  0.14.0 without default features only as the bounded parser with a Litehouse-
+  owned checker/meter/evaluator, and Jiff 0.2.32 plus bundled `jiff-tzdb` 0.1.8
+  (`2026c`) for explicit DST policy. Keep `litehouse:provider@1.0.0` unchanged:
+  the actor performs bounded typed query sweeps, coalescing ESPHome's pushed
+  Native API frames and allowing Tasmota/Open-Meteo to poll only when due. Guest
+  handles remain confined to their actor/store and seven stateful families use
+  seven exact typed ingress paths.
+- **Evidence:** Fjall 3.1.7 committed `SyncAll` writes across two keyspaces
+  survived immediate abort, uncommitted writes did not, and a second process was
+  rejected with `Locked`. CEL-parser/JCS/Jiff probes compiled natively, for
+  `wasm32-wasip2`, and for `wasm32-unknown-unknown` using the installed Rust
+  sources; the RFC 8785 number/string vector and New York DST gap/fold rejection
+  passed. The disposable release browser-Wasm probe was 1,765,990 bytes before
+  application-specific stripping or binding optimization.
+
 ## Deferred external-authority decisions
 
 ### X-001 — T15 staging/signing/cloud/DNS operations

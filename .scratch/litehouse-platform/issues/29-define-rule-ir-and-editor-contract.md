@@ -30,6 +30,36 @@ plugin parity?
 > effect. Persisted authority is limited to authored rules, immutable revisions,
 > active/predecessor pointers, grants, and enabled state.
 
+### T8.0 implementation locks
+
+- Use Fjall `3.1.7` `SingleWriterTxDatabase` in a fresh Fjall V3 directory. Every
+  authored mutation is one cross-keyspace transaction with
+  `PersistMode::SyncAll`; the database's exclusive path lock rejects a second
+  process. Litehouse also stores and validates its own application format
+  version and has no implicit V2-to-V3 migration.
+- Use `serde_json_canonicalizer` `0.3.2` for RFC 8785 JCS after duplicate-key,
+  depth, string, collection, and raw-size validation.
+- Use `cel` `0.14.0` with default features disabled only for bounded CEL parsing.
+  Litehouse owns the closed type checker, accepted AST subset, cost accounting,
+  evaluator, unknown/error model, and cancellation checks; the crate's general
+  evaluator is not the `litehouse-cel@1` authority.
+- Use `jiff` `0.2.32` with `std` and `tzdb-bundle-always`; pin the bundled
+  `jiff-tzdb` `0.1.8` data (`2026c`) in compiler/profile locks. Native,
+  `wasm32-wasip2`, and browser-Wasm dependency probes compile successfully.
+- Keep `litehouse:provider@1.0.0` byte-identical. The provider actor performs a
+  bounded exact-typed query sweep: ESPHome drains and coalesces source-pushed
+  Native API frames once per sweep, while Tasmota/Open-Meteo retain their own
+  due-time polling. Seven stateful families enter seven typed host ingress
+  paths; stateless Momentary and Notification facets do not.
+- Revise the unreleased management V1 catalog in place: Rule JSON is the only
+  top-level authored language, raw source is at most 128 KiB, and no manual
+  `rules.trigger@1` exists. Draft creation accepts the document's client-created
+  128-bit rule ID and never rewrites `rule_id`, `revision`, or semantic name;
+  updates use the record's optimistic base revision. Provider-safe config is
+  bounded JSON validated against exact component metadata, authority grants are
+  closed and explicit, and all run/result/stream cursors are process-epoch-
+  qualified.
+
 Publish a small, typed, versioned **Litehouse Rule JSON** language and its JSON
 Schema. The JSON graph is the authored language and persistence authority; React
 Flow is one projection/editor. CEL is only a pure expression leaf. Do not put
@@ -256,8 +286,9 @@ ends or reaches an effect/timer suspension. Its `TransitionPlan` contains:
   permissions, expected values, rule-runtime state version, and grant revision;
 - plan/result/provenance digests and bounded diagnostics.
 
-Committing next control state produces the interpreter's durable post-state.
-Applying the desired projection produces only a hypothetical device post-state.
+Committing next control state produces the interpreter's process-epoch-local
+post-state. Applying the desired projection produces only a hypothetical device
+post-state.
 Neither writes observed state. Each effect receipt or timer firing advances its
 exact saved frontier entry and produces the next microstep input; independent
 branch suspensions may arrive in
@@ -286,82 +317,73 @@ typed. V1 triggers are:
   with IANA timezone and explicit nonexistent/duplicate DST policy.
 
 Time is always injected. Fixed intervals use monotonic elapsed time anchored by
-activation; civil schedules record timezone database version and occurrence ID.
-No cron string, ambient `now()`, sunrise/geolocation, or arbitrary calendar DSL
-is part of v1. Additive trigger profiles can add those later without changing
-existing semantics.
+activation and persist only their activation wall-clock anchor so restart can
+select the next strictly future interval. Civil schedules record timezone
+database version and occurrence ID. A nonexistent civil time explicitly chooses
+`skip` or `shift-forward`; a duplicated civil time chooses `first`, `second`, or
+`both`. One-shots in the past and missed interval/weekly occurrences are skipped
+on restart. No cron string, ambient `now()`, sunrise/geolocation, or arbitrary
+calendar DSL is part of v1. Additive trigger profiles can add those later without
+changing existing semantics.
 
 Debounce/throttle keys are fixed at compile time from rule/trigger and optionally
 bound endpoint identity. Debounce is trailing-edge last-input-wins; throttle is
-leading-edge with an optional one trailing run. Both durably retain the complete
-bounded winning typed input, not only its digest, and expose dropped/coalesced
-counts in traces.
+leading-edge with an optional one trailing run. Both retain the complete bounded
+winning typed input only for the current process epoch and expose dropped/
+coalesced counts in traces.
 
-### Durable execution, ordering, and effects
+### Restart-clean execution, ordering, and effects
 
 Draft edits never affect execution. Validation plus binding/permission/feature
-review atomically activates one immutable revision. Existing runs retain their
-revision; disabling prevents new triggers and cooperatively cancels undispatched
-work, while dispatched effects keep explicit ambiguous-outcome semantics. An
-activation may choose drain or cancel for old undispatched runs; it never retargets
-them to the new graph.
+review atomically activates one immutable revision. Existing process-local runs
+retain their revision; disabling prevents new triggers and cooperatively cancels
+undispatched work, while dispatched effects keep explicit ambiguous-outcome
+semantics. Activation may drain or cancel old undispatched runs but never
+retargets them to the new graph.
 
 V1 serializes runs per rule. One run may execute or wait; at most 16 subsequent
 trigger inputs queue under the trigger's explicit `drop-newest`, `drop-oldest`,
 or `coalesce` policy. Parallelism exists only inside the active run's statically
-bounded fork. This makes rule-control state CAS and action ordering unambiguous.
+bounded fork. Run records, queues, frontier/control state, timers, plans, traces,
+receipts, and result lookups live only in bounded memory for one process epoch.
+No run journal, checkpoint partition, effect outbox, or receipt continuation is
+written to Fjall.
 
-A durable `RuleRunRecord` is keyed by server trust generation, rule, revision,
-run, and microstep. It stores the pinned compiler/runtime profile, complete typed
-phase input (at most 64 KiB), current frontier, closed control state (16 KiB),
-plan (64 KiB), timer/effect references, and terminal status. A single local
-transaction CASes the per-rule runtime version and writes next control state,
-checkpoint/timer, and every effect outbox record before acknowledging the
-microstep. Failure commits none of them.
-
-One stable provider idempotency key derives from trust generation, rule,
-revision, run, microstep, node, and intent—never attempt—and is reused for every
-retry and provider result lookup. A separate internal attempt-record key appends
-the attempt index for durability and tracing. Its durable state is `prepared`,
-`dispatching`, `running`, `terminal-known`, or `terminal-unknown`. Under the same
-host dispatch lock, Litehouse rechecks enabled revision, endpoint generation,
-grant revision,
-assumptions, deadline, and authorization, then persists `dispatching` before the
-provider call. Prepared effects may safely resume dispatch; dispatching/running
-effects must reconcile through provider/result records or become terminal
-unknown and are never blindly replayed. Receipt persistence creates the next
-microstep input atomically with the effect terminal state.
+Before every dispatch Litehouse rechecks enabled revision, endpoint generation,
+grant revision, assumptions, deadline, and authorization. One process-local
+idempotency key derives from process epoch, rule, revision, run, microstep, node,
+and intent. It may suppress duplicates only while that process remains alive;
+it is neither an effect-recovery key nor a promise across restart.
 
 Actions are sequential in edge order unless inside a bounded fork/join. Every
 intent declares typed arguments, bounded deadline, required receipt confidence,
-and idempotency policy. Default is no retry. Retry requires both the exact
-contract operation to declare safe idempotency and the provider to advertise
-matching deduplication for that key. It is at most three attempts with explicit
-backoff, and each attempt is durable. Toggle, step, move, press, notification,
-and other non-idempotent effects never auto-retry. Retry uses the original intent
-and never replans against changed state.
+and idempotency policy. Default is no retry. A definitely pre-dispatch failure
+may follow the declared bounded retry policy only when the exact operation is
+safe and the provider advertises matching process-local deduplication. Any call
+that may have reached the provider becomes `outcome-unknown` and is never retried
+automatically. Toggle, step, move, press, notification, and other non-idempotent
+effects never auto-retry.
 
-Timers/checkpoints live at most 24 hours and retain the complete typed input
-needed for their next phase, excluding secret values and guest handles. Restart
-loads the pinned evaluator, resumes the same revision, and rechecks assumptions.
-An overdue timer supplies explicit lateness and follows fixed `run-late` or
-`skip-late`. Longer behavior uses a time trigger or native plugin.
+Timers live at most 24 hours inside the current process and retain the complete
+bounded typed input needed for their next phase, excluding protected values and
+guest handles. Restart discards them. One-shot schedules already in the past do
+not fire; fixed and weekly schedules calculate only their next strictly future
+occurrence. There is no late-run, catch-up, replay, compensation, or workflow
+resumption path.
 
-Hard aggregate maxima are 32 timers and 16 queued triggers per rule, 256 active/
-waiting runs and 1,024 timers per server, 64 MiB total live checkpoints/outbox,
-32 effect intents and 128 patch operations per microstep, 64 KiB plan/input, and
-32 KiB trace per run. Admission atomically reserves worst-case checkpoint,
-timer, effect-result, and trace capacity before accepting a trigger; overload
-returns a typed capacity outcome before planning or dispatch. Configuration may
-lower but never raise these maxima.
+Hard aggregate maxima remain 32 timers and 16 queued triggers per rule, 256
+active/waiting runs and 1,024 timers per server, 32 effect intents and 128 patch
+operations per microstep, 64 KiB plan/input, and 32 KiB trace per run. Admission
+reserves bounded in-memory capacity before accepting a trigger; overload returns
+a typed capacity outcome before planning or dispatch. Configuration may lower
+but never raise these maxima.
 
 Receipt branches distinguish required confidence reached, typed rejection/error,
 cancellation before dispatch, and ambiguity after possible dispatch. Default
 error/ambiguity halts and traces. Continuing or issuing an explicit compensating
 effect requires an edge and cannot upgrade confidence. V1 has no observation-
 wait node, rollback claim, arbitrary compensation language, event sequences,
-loops, races,
-or long-lived sagas.
+loops, races, or long-lived sagas.
 
 ### Drafts, activation, and migration
 
@@ -380,13 +402,12 @@ claim bindings/devices are healthy. The last successfully active revision and
 one predecessor remain available for explicit rollback. Rollback is ordinary
 revalidation/activation and never rewinds observed state or effect receipts.
 
-Every active revision and live checkpoint pins its exact schema, compiler, CEL,
-quantity catalog, and rule-runtime profile artifacts. A server upgrade retains
-those evaluators until dependent runs are terminal. If a new major cannot host
-the active evaluator, mark the rule `migration-required` and admit no new
-triggers; existing runs may drain for their remaining 24-hour bound or be
-explicitly cancelled under normal ambiguity rules. Only then may GC remove the
-old evaluator. Migration always creates and activates a new revision.
+Every active revision pins its exact schema, compiler, CEL, quantity catalog,
+timezone database, and rule-runtime profile artifacts. A server upgrade discards
+all old process-local runs before rehydration. If the new process cannot host an
+active evaluator, it marks that rule `migration-required` and admits no triggers.
+Migration always creates and activates a new revision; no unfinished run delays
+artifact removal.
 
 ### Simulation and traces
 
@@ -446,10 +467,11 @@ Before implementation commitment, prove:
 - UCUM decimal/profile/affine/overflow/quantization behavior;
 - deterministic pre-state-to-plan and hypothetical post-state fixtures;
 - conflicting patch/effect merges and stable sequential/parallel ordering;
-- state/event/time/DST/debounce/throttle triggers, deduplication, restart, late
-  timers, 24-hour expiry, and immutable-revision resume;
-- receipt confidence, cancellation, deadline, safe retry, crash-after-dispatch,
-  result lookup, ambiguity, and no optimistic observed-state mutation;
+- state/event/time/DST/debounce/throttle triggers, process-local deduplication,
+  restart discard, next-future scheduling, and no missed-run catch-up;
+- receipt confidence, cancellation, deadline, definitely-pre-dispatch retry,
+  crash-after-dispatch ambiguity, process-local result lookup, and no optimistic
+  observed-state mutation;
 - draft conflict, activation, disable/drain/cancel, migration, predecessor
   rollback, and stale binding/generation handling;
 - simulation never dispatches and real/simulated traces remain distinguishable;

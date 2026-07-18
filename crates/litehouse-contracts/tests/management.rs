@@ -82,6 +82,85 @@ fn embedded_manifest_is_authoritative_closed_inventory() {
 }
 
 #[test]
+fn t8_contract_is_json_only_restart_clean_and_configurable() {
+    let manifest = manifest_value();
+    let operations = manifest["operations"].as_array().unwrap();
+    let operation = |id: &str| {
+        operations
+            .iter()
+            .find(|operation| operation["id"] == id)
+            .unwrap()
+    };
+
+    assert!(
+        operations
+            .iter()
+            .all(|operation| operation["id"] != "rules.trigger@1")
+    );
+    for id in [
+        "rules.compile@1",
+        "rules.draft.create@1",
+        "rules.draft.update@1",
+        "rules.simulate@1",
+        "rules.validate@1",
+    ] {
+        let input = &operation(id)["schemas"]["input"]["schema"]["properties"];
+        assert_eq!(input["language"]["const"], "json", "{id}");
+        assert_eq!(input["source"]["maxLength"], 131_072, "{id}");
+    }
+
+    let rule_create = &operation("rules.draft.create@1")["schemas"]["input"]["schema"];
+    assert_eq!(
+        rule_create["properties"]["rule_id"]["pattern"],
+        "^[0-9a-f]{32}$"
+    );
+    assert!(rule_create["properties"].get("name").is_none());
+    assert!(
+        operation("rules.draft.update@1")["schemas"]["input"]["schema"]["properties"]
+            .get("name")
+            .is_none()
+    );
+
+    let create = &operation("instances.draft.create@1")["schemas"]["input"]["schema"];
+    assert_eq!(
+        create["properties"]["safe_config_json"]["maxLength"],
+        65_536
+    );
+    assert_eq!(create["properties"]["authority_grants"]["maxItems"], 16);
+    assert!(create["properties"].get("safe_config").is_none());
+
+    assert_eq!(
+        operation("facets.state.stream@1")["stream"]["cursor"],
+        "process-generation-scoped"
+    );
+    assert_eq!(
+        operation("facets.events.stream@1")["stream"]["cursor"],
+        "process-generation-scoped"
+    );
+    for id in [
+        "diagnostics.events.page@1",
+        "facets.events.stream@1",
+        "facets.state.stream@1",
+        "operations.result.get@1",
+        "rules.run.cancel@1",
+        "rules.run.get@1",
+        "rules.runs.page@1",
+    ] {
+        assert!(
+            operation(id)["schemas"]["input"]["schema"]["properties"]
+                .get("process_epoch")
+                .is_some(),
+            "{id}"
+        );
+    }
+    assert!(
+        operation("system.get@1")["schemas"]["output"]["schema"]["properties"]
+            .get("process_epoch")
+            .is_some()
+    );
+}
+
+#[test]
 fn every_capability_projection_targets_a_real_wit_operation() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("packages");
     let mut package_roots = fs::read_dir(&root)

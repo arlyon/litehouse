@@ -19,7 +19,7 @@ axum = { version = "0.7", features = ["macros"] }
 axum-client-ip = "0.6.1"
 axum-extra = { version = "0.9", features = ["typed-header"] }
 axum-jsonschema = { version = "0.8.0", features = ["aide"] }
-fjall = "2.0.3"
+fjall = "=3.1.7"
 futures = "0.3.30"
 headers = "0.4.0"
 pin-project-lite = "0.2.14"

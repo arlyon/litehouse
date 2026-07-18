@@ -13,8 +13,8 @@ use std::{
     sync::OnceLock,
 };
 
-pub const MANAGEMENT_OPERATION_COUNT: usize = 76;
-pub const CANONICAL_OPERATION_COUNT: usize = 47;
+pub const MANAGEMENT_OPERATION_COUNT: usize = 75;
+pub const CANONICAL_OPERATION_COUNT: usize = 46;
 pub const CAPABILITY_OPERATION_COUNT: usize = 29;
 pub const MANAGEMENT_OPERATIONS_V1_JSON: &[u8] =
     include_bytes!("../management/management-operations-v1.json");
@@ -62,7 +62,6 @@ pub const CANONICAL_OPERATION_IDS: [&str; CANONICAL_OPERATION_COUNT] = [
     "rules.enable@1",
     "rules.disable@1",
     "rules.delete@1",
-    "rules.trigger@1",
     "rules.run.cancel@1",
     "registry.list@1",
     "registry.release.get@1",
@@ -360,7 +359,7 @@ pub enum StreamRecords {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum CursorScope {
-    GenerationScoped,
+    ProcessGenerationScoped,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -926,12 +925,12 @@ fn validate_progress_and_stream(operation: &ManagementOperation) -> Result<(), M
                 && *default_items == 50
                 && *maximum_items == 200
                 && *maximum_bytes == 65_536
-                && *cursor == CursorScope::GenerationScoped
+                && *cursor == CursorScope::ProcessGenerationScoped
                 && *gap == StreamFailureShape::Typed
                 && *stale == StreamFailureShape::Typed,
             operation_error(
                 operation,
-                "stream batch shape is not the bounded generation-scoped v1 shape",
+                "stream batch shape is not the bounded process-generation-scoped v1 shape",
             ),
         )?,
         (StreamShape::None, None) => {}
@@ -1355,7 +1354,7 @@ fn expected_service_binding(id: &str) -> Option<CapabilityServiceBinding> {
 }
 
 fn expected_fixed_scope(id: &str) -> OAuthScope {
-    if id.starts_with("capability.") || matches!(id, "rules.trigger@1" | "rules.run.cancel@1") {
+    if id.starts_with("capability.") || id == "rules.run.cancel@1" {
         OAuthScope::Operate
     } else if id.starts_with("diagnostics.") {
         OAuthScope::Diagnostics
@@ -1409,7 +1408,6 @@ fn expected_class(id: &str) -> OperationClass {
                 | "rules.rollback@1"
                 | "rules.enable@1"
                 | "rules.disable@1"
-                | "rules.trigger@1"
                 | "rules.run.cancel@1"
                 | "registry.refresh@1"
                 | "plugins.install.apply@1"

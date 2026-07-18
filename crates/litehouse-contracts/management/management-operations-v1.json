@@ -12952,7 +12952,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "bed7059e944831763ba07cbeee736b8e12143daba9549f721d5322bd51687677",
+          "sha256": "3a5061f47e2748afc645600211037d975968aa9aea63c26951a10b0f6f4b061a",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "diagnostics.events.page@1 canonical input",
@@ -13012,17 +13012,24 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 200
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
               "start_at",
               "end_at",
-              "group"
+              "group",
+              "process_epoch"
             ]
           }
         },
         "output": {
-          "sha256": "98213224597670538802c14d30de66b4bb39c05fc0730667c96a4a1cc630b0b5",
+          "sha256": "0650b9333b7cfd5fa5c148e0af13f7d3cf5b5063cf9886126b6f457241441a71",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "diagnostics.events.page@1 canonical output",
@@ -13107,12 +13114,19 @@
               },
               "gap": {
                 "type": "boolean"
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
               "events",
               "truncated",
-              "gap"
+              "gap",
+              "process_epoch"
             ]
           }
         },
@@ -13301,7 +13315,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "d29512bbc2b9460838bafd54ff029fceee82f60701ca9635eb7571ca3bb97638",
+          "sha256": "5b7968ce4da92e20ad2f65594cb58b1de90d20d471fac96d0e2df59fce4f4509",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "diagnostics.events.page@1 MCP projection",
@@ -13366,12 +13380,19 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 30000
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
               "end_at",
               "group",
-              "start_at"
+              "start_at",
+              "process_epoch"
             ]
           }
         }
@@ -13804,7 +13825,7 @@
         "default_items": 50,
         "maximum_items": 200,
         "maximum_bytes": 65536,
-        "cursor": "generation-scoped",
+        "cursor": "process-generation-scoped",
         "gap": "typed",
         "stale": "typed"
       },
@@ -13849,7 +13870,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "513ee813115ce8d4e8c458df156fefbd5f2ac16644a4ec2a9036418fa23dc493",
+          "sha256": "9053aa633ca3d43b35fbc8ecd72b6c2eb51f1cb1e858b5ad8b4877f4521d9636",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "facets.events.stream@1 canonical input",
@@ -13877,16 +13898,23 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 200
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
               "facet_id",
-              "facet_generation"
+              "facet_generation",
+              "process_epoch"
             ]
           }
         },
         "output": {
-          "sha256": "af7ee377d7dbaab0c2898c98ba11d00f9f1784a3f348ea3b6ca08d0bc1d8c8a1",
+          "sha256": "0a44769dc832acd82d71904292e41b11148c18b71dc1d5826d9f5145896e467b",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "facets.events.stream@1 canonical output",
@@ -13987,6 +14015,12 @@
               },
               "truncated": {
                 "type": "boolean"
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
@@ -13996,7 +14030,8 @@
               "caught_up",
               "gap",
               "stale",
-              "truncated"
+              "truncated",
+              "process_epoch"
             ]
           }
         },
@@ -14185,7 +14220,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "36219415b30483ef36bbe4b4f4d841d1cc3643fde4d5f4bd8c98e5da69d851f3",
+          "sha256": "88d26571780851d6a11977e5b3982dc3160666beeef6d9aa96fa4b386f622736",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "facets.events.stream@1 MCP projection",
@@ -14218,11 +14253,18 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 30000
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
               "facet_generation",
-              "facet_id"
+              "facet_id",
+              "process_epoch"
             ]
           }
         }
@@ -16439,7 +16481,7 @@
         "default_items": 50,
         "maximum_items": 200,
         "maximum_bytes": 65536,
-        "cursor": "generation-scoped",
+        "cursor": "process-generation-scoped",
         "gap": "typed",
         "stale": "typed"
       },
@@ -16484,7 +16526,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "70d2fa0be6a5f632aab02f06d458cfd70b51c6bece2ddcb5b04cb14bd2571274",
+          "sha256": "5b0c0fb2a1352c4a630940366f71270e6072b948ac7708952adf3e100489589e",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "facets.state.stream@1 canonical input",
@@ -16512,16 +16554,23 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 200
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
               "facet_id",
-              "facet_generation"
+              "facet_generation",
+              "process_epoch"
             ]
           }
         },
         "output": {
-          "sha256": "5dc0112e4e246f8c7a28e5777960d81482eeb5e2f74ea170a44f82fb6ff3e1a3",
+          "sha256": "9a1d1949bbb5f12a72c1419bde7aaa74f58c7da06988b4ebfd9942ea37e2d7e7",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "facets.state.stream@1 canonical output",
@@ -16622,6 +16671,12 @@
               },
               "truncated": {
                 "type": "boolean"
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
@@ -16631,7 +16686,8 @@
               "caught_up",
               "gap",
               "stale",
-              "truncated"
+              "truncated",
+              "process_epoch"
             ]
           }
         },
@@ -16820,7 +16876,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "7046f102a0bc27549d03e92b9fc741ac1ca28dc2652dc5f5e45a5ad3362cc9f0",
+          "sha256": "b4603609f2e2b402e2e59ca50a0d3d54ff04eab16cb90a888fe86d26fd87cabc",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "facets.state.stream@1 MCP projection",
@@ -16853,11 +16909,18 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 30000
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
               "facet_generation",
-              "facet_id"
+              "facet_id",
+              "process_epoch"
             ]
           }
         }
@@ -18062,7 +18125,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "f9e58a55cd5fdea05b456f396dfefa12e667679887f0c2ea4ccd5c94ef33e04c",
+          "sha256": "50684377a2e8d7e2034ce36a0bbcb5494690326502478fa7d75e3ddf9bc8f359",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "instances.draft.create@1 canonical input",
@@ -18086,28 +18149,57 @@
                 "minLength": 1,
                 "maxLength": 128
               },
-              "safe_config": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "display_name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128
-                  },
-                  "enabled_features": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 64,
-                      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              "safe_config_json": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 65536
+              },
+              "authority_grants": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "http-client"
+                        },
+                        "origin": {
+                          "type": "string",
+                          "minLength": 8,
+                          "maxLength": 256
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "origin"
+                      ]
                     },
-                    "minItems": 0,
-                    "maxItems": 64
-                  }
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "tcp-client"
+                        },
+                        "socket": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 64
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "socket"
+                      ]
+                    }
+                  ]
                 },
-                "required": []
+                "minItems": 0,
+                "maxItems": 16
               },
               "protected_fields_policy": {
                 "type": "string",
@@ -18120,8 +18212,9 @@
               "package",
               "version",
               "display_name",
-              "safe_config",
-              "protected_fields_policy"
+              "safe_config_json",
+              "protected_fields_policy",
+              "authority_grants"
             ]
           }
         },
@@ -18381,7 +18474,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "9ea81ed0980b438fa58f2403a0cf3a13dc26ec77d4fb0feb1ccbf02f0f2132e3",
+          "sha256": "e92368889c3df2148722ffb7844378a83d2b95844a6c19edb6b077e273b4df3c",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "instances.draft.create@1 MCP projection",
@@ -18405,28 +18498,57 @@
                 "minLength": 1,
                 "maxLength": 128
               },
-              "safe_config": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "display_name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128
-                  },
-                  "enabled_features": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 64,
-                      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              "safe_config_json": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 65536
+              },
+              "authority_grants": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "http-client"
+                        },
+                        "origin": {
+                          "type": "string",
+                          "minLength": 8,
+                          "maxLength": 256
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "origin"
+                      ]
                     },
-                    "minItems": 0,
-                    "maxItems": 64
-                  }
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "tcp-client"
+                        },
+                        "socket": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 64
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "socket"
+                      ]
+                    }
+                  ]
                 },
-                "required": []
+                "minItems": 0,
+                "maxItems": 16
               },
               "protected_fields_policy": {
                 "type": "string",
@@ -18451,8 +18573,9 @@
               "idempotency_key",
               "package",
               "protected_fields_policy",
-              "safe_config",
-              "version"
+              "safe_config_json",
+              "version",
+              "authority_grants"
             ]
           }
         }
@@ -18527,7 +18650,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "5ae4c1a7b13e80aa004099d807a2580b326f29582608e3a2658c69938099f404",
+          "sha256": "5e6c1039247a59d7e1c92688b4f31286bb1d078299814fd2a85c867beda7113e",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "instances.draft.update@1 canonical input",
@@ -18550,28 +18673,57 @@
                 "minLength": 1,
                 "maxLength": 128
               },
-              "safe_config": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "display_name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128
-                  },
-                  "enabled_features": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 64,
-                      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              "safe_config_json": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 65536
+              },
+              "authority_grants": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "http-client"
+                        },
+                        "origin": {
+                          "type": "string",
+                          "minLength": 8,
+                          "maxLength": 256
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "origin"
+                      ]
                     },
-                    "minItems": 0,
-                    "maxItems": 64
-                  }
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "tcp-client"
+                        },
+                        "socket": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 64
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "socket"
+                      ]
+                    }
+                  ]
                 },
-                "required": []
+                "minItems": 0,
+                "maxItems": 16
               },
               "protected_fields_policy": {
                 "type": "string",
@@ -18583,7 +18735,8 @@
             "required": [
               "instance_id",
               "config_revision",
-              "protected_fields_policy"
+              "protected_fields_policy",
+              "authority_grants"
             ]
           }
         },
@@ -18836,7 +18989,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "3d5e248364aba3910d35686c82f1c944195c0ade4c0509479faae7634885926d",
+          "sha256": "a6298829719679e651b72bf82c2337c59fba211122c7683c2c7fd66c62fed064",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "instances.draft.update@1 MCP projection",
@@ -18859,28 +19012,57 @@
                 "minLength": 1,
                 "maxLength": 128
               },
-              "safe_config": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "display_name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128
-                  },
-                  "enabled_features": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 64,
-                      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              "safe_config_json": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 65536
+              },
+              "authority_grants": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "http-client"
+                        },
+                        "origin": {
+                          "type": "string",
+                          "minLength": 8,
+                          "maxLength": 256
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "origin"
+                      ]
                     },
-                    "minItems": 0,
-                    "maxItems": 64
-                  }
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "tcp-client"
+                        },
+                        "socket": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 64
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "socket"
+                      ]
+                    }
+                  ]
                 },
-                "required": []
+                "minItems": 0,
+                "maxItems": 16
               },
               "protected_fields_policy": {
                 "type": "string",
@@ -18904,7 +19086,8 @@
               "config_revision",
               "idempotency_key",
               "instance_id",
-              "protected_fields_policy"
+              "protected_fields_policy",
+              "authority_grants"
             ]
           }
         }
@@ -20292,7 +20475,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "b20952066a6841d9932ca337c1863580431a7294d9e06094ade2447925301bc0",
+          "sha256": "162cbb9c212b72d4ab34324a083da20b6650f6e971463bfca71a394045ec13dd",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "instances.validate@1 canonical input",
@@ -20311,28 +20494,57 @@
                 "maxLength": 32,
                 "pattern": "^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$"
               },
-              "safe_config": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "display_name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128
-                  },
-                  "enabled_features": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 64,
-                      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              "safe_config_json": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 65536
+              },
+              "authority_grants": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "http-client"
+                        },
+                        "origin": {
+                          "type": "string",
+                          "minLength": 8,
+                          "maxLength": 256
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "origin"
+                      ]
                     },
-                    "minItems": 0,
-                    "maxItems": 64
-                  }
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "tcp-client"
+                        },
+                        "socket": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 64
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "socket"
+                      ]
+                    }
+                  ]
                 },
-                "required": []
+                "minItems": 0,
+                "maxItems": 16
               },
               "protected_fields_policy": {
                 "type": "string",
@@ -20345,8 +20557,9 @@
             "required": [
               "package",
               "version",
-              "safe_config",
-              "protected_fields_policy"
+              "safe_config_json",
+              "protected_fields_policy",
+              "authority_grants"
             ]
           }
         },
@@ -20635,7 +20848,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "301b7d120e3dc8d74d155ed12c8ea5ff7adc6a0a235bc8d97e5989bcdd349dcc",
+          "sha256": "dce8d2120bfd757292a83108185f9165997593978e1684b2e0fb2744f5de9cbd",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "instances.validate@1 MCP projection",
@@ -20654,28 +20867,57 @@
                 "maxLength": 32,
                 "pattern": "^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$"
               },
-              "safe_config": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "display_name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128
-                  },
-                  "enabled_features": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 64,
-                      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              "safe_config_json": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 65536
+              },
+              "authority_grants": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "http-client"
+                        },
+                        "origin": {
+                          "type": "string",
+                          "minLength": 8,
+                          "maxLength": 256
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "origin"
+                      ]
                     },
-                    "minItems": 0,
-                    "maxItems": 64
-                  }
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "tcp-client"
+                        },
+                        "socket": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 64
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "socket"
+                      ]
+                    }
+                  ]
                 },
-                "required": []
+                "minItems": 0,
+                "maxItems": 16
               },
               "protected_fields_policy": {
                 "type": "string",
@@ -20693,8 +20935,9 @@
             "required": [
               "package",
               "protected_fields_policy",
-              "safe_config",
-              "version"
+              "safe_config_json",
+              "version",
+              "authority_grants"
             ]
           }
         }
@@ -21196,7 +21439,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "49ea031f9abef32730433cfc341aafb310e712517221655677f3f615aae3f781",
+          "sha256": "4cb93092cd05878b66ec3134ac5f1ec3efe8554dea50571cb4a2432fa19fedaf",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "operations.result.get@1 canonical input",
@@ -21214,16 +21457,23 @@
                 "minLength": 32,
                 "maxLength": 32,
                 "pattern": "^[0-9a-f]{32}$"
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
               "operation_id",
-              "idempotency_key"
+              "idempotency_key",
+              "process_epoch"
             ]
           }
         },
         "output": {
-          "sha256": "f16bbf10caef2a3444b2e0a4d6163b98e78508650e1f8e71e7b85ef76d2efc78",
+          "sha256": "5753e3eb41507e921cc0c51844cbe1ac27f74d9d8db350240f33d17ad2a63e4a",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "operations.result.get@1 canonical output",
@@ -21275,6 +21525,12 @@
                 "minLength": 20,
                 "maxLength": 32,
                 "pattern": "^20[0-9]{2}-[0-9]{2}-[0-9]{2}T"
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
@@ -21282,7 +21538,8 @@
               "idempotency_key",
               "state",
               "confidence",
-              "expires_at"
+              "expires_at",
+              "process_epoch"
             ]
           }
         },
@@ -21471,7 +21728,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "53233632e8071f2bffa25b84403e5182837fe4a4621c212767d8ca2b76b8a895",
+          "sha256": "76bb23bc0c9cffa09053c52933fa54ec7a36736a8a71b65a5586fcea4fe68d7e",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "operations.result.get@1 MCP projection",
@@ -21494,11 +21751,18 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 30000
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
               "idempotency_key",
-              "operation_id"
+              "operation_id",
+              "process_epoch"
             ]
           }
         }
@@ -25328,7 +25592,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "b1f432d2c078f0557c391ead94b6c44b7c0d2818e0e89e0779de4c5c17907fa9",
+          "sha256": "d6da2a46833323539d5d7b5df54ed03a3bbac0ffbf835baf22b67263af69e781",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.activate@1 canonical input",
@@ -25337,9 +25601,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "rule_revision": {
                 "type": "integer",
@@ -25359,7 +25623,7 @@
           }
         },
         "output": {
-          "sha256": "83019ef5ac2346b905159125eb039d3782c55755f4cebe08a9736b7aa62b6caf",
+          "sha256": "e93f7922f1431d8d435eaa2dd1a97cfb80c65998deb665027db40a005cd3d1f3",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.activate@1 canonical output",
@@ -25368,9 +25632,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "active_revision": {
                 "type": "integer",
@@ -25573,7 +25837,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "e01ebdc55faaa846d82703497295f43c08c25ab6b29fe5760030d960a7b3aa15",
+          "sha256": "a52a957493861f20388249728520ee9971efaf56c027add126d41e802218ed4a",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.activate@1 MCP projection",
@@ -25582,9 +25846,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "rule_revision": {
                 "type": "integer",
@@ -25694,7 +25958,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "da8b66f8e988d8c833a8012047383445ce4a601f5c373e8ca965044ba87f3a78",
+          "sha256": "4493be6532eaa6c96bad7a7356e5fa0fb17304ae36bdf3106605b43fe2c5c085",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.compile@1 canonical input",
@@ -25703,15 +25967,12 @@
             "properties": {
               "language": {
                 "type": "string",
-                "enum": [
-                  "json",
-                  "cel"
-                ]
+                "const": "json"
               },
               "source": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 65536
+                "maxLength": 131072
               },
               "draft_revision": {
                 "type": "integer",
@@ -25991,7 +26252,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "c96382646db3a148a5d328b97dd939165008f22ae6901ad9a46531521402b71f",
+          "sha256": "2a767a7fb89d4e0c6bf040d66318aa1cebf4131cbca0fe6bcfdb33034427517d",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.compile@1 MCP projection",
@@ -26000,15 +26261,12 @@
             "properties": {
               "language": {
                 "type": "string",
-                "enum": [
-                  "json",
-                  "cel"
-                ]
+                "const": "json"
               },
               "source": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 65536
+                "maxLength": 131072
               },
               "draft_revision": {
                 "type": "integer",
@@ -26098,7 +26356,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "3de76658e3bccea4070bf05cebfbc725071c9b5c41079130cf0406032c3abce8",
+          "sha256": "f804f6e39d7c887c638f66f0bb3fd4607e3ccad86276f03cc6eca567e421c06c",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.delete@1 canonical input",
@@ -26107,9 +26365,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "active_revision": {
                 "type": "integer",
@@ -26159,7 +26417,7 @@
           }
         },
         "output": {
-          "sha256": "b2a811a20ec7ff0c4fef5001d2131c68733b9594035d8e621a86f7fd8833dbd6",
+          "sha256": "5c22721638b07754b340c8af7b05cf3a201c12a769991ea19aab476323589b37",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.delete@1 canonical output",
@@ -26168,9 +26426,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "deleted": {
                 "type": "boolean"
@@ -26379,7 +26637,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "d4a6158f7a4d61cb13725cb3cf2b020c5e9ab4f963e1a31d77bf1c6580ef42d8",
+          "sha256": "62e6c2da8f0327367f469319db4f704331260c7525cad0a36c0960b682a083b0",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.delete@1 MCP projection",
@@ -26388,9 +26646,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "active_revision": {
                 "type": "integer",
@@ -26522,7 +26780,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "c96918c84238b7d5ca36926fcb41d2d4560fb02f4c0e462dfc78be772677e0a6",
+          "sha256": "ad1923b718aeed074672c04dcdd90d595bfbc51e37710fb678b28387723f4c4b",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.disable@1 canonical input",
@@ -26531,9 +26789,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "active_revision": {
                 "type": "integer",
@@ -26548,7 +26806,7 @@
           }
         },
         "output": {
-          "sha256": "0fc3baf351cf84b37af1a0fc5d97404629cc6367e7f75aa3d288d00982a05938",
+          "sha256": "9506fe2fbddc6b80d51f146bb932b6bef189dab01c01c47083b0cf1901c9d2ec",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.disable@1 canonical output",
@@ -26557,9 +26815,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "active_revision": {
                 "type": "integer",
@@ -26762,7 +27020,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "b88a0300d805f38e896acc685c97828a443711ba95148ce7c2ae64e865f31c9f",
+          "sha256": "eda0e5c472b55e011f669fac56cfda1cae9b2090683a22a66aa91f8f97f7747c",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.disable@1 MCP projection",
@@ -26771,9 +27029,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "active_revision": {
                 "type": "integer",
@@ -26870,40 +27128,38 @@
       },
       "schemas": {
         "input": {
-          "sha256": "f3cb755a730735a22d64c9c1aa15c1057211f4c9edc56b0ac6d43874cf6c8658",
+          "sha256": "41f6d35730fb37341078ad33ef2ebde67f241a08e5595b15e34643b9fb720690",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.draft.create@1 canonical input",
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "name": {
+              "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "language": {
                 "type": "string",
-                "enum": [
-                  "json",
-                  "cel"
-                ]
+                "const": "json"
               },
               "source": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 65536
+                "maxLength": 131072
               }
             },
             "required": [
-              "name",
+              "rule_id",
               "language",
               "source"
             ]
           }
         },
         "output": {
-          "sha256": "1ba5df3cdf25e059ea08e9915bc4c8bf5f7e3c23053f2cb87c4a1950e4e22908",
+          "sha256": "eb4079909c36497fd322dbb317399e55551c0da89b7484c3ae4e719456d232fb",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.draft.create@1 canonical output",
@@ -26912,9 +27168,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "draft_revision": {
                 "type": "integer",
@@ -27127,29 +27383,27 @@
           }
         },
         "mcp_projection": {
-          "sha256": "1a307c1626a8854820d4eca1b390ab9786c23ac7ac67a579d5fd6f906da97bd3",
+          "sha256": "80c2e1ac0f571f364793ef3d477bf03718cae284de50c079c1cceeb16351ff51",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.draft.create@1 MCP projection",
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "name": {
+              "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "language": {
                 "type": "string",
-                "enum": [
-                  "json",
-                  "cel"
-                ]
+                "const": "json"
               },
               "source": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 65536
+                "maxLength": 131072
               },
               "timeout_ms": {
                 "type": "integer",
@@ -27164,9 +27418,9 @@
               }
             },
             "required": [
+              "rule_id",
               "idempotency_key",
               "language",
-              "name",
               "source"
             ]
           }
@@ -27242,7 +27496,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "569e901c924b1cb8af2586fe5c2e1b6965222d46226c5ad69f4e528c3e215566",
+          "sha256": "ed7ae6c777019087e119d6a68b72dd39dece152850d0cc11dc8cc9049734a900",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.draft.update@1 canonical input",
@@ -27251,31 +27505,23 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "base_revision": {
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 18446744073709551615
               },
-              "name": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128
-              },
               "language": {
                 "type": "string",
-                "enum": [
-                  "json",
-                  "cel"
-                ]
+                "const": "json"
               },
               "source": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 65536
+                "maxLength": 131072
               }
             },
             "required": [
@@ -27287,7 +27533,7 @@
           }
         },
         "output": {
-          "sha256": "b4a6d6324d56968817edbb8993ed9bea0394d52e79d623e4fb50d03b17068935",
+          "sha256": "1a8556160c0eaa2fe0f2c20bcb4f3fa506b29b3e7686e282a3bdb7ae23d2a1f5",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.draft.update@1 canonical output",
@@ -27296,9 +27542,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "draft_revision": {
                 "type": "integer",
@@ -27504,7 +27750,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "4925e447013949803427fc9f3cf1ac2896a39f2a7428edcbeb2d40d2149deb1a",
+          "sha256": "c83e5304292869caf0426b965dac485e45976ed51849e8c8c74a1e20956044ca",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.draft.update@1 MCP projection",
@@ -27513,31 +27759,23 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "base_revision": {
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 18446744073709551615
               },
-              "name": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128
-              },
               "language": {
                 "type": "string",
-                "enum": [
-                  "json",
-                  "cel"
-                ]
+                "const": "json"
               },
               "source": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 65536
+                "maxLength": 131072
               },
               "timeout_ms": {
                 "type": "integer",
@@ -27631,7 +27869,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "0f594d44f5ef5ad4d3553a0e75e70c93189e4b82c2e6792da39cf38e3224aa2c",
+          "sha256": "5dbe036700d6a73903ec87fdcd8f5a7687734f116ae7b5f9df03dda7dc3bf796",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.enable@1 canonical input",
@@ -27640,9 +27878,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "active_revision": {
                 "type": "integer",
@@ -27657,7 +27895,7 @@
           }
         },
         "output": {
-          "sha256": "1457cf2e2f823c40d197b43b648b58b66ff84743ae5d885d6c57c39594278ad4",
+          "sha256": "beaccd223cefc074c79f0d446770fa0c46445dd2ea15b715c35e3ef6cad27f40",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.enable@1 canonical output",
@@ -27666,9 +27904,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "active_revision": {
                 "type": "integer",
@@ -27871,7 +28109,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "3726126e63c9bc6f24b6315f7ab868fb9deb7c66631ecbf70648e23644201295",
+          "sha256": "221c568cd6c3a88a0d605be18fc9fd2f480149d2ab5f109bd8749a2dd89b1a1c",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.enable@1 MCP projection",
@@ -27880,9 +28118,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "active_revision": {
                 "type": "integer",
@@ -27979,7 +28217,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "02b582d357bc5016339b34f08ba9f776a857070059c49be24703d720e7c78d10",
+          "sha256": "fd8225e97033930ed178595a3994be66168dd6fb2a173a5fa0a728adeae15a3c",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.get@1 canonical input",
@@ -27988,9 +28226,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
@@ -27999,7 +28237,7 @@
           }
         },
         "output": {
-          "sha256": "f4383b108a870b88ac6b509f36fd246f92ebeb01254d4b959cd54ec5a845a972",
+          "sha256": "30bfc15b3d491d36eed0609fb16e907702dbcdaa40aef68eccbcd769a1751c5c",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.get@1 canonical output",
@@ -28012,9 +28250,9 @@
                 "properties": {
                   "rule_id": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128,
-                    "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    "minLength": 32,
+                    "maxLength": 32,
+                    "pattern": "^[0-9a-f]{32}$"
                   },
                   "name": {
                     "type": "string",
@@ -28054,15 +28292,12 @@
               },
               "language": {
                 "type": "string",
-                "enum": [
-                  "json",
-                  "cel"
-                ]
+                "const": "json"
               },
               "source": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 65536
+                "maxLength": 131072
               },
               "semantic_digest": {
                 "type": "string",
@@ -28264,7 +28499,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "c050b973cb5a40d87799cb075aa517d7fd8e3c08193ba19e0309442438622311",
+          "sha256": "31a243e714c9c907fb6294656a12467e8cccd9a535ec3467e7c42245996f68d4",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.get@1 MCP projection",
@@ -28273,9 +28508,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "timeout_ms": {
                 "type": "integer",
@@ -28391,7 +28626,7 @@
           }
         },
         "output": {
-          "sha256": "b827996dec60e12177b8de209fad5840cbad92fcdc6bece92163b3c71840fc04",
+          "sha256": "10d91b0dff4e68b86f3d370437a75234d78ca49ecd2c86bb6568c126e3f99312",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.list@1 canonical output",
@@ -28406,9 +28641,9 @@
                   "properties": {
                     "rule_id": {
                       "type": "string",
-                      "minLength": 1,
-                      "maxLength": 128,
-                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      "minLength": 32,
+                      "maxLength": 32,
+                      "pattern": "^[0-9a-f]{32}$"
                     },
                     "name": {
                       "type": "string",
@@ -28757,7 +28992,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "907fcd09c4605f14852898e7a4566e4d1b2df869e04e650fd6e75579144f2b48",
+          "sha256": "32758ae08bb2c1d3fb58a30ceffffd9e9b6864696e247238521ed7dc773cee6d",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.revision.get@1 canonical input",
@@ -28766,9 +29001,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "revision": {
                 "type": "integer",
@@ -28783,7 +29018,7 @@
           }
         },
         "output": {
-          "sha256": "f09c71a161b8102e0cf6798cab892868f206973183e48937cb2e55b3fa66503b",
+          "sha256": "eb29a86948ceccb8a5f316d777710f73979a9978cc0a5b3f3705045936264959",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.revision.get@1 canonical output",
@@ -28792,9 +29027,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "revision": {
                 "type": "integer",
@@ -28803,15 +29038,12 @@
               },
               "language": {
                 "type": "string",
-                "enum": [
-                  "json",
-                  "cel"
-                ]
+                "const": "json"
               },
               "source": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 65536
+                "maxLength": 131072
               },
               "semantic_digest": {
                 "type": "string",
@@ -29018,7 +29250,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "1a48a7c4c83348c75eec1fd2d01a56880e247a49c672fe9959635482f5e4d97c",
+          "sha256": "e59bcd03bb0d2787fb09d2106469e8f8b5e2c23cbd4a86b0ce25fbac4ebb4497",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.revision.get@1 MCP projection",
@@ -29027,9 +29259,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "revision": {
                 "type": "integer",
@@ -29119,7 +29351,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "d25261d8771473e68544fd9f5e510de579802211627aa0092fd619aaffe30d66",
+          "sha256": "a94b0390f1ac9931da6a8d50fd72545702cbf1810ffff4f54ab6d118c6f5f2f5",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.rollback@1 canonical input",
@@ -29128,9 +29360,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "target_revision": {
                 "type": "integer",
@@ -29151,7 +29383,7 @@
           }
         },
         "output": {
-          "sha256": "1d6e152d1fbdb38a5378e2db60d2c7f95490a862805d1985f161b34390c4c60c",
+          "sha256": "a837849da9bd4056b3fbeb3d810dbbd0a3844d8cfc1d108accf32817d37a31ab",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.rollback@1 canonical output",
@@ -29160,9 +29392,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "active_revision": {
                 "type": "integer",
@@ -29367,7 +29599,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "fcc1936e3324ef447971aaa44b991392ff71c309797ecdc312d5195ca770fc8c",
+          "sha256": "79edb65faa06addc610f1441f303ec882b51b790acdf67ad6ed2674e70cb95f8",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.rollback@1 MCP projection",
@@ -29376,9 +29608,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "target_revision": {
                 "type": "integer",
@@ -29481,7 +29713,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "ba8cce8d48c2f5f6dcf3f0aa2c57dcced5cfeaf511d02933a1a32a800fb5a1f4",
+          "sha256": "8343da3a74c7165090af5325d384a45933df1f0003517d0f1d174cb302d91083",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.run.cancel@1 canonical input",
@@ -29490,32 +29722,39 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "run_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "reason": {
                 "type": "string",
                 "enum": [
                   "caller-requested"
                 ]
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
               "rule_id",
               "run_id",
-              "reason"
+              "reason",
+              "process_epoch"
             ]
           }
         },
         "output": {
-          "sha256": "3b80d3ed7729b7c3a3feb6c14a97ce971f641394b95258bc1a2cf17f38bf1cc2",
+          "sha256": "c682b6f501796f067de870f462e4b47a0a2fb25c2aa6c67fde054271f12cc495",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.run.cancel@1 canonical output",
@@ -29524,15 +29763,15 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "run_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "status": {
                 "type": "string",
@@ -29544,13 +29783,20 @@
               },
               "definite": {
                 "type": "boolean"
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
               "rule_id",
               "run_id",
               "status",
-              "definite"
+              "definite",
+              "process_epoch"
             ]
           }
         },
@@ -29739,7 +29985,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "4a9b1693ed4ae676614e2a4a086700df069c24a6cfd8d6f7bd282acb9aaa421f",
+          "sha256": "c9f25855f3c79e01f93287563aa7cfa584801a9a33cadfe052c9efa96979cde4",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.run.cancel@1 MCP projection",
@@ -29748,15 +29994,15 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "run_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "reason": {
                 "type": "string",
@@ -29774,13 +30020,20 @@
                 "minLength": 32,
                 "maxLength": 32,
                 "pattern": "^[0-9a-f]{32}$"
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
               "idempotency_key",
               "reason",
               "rule_id",
-              "run_id"
+              "run_id",
+              "process_epoch"
             ]
           }
         }
@@ -29855,7 +30108,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "4a3004adbf248dfe773335fc70f57269776af98d78eed16053d8cb6fb5a1d318",
+          "sha256": "2062079e61f53df38675ed0b0510e97fd03604fe047e1852be240bf8c9264805",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.run.get@1 canonical input",
@@ -29864,25 +30117,32 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "run_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
               "rule_id",
-              "run_id"
+              "run_id",
+              "process_epoch"
             ]
           }
         },
         "output": {
-          "sha256": "b212be929baa0130fb4644396050fb7d45b1284d2bbb7dbd3b37d014dafd3c85",
+          "sha256": "7afff4a49fb896d46f6ffbc6218371a00f40799f94bb7676233c9f1df4707e77",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.run.get@1 canonical output",
@@ -29895,15 +30155,15 @@
                 "properties": {
                   "run_id": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128,
-                    "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    "minLength": 32,
+                    "maxLength": 32,
+                    "pattern": "^[0-9a-f]{32}$"
                   },
                   "rule_id": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128,
-                    "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    "minLength": 32,
+                    "maxLength": 32,
+                    "pattern": "^[0-9a-f]{32}$"
                   },
                   "rule_revision": {
                     "type": "integer",
@@ -29938,13 +30198,20 @@
                     "minLength": 64,
                     "maxLength": 64,
                     "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "process_epoch": {
+                    "type": "string",
+                    "minLength": 32,
+                    "maxLength": 32,
+                    "pattern": "^[0-9a-f]{32}$"
                   }
                 },
                 "required": [
                   "run_id",
                   "rule_id",
                   "rule_revision",
-                  "status"
+                  "status",
+                  "process_epoch"
                 ]
               },
               "result_summary": {
@@ -30183,7 +30450,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "c19b26cf2d31f2a87e6f1e52b5d902f0b039932e0d195a3fc8b7349e7288739f",
+          "sha256": "63c7fcd417c2629fb4f1d649faabf11ed230aed14cb6d06a1ce2b68a0e937c6c",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.run.get@1 MCP projection",
@@ -30192,25 +30459,32 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "run_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "timeout_ms": {
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 30000
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
               "rule_id",
-              "run_id"
+              "run_id",
+              "process_epoch"
             ]
           }
         }
@@ -30285,7 +30559,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "262a97b8963b5677f34e016d05ce509001104a49c82052be0aad396338ed8862",
+          "sha256": "bb5c0c3bfc2e6a3ad56f7fa4c57e4c9f2de0f9fe594df70ebcbd211dd06a28b6",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.runs.page@1 canonical input",
@@ -30294,9 +30568,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "status": {
                 "type": "string",
@@ -30319,15 +30593,22 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 200
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
-              "rule_id"
+              "rule_id",
+              "process_epoch"
             ]
           }
         },
         "output": {
-          "sha256": "1704fc247f706dcd86426610d7105abdfba8e1a2708e9b3b4cee68c1f12dd820",
+          "sha256": "57137187936dfda6f5a7988d3ffbd177ea7c31ebada3b1ba3345d88ceda0548f",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.runs.page@1 canonical output",
@@ -30342,15 +30623,15 @@
                   "properties": {
                     "run_id": {
                       "type": "string",
-                      "minLength": 1,
-                      "maxLength": 128,
-                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      "minLength": 32,
+                      "maxLength": 32,
+                      "pattern": "^[0-9a-f]{32}$"
                     },
                     "rule_id": {
                       "type": "string",
-                      "minLength": 1,
-                      "maxLength": 128,
-                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      "minLength": 32,
+                      "maxLength": 32,
+                      "pattern": "^[0-9a-f]{32}$"
                     },
                     "rule_revision": {
                       "type": "integer",
@@ -30385,13 +30666,20 @@
                       "minLength": 64,
                       "maxLength": 64,
                       "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "process_epoch": {
+                      "type": "string",
+                      "minLength": 32,
+                      "maxLength": 32,
+                      "pattern": "^[0-9a-f]{32}$"
                     }
                   },
                   "required": [
                     "run_id",
                     "rule_id",
                     "rule_revision",
-                    "status"
+                    "status",
+                    "process_epoch"
                   ]
                 },
                 "minItems": 0,
@@ -30405,11 +30693,18 @@
               },
               "truncated": {
                 "type": "boolean"
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
               "runs",
-              "truncated"
+              "truncated",
+              "process_epoch"
             ]
           }
         },
@@ -30598,7 +30893,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "d9863ff81600197217f826af5d89da8d50ce00b31f4efb248ae8533822106da7",
+          "sha256": "af48055a24a1e17742df839df5df65c6d8242ad423764bbf804ed39803c17238",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.runs.page@1 MCP projection",
@@ -30607,9 +30902,9 @@
             "properties": {
               "rule_id": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               },
               "status": {
                 "type": "string",
@@ -30637,10 +30932,17 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 30000
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
-              "rule_id"
+              "rule_id",
+              "process_epoch"
             ]
           }
         }
@@ -30723,7 +31025,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "93a36bbfc2400959e23651475fb718f8966062bcf1341b1792093fc0f3a32396",
+          "sha256": "e1ec1cfa05a8a0e189cbd360244a408e11bde3601762f3750b539bbc6883ceea",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.simulate@1 canonical input",
@@ -30732,15 +31034,12 @@
             "properties": {
               "language": {
                 "type": "string",
-                "enum": [
-                  "json",
-                  "cel"
-                ]
+                "const": "json"
               },
               "source": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 65536
+                "maxLength": 131072
               },
               "draft_revision": {
                 "type": "integer",
@@ -31063,7 +31362,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "17a94b078ffdaffe07dbf3c3ed4d1f69b7a6cc175820220e47d889930a89501f",
+          "sha256": "f40efce16d62d405ee664bf53dd4974e6841d6945e7207638619d4d44a5aa019",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.simulate@1 MCP projection",
@@ -31072,15 +31371,12 @@
             "properties": {
               "language": {
                 "type": "string",
-                "enum": [
-                  "json",
-                  "cel"
-                ]
+                "const": "json"
               },
               "source": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 65536
+                "maxLength": 131072
               },
               "draft_revision": {
                 "type": "integer",
@@ -31114,367 +31410,6 @@
               "language",
               "scenario_ids",
               "source"
-            ]
-          }
-        }
-      },
-      "service_binding": null
-    },
-    {
-      "id": "rules.trigger@1",
-      "kind": "canonical",
-      "scope_policy": {
-        "kind": "fixed",
-        "scope": "litehouse:operate"
-      },
-      "authorization": {
-        "action": "trigger",
-        "resource": "rule"
-      },
-      "class": "mutation",
-      "idempotency": "required",
-      "preconditions": {
-        "revision": "none",
-        "generation": "none"
-      },
-      "deadline": {
-        "default_ms": 30000,
-        "maximum_ms": 30000
-      },
-      "progress": {
-        "kind": "none"
-      },
-      "stream": {
-        "kind": "none"
-      },
-      "http": {
-        "method": "POST",
-        "path": "/api/operations/rules.trigger/v1",
-        "cache": "no-store"
-      },
-      "webrtc": {
-        "operation_id": "rules.trigger@1"
-      },
-      "mcp": {
-        "tool": "litehouse_rules_trigger_v1",
-        "resource_template": null,
-        "annotations": {
-          "read_only": false,
-          "destructive": false,
-          "idempotent": true,
-          "open_world": false
-        }
-      },
-      "web": {
-        "group": "rules",
-        "label": "Rules Trigger",
-        "cache": "no-store",
-        "destructive_confirmation": false
-      },
-      "projection": {
-        "input": "schema-allowlist",
-        "output": "schema-allowlist",
-        "unknown_fields": "deny",
-        "protected_values": "omit",
-        "private_addresses": "omit",
-        "errors": "safe-envelope"
-      },
-      "redaction": {
-        "unknown_fields": "hide",
-        "protected_values": "omit",
-        "private_addresses": "omit",
-        "untrusted_text": "preserve-marked",
-        "diagnostics": "allowlisted"
-      },
-      "schemas": {
-        "input": {
-          "sha256": "9bca6e12faaba58aa97ea9fb6621329883b68e0cc244e96adf7ec3c91f0a5b96",
-          "schema": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "title": "rules.trigger@1 canonical input",
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "rule_id": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
-              },
-              "trigger_name": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 64,
-                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
-              }
-            },
-            "required": [
-              "rule_id",
-              "trigger_name"
-            ]
-          }
-        },
-        "output": {
-          "sha256": "a71f41156bcc6f218b2da24903ba780d4b7dbedd93a2ce32c8e0c7fc36eeb759",
-          "schema": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "title": "rules.trigger@1 canonical output",
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "rule_id": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
-              },
-              "run_id": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
-              },
-              "status": {
-                "type": "string",
-                "enum": [
-                  "queued",
-                  "running"
-                ]
-              },
-              "rule_revision": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 18446744073709551615
-              }
-            },
-            "required": [
-              "rule_id",
-              "run_id",
-              "status",
-              "rule_revision"
-            ]
-          }
-        },
-        "error": {
-          "sha256": "c21be991107fe8d17f99722d344745d3263c937c6c7b5b56ca4e24791893daae",
-          "schema": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "title": "rules.trigger@1 canonical error",
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "operation_id": {
-                "type": "string",
-                "const": "rules.trigger@1"
-              },
-              "inner": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "group": {
-                    "type": "string",
-                    "enum": [
-                      "binding",
-                      "authorization",
-                      "availability",
-                      "timing",
-                      "capacity",
-                      "execution",
-                      "outcome-unknown",
-                      "contract"
-                    ]
-                  },
-                  "code": {
-                    "type": "string",
-                    "enum": [
-                      "not-found",
-                      "ambiguous",
-                      "stale-handle",
-                      "endpoint-removed",
-                      "denied",
-                      "expired-grant",
-                      "insufficient-scope",
-                      "unavailable",
-                      "reconnecting",
-                      "shutting-down",
-                      "deadline-exceeded",
-                      "cancelled",
-                      "overloaded",
-                      "provider-failed",
-                      "protocol-failed",
-                      "unsupported",
-                      "outcome-unknown",
-                      "contract-failed"
-                    ]
-                  },
-                  "origin": {
-                    "type": "string",
-                    "enum": [
-                      "caller",
-                      "provider",
-                      "host",
-                      "shutdown"
-                    ]
-                  }
-                },
-                "required": [
-                  "group",
-                  "code"
-                ]
-              },
-              "detail": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 64,
-                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
-                  },
-                  "fields": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 64
-                        },
-                        "summary": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 256
-                        }
-                      },
-                      "required": [
-                        "name",
-                        "summary"
-                      ]
-                    },
-                    "minItems": 0,
-                    "maxItems": 16
-                  },
-                  "truncated": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "kind",
-                  "fields",
-                  "truncated"
-                ]
-              },
-              "retry": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "enum": [
-                      "never",
-                      "retry",
-                      "reconnect",
-                      "rebind",
-                      "lookup-result"
-                    ]
-                  },
-                  "retry_after_ms": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 300000
-                  }
-                },
-                "required": [
-                  "kind"
-                ]
-              },
-              "safe_message": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 512
-              },
-              "error_id": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
-              },
-              "correlation_id": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
-              },
-              "outcome": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "confidence": {
-                    "type": "string",
-                    "enum": [
-                      "definite",
-                      "outcome-unknown"
-                    ]
-                  },
-                  "lookup_available": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "confidence",
-                  "lookup_available"
-                ]
-              }
-            },
-            "required": [
-              "operation_id",
-              "inner",
-              "retry",
-              "error_id",
-              "correlation_id",
-              "outcome"
-            ]
-          }
-        },
-        "mcp_projection": {
-          "sha256": "c51de0f8af41de593cd0196a8aa60c1c6e0ab522e5e36df9fd82aa881fc75e88",
-          "schema": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "title": "rules.trigger@1 MCP projection",
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "rule_id": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128,
-                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
-              },
-              "trigger_name": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 64,
-                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
-              },
-              "timeout_ms": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 30000
-              },
-              "idempotency_key": {
-                "type": "string",
-                "minLength": 32,
-                "maxLength": 32,
-                "pattern": "^[0-9a-f]{32}$"
-              }
-            },
-            "required": [
-              "idempotency_key",
-              "rule_id",
-              "trigger_name"
             ]
           }
         }
@@ -31549,7 +31484,7 @@
       },
       "schemas": {
         "input": {
-          "sha256": "d7ca113fd533be6abfc3613cbbac72e6f7d760c0552ef56962f085f3b5d2efba",
+          "sha256": "7478099f747f496ef3167b308bdcfc1bf498f28bfa08f7ade2d41959255045dd",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.validate@1 canonical input",
@@ -31558,15 +31493,12 @@
             "properties": {
               "language": {
                 "type": "string",
-                "enum": [
-                  "json",
-                  "cel"
-                ]
+                "const": "json"
               },
               "source": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 65536
+                "maxLength": 131072
               },
               "draft_revision": {
                 "type": "integer",
@@ -31834,7 +31766,7 @@
           }
         },
         "mcp_projection": {
-          "sha256": "58de5f36058682ff45326cdd71de417159a66013606969334c11a6de63f24458",
+          "sha256": "486427d71f413310936bbdc71bafda77fbb027a73e9c5bfe55147b35deb0b656",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "rules.validate@1 MCP projection",
@@ -31843,15 +31775,12 @@
             "properties": {
               "language": {
                 "type": "string",
-                "enum": [
-                  "json",
-                  "cel"
-                ]
+                "const": "json"
               },
               "source": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 65536
+                "maxLength": 131072
               },
               "draft_revision": {
                 "type": "integer",
@@ -32318,7 +32247,7 @@
           }
         },
         "output": {
-          "sha256": "1e534f58b45164b0de31527c478cdef4ed8210d3cd17ee79fa4720e358189bea",
+          "sha256": "9a985066c51ec52a06aaf32f7271368ce160ea710eced6aa9ed350d3a25815d7",
           "schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "system.get@1 canonical output",
@@ -32355,6 +32284,12 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 512
+              },
+              "process_epoch": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[0-9a-f]{32}$"
               }
             },
             "required": [
@@ -32362,7 +32297,8 @@
               "version",
               "runtime_profile",
               "auth_mode",
-              "summary"
+              "summary",
+              "process_epoch"
             ]
           }
         },

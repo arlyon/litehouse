@@ -375,17 +375,19 @@ eligibility without a new provider decision.
 
 **Prerequisites:** T1–T2.
 
-**Scope:** canonical versioned Rule JSON Schema and port catalog, strict bounded
-CEL condition profile, UCUM quantity operations, selectors, semantic JCS digest,
-native/browser-Wasm validator/compiler, and deterministic pre-state-to-plan
-simulation.
+**Completed scope:** the first closed server-side Rule JSON subset: one state
+observation trigger, typed immutable snapshots, Boolean/string/i64/quantity
+comparisons, explicit branching, exact On/Off set intents, typed ends,
+deterministic DAG compilation, and pure pre-state-to-plan simulation.
 
-**Not scope:** effect dispatch, durable runs, React Flow persistence, loops/sagas,
-or optimistic physical state.
+**Not scope:** the remaining V1 node/trigger vocabulary, CEL/JCS/browser-Wasm,
+selector resolution, effect dispatch, restart-clean execution, React Flow
+persistence, loops/sagas, or optimistic physical state. T8 completes the designed
+V1 language before executing it.
 
-**Acceptance:** valid/invalid schema, graph/type/cardinality/CEL/UCUM/bound
-fixtures; native/Wasm byte-identical plans; layout-independent semantic digest;
-unknown/stale input; and proof simulation cannot call a provider or mutate state.
+**Acceptance:** strict schema/shape/bound fixtures, graph/type/cardinality and
+quantity validation, deterministic planning, unknown/stale input, and proof the
+planner cannot call a provider or mutate state.
 
 **Rollback:** schema/evaluator versions are immutable/pinned; migration creates a
 new draft and never rewrites an active rule.
@@ -395,25 +397,30 @@ new draft and never rewrites an active rule.
 **Prerequisites:** T3 and T7.
 
 **Scope:** atomically persisted instance/rule drafts, immutable revisions,
-active/predecessor pointers, grants, and enabled state in Fjall; the complete
-bounded Rule JSON V1 language and process-local executor; typed provider push
-plus bounded polling; drafts/validate/plan/apply/activate/rollback; canonical
-operation handlers; optimistic revisions and bounded process-local idempotency;
-state/event/config/registry/rule/diagnostic projections; and fixed OAuth scope
-requirements.
+active/predecessor pointers, grants, and enabled state in Fjall 3.1.7; the
+complete bounded Rule JSON V1 language and process-local executor; typed source-
+push consumption plus bounded polling through the unchanged provider ABI;
+drafts/validate/plan/apply/activate/rollback; canonical operation handlers;
+optimistic revisions and bounded process-local idempotency; state/event/config/
+registry/rule/diagnostic projections; and fixed OAuth scope requirements. Use
+single-writer cross-keyspace `SyncAll` transactions in a fresh Fjall V3 database,
+RFC 8785 canonicalization via `serde_json_canonicalizer` 0.3.2, bounded CEL
+parsing via default-feature-free `cel` 0.14.0 with a Litehouse-owned checker and
+evaluator, and Jiff 0.2.32 with bundled tzdb 2026c.
 
 **Not scope:** durable runs, microsteps, timers, trigger queues, effect outbox,
 receipt continuation, catch-up, replay, compensation, or idempotency tombstones;
 transport-specific behavior, UI, new MCP tools, external audit DB, or host escape.
 
-**Acceptance:** authored state is atomic across crash/reopen; stale edits conflict;
-process-local duplicate requests deduplicate; restart discards every unfinished
-run/timer/queue/effect and stales old run IDs/cursors; each rule waits for its own
-hydration barrier before arming; time schedules continue only at the next future
-occurrence; ambiguous effects are never retried; disable/drain and predecessor
-rollback remain explicit; authorization, redaction, gaps, and projections are
-consistent across fake adapters. Observed physical state never changes merely
-because delivery was accepted.
+**Acceptance:** authored state is atomic across crash/reopen; a second database
+process is rejected; stale edits conflict; process-local duplicate requests
+deduplicate; restart discards every unfinished run/timer/queue/effect and stales
+old run IDs/cursors; each rule waits for its own hydration barrier before arming;
+time schedules continue only at the next future occurrence; ambiguous effects
+are never retried; disable/drain and predecessor rollback remain explicit;
+authorization, redaction, gaps, and projections are consistent across fake
+adapters. Native, `wasm32-wasip2`, and browser-Wasm rule dependencies compile,
+and observed physical state never changes merely because delivery was accepted.
 
 **Rollback:** active rule plus predecessor remain pinned; rollback revalidates and
 never rewinds external effects. Removing the executor leaves persisted authored
