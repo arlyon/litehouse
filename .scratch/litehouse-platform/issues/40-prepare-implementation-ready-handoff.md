@@ -390,27 +390,34 @@ unknown/stale input; and proof simulation cannot call a provider or mutate state
 **Rollback:** schema/evaluator versions are immutable/pinned; migration creates a
 new draft and never rewrites an active rule.
 
-### T8 — Durable rule executor and canonical management core
+### T8 — Persistent management core and restart-clean rule executor
 
 **Prerequisites:** T3 and T7.
 
-**Scope:** run records/microsteps, timers, outbox, durable pre-effect dispatch,
-receipts/reconciliation, bounded retry, drafts/validate/plan/apply/activate/
-rollback, canonical operation handlers, revisions/idempotency/result lookup,
-state/event/config/registry/rule/diagnostic projections, and fixed OAuth scope
+**Scope:** atomically persisted instance/rule drafts, immutable revisions,
+active/predecessor pointers, grants, and enabled state in Fjall; the complete
+bounded Rule JSON V1 language and process-local executor; typed provider push
+plus bounded polling; drafts/validate/plan/apply/activate/rollback; canonical
+operation handlers; optimistic revisions and bounded process-local idempotency;
+state/event/config/registry/rule/diagnostic projections; and fixed OAuth scope
 requirements.
 
-**Not scope:** transport-specific behavior, UI, MCP, external audit DB, or host
-escape.
+**Not scope:** durable runs, microsteps, timers, trigger queues, effect outbox,
+receipt continuation, catch-up, replay, compensation, or idempotency tombstones;
+transport-specific behavior, UI, new MCP tools, external audit DB, or host escape.
 
-**Acceptance:** crash at every checkpoint/dispatch boundary; timer/restart;
-disable/drain; predecessor rule rollback; gap/hydration; ambiguous-effect no-
-replay; authorization/revision/idempotency/result-retention; redaction; and one
-handler producing semantically identical projected results for fake adapters.
-Observed physical state never changes merely because delivery was accepted.
+**Acceptance:** authored state is atomic across crash/reopen; stale edits conflict;
+process-local duplicate requests deduplicate; restart discards every unfinished
+run/timer/queue/effect and stales old run IDs/cursors; each rule waits for its own
+hydration barrier before arming; time schedules continue only at the next future
+occurrence; ambiguous effects are never retried; disable/drain and predecessor
+rollback remain explicit; authorization, redaction, gaps, and projections are
+consistent across fake adapters. Observed physical state never changes merely
+because delivery was accepted.
 
-**Rollback:** active rule plus predecessor and evaluator remain pinned; rollback
-revalidates and never rewinds external effects.
+**Rollback:** active rule plus predecessor remain pinned; rollback revalidates and
+never rewinds external effects. Removing the executor leaves persisted authored
+state intact and no unfinished work is resumed.
 
 ### T9 — Portable local server and container
 

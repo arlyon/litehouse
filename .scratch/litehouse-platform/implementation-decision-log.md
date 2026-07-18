@@ -361,6 +361,27 @@ configuration.
   resolution, persistence, dispatch, receipts, and timers. In particular, do not
   claim sorted JSON is RFC 8785 when no audited JCS dependency is already present.
 
+### D-025 — Restart-clean management and automation
+
+- **Status:** user-authorized
+- **Blocks:** T8
+- **Question:** Which state must survive a Litehouse restart, and which workflow
+  guarantees are proportionate for a home automation server rather than a
+  business-critical workflow engine?
+- **Resolution:** persist authored instance configuration, Rule JSON, immutable
+  revisions, active pointers, grants, and enabled state atomically in Fjall.
+  Rule runs, delays, debounce/throttle windows, trigger queues, pending effects,
+  receipt continuations, stream cursors, and short-lived idempotency results are
+  process-epoch-local. A crash discards unfinished work; Litehouse never resumes,
+  catches up, compensates, or replays it. Time schedules continue at their next
+  future occurrence. Rules arm only after their own dependencies rehydrate or
+  become explicitly unavailable. An ambiguous provider call is outcome-unknown
+  and is never automatically retried. Absolute commands remain preferred where
+  supported, and accepted-for-delivery never becomes invented observed state.
+  T8 still completes the designed Rule JSON V1 language, uses typed provider push
+  plus bounded polling, and adopts one canonical management core, but it does not
+  add a durable workflow journal, outbox, or lifetime idempotency tombstones.
+
 ## Deferred external-authority decisions
 
 ### X-001 — T15 staging/signing/cloud/DNS operations

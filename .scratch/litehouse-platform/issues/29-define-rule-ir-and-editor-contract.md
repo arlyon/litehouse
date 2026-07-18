@@ -20,6 +20,16 @@ plugin parity?
 
 ## Answer
 
+> **T8 restart semantics supersession (2026-07-17):** D-025 keeps the authored
+> language, pure transition model, bounds, and explicit receipt outcomes below,
+> but supersedes durable run/checkpoint/outbox recovery. Runs, delays, control
+> state, timers, queues, pending effects, receipt continuations, and cursors are
+> process-epoch-local. A restart discards unfinished work, rehydrates each rule's
+> dependencies before arming it, and schedules only the next future time
+> occurrence. It never catches up, resumes, compensates, or replays an ambiguous
+> effect. Persisted authority is limited to authored rules, immutable revisions,
+> active/predecessor pointers, grants, and enabled state.
+
 Publish a small, typed, versioned **Litehouse Rule JSON** language and its JSON
 Schema. The JSON graph is the authored language and persistence authority; React
 Flow is one projection/editor. CEL is only a pure expression leaf. Do not put

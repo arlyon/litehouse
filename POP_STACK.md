@@ -171,7 +171,7 @@ runtime-only credential material left with the proof process.
 | T6f | Completed | ESPHome switches, binary sensors, numeric sensors, lights, fans, sirens, climates, covers, and buttons mapped conservatively |
 | T7 | Completed | Rule JSON schema, typed compiler, immutable input, and pure planner subset |
 | T13a | Completed | Network-reachable bounded Streamable HTTP with explicit no-auth warning |
-| T8 | Pending | Durable canonical management core and rule execution; adopt the proving handlers |
+| T8 | In progress | Persistent canonical management core and restart-clean full Rule JSON execution; adopt the proving handlers |
 | T9 | Pending | Portable local server/container and thin Butane/Quadlet output |
 | T10 | Pending | Clean D1 identity, owner account, inventory, and pairing |
 | T11 | Pending | Signaling-only broker and direct WebRTC JSON-RPC |
@@ -197,6 +197,7 @@ runtime-only credential material left with the proof process.
 - Workspace-wide `cargo check --workspace --all-targets` remains blocked by the pre-existing registry test reference to unresolved `crate::registry` in `partitioned_store.rs`.
 - `cargo groups test bin` may remain unavailable because `cargo-groups`/`cargo-binstall` is not installed; run the documented clean-worktree package equivalents and report the limitation.
 - `/mcp` is network-reachable but intentionally unauthenticated in T13a: reachability grants use. Authenticated `/mcp` remains T13 work.
+- T8 deliberately does not resume or replay in-flight automation after restart; authored state persists, then rules restart only after their own dependencies rehydrate.
 - ESPHome's mapped API 1.14 entities are covered by deterministic typed feature-gate and command fixtures; unsupported entities remain bounded diagnostics.
 - Shared-store T3 failures still require process restart for reactivation; this provider uses the default per-instance strategy.
 
