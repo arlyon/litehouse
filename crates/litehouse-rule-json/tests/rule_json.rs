@@ -992,6 +992,71 @@ fn pure_delay_microstep_suspends_and_resumes_only_from_its_timer() {
 }
 
 #[test]
+fn pure_schedule_triggers_validate_anchor_occurrence_and_dst_projection() {
+    let cases = [
+        (
+            "fixtures/valid-time-one-shot.json",
+            Timestamp::new(1_799_999_999, 999_999_999).unwrap(),
+            Timestamp::new(1_800_000_000, 999_999_999).unwrap(),
+        ),
+        (
+            "fixtures/valid-time-fixed-interval.json",
+            Timestamp::new(1_700_000_000, 0).unwrap(),
+            Timestamp::new(1_700_604_800, 0).unwrap(),
+        ),
+        (
+            "fixtures/valid-time-weekly.json",
+            Timestamp::new(1_784_532_600, 0).unwrap(),
+            Timestamp::new(1_784_536_200, 0).unwrap(),
+        ),
+    ];
+    for (path, anchor, scheduled_for) in cases {
+        let compiled = compile_value(&fixture(path)).unwrap();
+        let occurrence_id =
+            litehouse_rule_json::schedule_occurrence_id(&compiled, anchor, scheduled_for);
+        let trigger = TriggerInput::time_schedule(occurrence_id, anchor, scheduled_for).unwrap();
+        let input = planner_microstep_input(
+            &compiled,
+            1,
+            EvaluationEvent::initial(trigger),
+            scheduled_for,
+            Vec::new(),
+            Vec::new(),
+            microstep_state(),
+        );
+        assert_eq!(
+            plan_microstep(&compiled, &input).unwrap().outcome(),
+            TransitionOutcome::Noop,
+            "{path}",
+        );
+    }
+
+    let compiled = compile_value(&fixture("fixtures/valid-time-one-shot.json")).unwrap();
+    let anchor = Timestamp::new(1_799_999_999, 999_999_999).unwrap();
+    let wrong_time = Timestamp::new(1_800_000_001, 999_999_999).unwrap();
+    let wrong = planner_microstep_input(
+        &compiled,
+        1,
+        EvaluationEvent::initial(
+            TriggerInput::time_schedule(
+                litehouse_rule_json::schedule_occurrence_id(&compiled, anchor, wrong_time),
+                anchor,
+                wrong_time,
+            )
+            .unwrap(),
+        ),
+        wrong_time,
+        Vec::new(),
+        Vec::new(),
+        microstep_state(),
+    );
+    assert_eq!(
+        plan_microstep(&compiled, &wrong),
+        Err(litehouse_rule_json::TransitionError::ScheduleMismatch)
+    );
+}
+
+#[test]
 fn pure_desired_patch_changes_only_the_hypothetical_projection() {
     let mut document = planner_fixture();
     let snapshot = document["semantic"]["nodes"][0].clone();

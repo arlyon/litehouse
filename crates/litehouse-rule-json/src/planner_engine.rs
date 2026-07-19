@@ -1,12 +1,13 @@
 use std::collections::BTreeMap;
 
 use cel::Value as CelValue;
+use jiff::{Timestamp as JiffTimestamp, civil::DateTime as CivilDateTime, tz::TimeZone};
 use litehouse_contracts::quantity::Quantity;
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 
 use crate::{
-    CompiledNode, CompiledQuantityResult, CompiledRule, CompiledTrigger,
+    CompiledNode, CompiledQuantityResult, CompiledRule, CompiledSchedule, CompiledTrigger,
     condition::evaluate_condition,
     model::{
         CapabilityOperation, DesiredPatchOperation, DesiredProjectionPath, DesiredProjectionValue,
@@ -30,6 +31,8 @@ pub enum TransitionError {
     IdentityMismatch,
     #[error("initial trigger does not match the compiled trigger")]
     TriggerMismatch,
+    #[error("schedule occurrence does not match the compiled schedule")]
+    ScheduleMismatch,
     #[error("initial input cannot start while a run is active")]
     RunAlreadyActive,
     #[error("resume input does not match an active suspension")]
@@ -694,6 +697,13 @@ fn validate_trigger(
     compiled: &CompiledRule,
     trigger: &TriggerInput,
 ) -> Result<(), TransitionError> {
+    let schedule_pair = matches!(
+        (compiled.trigger(), trigger),
+        (
+            CompiledTrigger::TimeSchedule { .. },
+            TriggerInput::TimeSchedule { .. }
+        )
+    );
     let matches = match (compiled.trigger(), trigger) {
         (
             CompiledTrigger::StateObservation {
@@ -726,14 +736,124 @@ fn validate_trigger(
                 ..
             },
         ) => selector == actual && event == actual_event,
-        (CompiledTrigger::TimeSchedule { .. }, TriggerInput::TimeSchedule { .. }) => true,
+        (
+            CompiledTrigger::TimeSchedule { schedule },
+            TriggerInput::TimeSchedule {
+                occurrence_id,
+                activation_anchor,
+                scheduled_for,
+            },
+        ) => {
+            occurrence_id == &schedule_occurrence_id(compiled, *activation_anchor, *scheduled_for)
+                && schedule_accepts(schedule, *activation_anchor, *scheduled_for)
+        }
         _ => false,
     };
     if matches {
         Ok(())
+    } else if schedule_pair {
+        Err(TransitionError::ScheduleMismatch)
     } else {
         Err(TransitionError::TriggerMismatch)
     }
+}
+
+pub fn schedule_occurrence_id(
+    compiled: &CompiledRule,
+    activation_anchor: crate::Timestamp,
+    scheduled_for: crate::Timestamp,
+) -> String {
+    let digest = digest_parts(&[
+        compiled.rule_id(),
+        &compiled.revision().to_string(),
+        compiled.semantic_sha256(),
+        compiled.profile_sha256(),
+        &activation_anchor.unix_seconds().to_string(),
+        &activation_anchor.nanosecond().to_string(),
+        &scheduled_for.unix_seconds().to_string(),
+        &scheduled_for.nanosecond().to_string(),
+    ]);
+    format!("occ_{}", &digest[..32])
+}
+
+fn schedule_accepts(
+    schedule: &CompiledSchedule,
+    activation_anchor: crate::Timestamp,
+    scheduled_for: crate::Timestamp,
+) -> bool {
+    let Ok(scheduled) = JiffTimestamp::new(
+        scheduled_for.unix_seconds(),
+        scheduled_for.nanosecond() as i32,
+    ) else {
+        return false;
+    };
+    match schedule {
+        CompiledSchedule::OneShot { at } => &scheduled == at,
+        CompiledSchedule::FixedInterval { interval } => {
+            let elapsed = timestamp_nanoseconds(scheduled_for)
+                .checked_sub(timestamp_nanoseconds(activation_anchor));
+            elapsed.is_some_and(|elapsed| elapsed > 0 && elapsed % interval.as_nanos() == 0)
+        }
+        CompiledSchedule::WeeklyCivil {
+            days,
+            time,
+            timezone,
+            nonexistent_time,
+            duplicate_time,
+        } => {
+            let Ok(zone) = TimeZone::get(timezone) else {
+                return false;
+            };
+            let zoned = scheduled.to_zoned(zone.clone());
+            if !days
+                .iter()
+                .any(|day| authored_weekday(*day) == zoned.weekday())
+            {
+                return false;
+            }
+            let authored = CivilDateTime::from_parts(zoned.date(), *time);
+            let earlier = zone.to_ambiguous_timestamp(authored).earlier();
+            let later = zone.to_ambiguous_timestamp(authored).later();
+            let compatible = zone.to_ambiguous_timestamp(authored).compatible();
+            let (Ok(earlier), Ok(later), Ok(compatible)) = (earlier, later, compatible) else {
+                return false;
+            };
+            let earlier_local = earlier.to_zoned(zone.clone()).datetime();
+            let later_local = later.to_zoned(zone.clone()).datetime();
+            let fold = earlier != later && earlier_local == authored && later_local == authored;
+            let gap = earlier != later && !fold;
+            if gap {
+                return match nonexistent_time {
+                    crate::NonexistentTimePolicy::Skip => false,
+                    crate::NonexistentTimePolicy::ShiftForward => scheduled == compatible,
+                };
+            }
+            if fold {
+                return match duplicate_time {
+                    crate::DuplicateTimePolicy::First => scheduled == earlier,
+                    crate::DuplicateTimePolicy::Second => scheduled == later,
+                    crate::DuplicateTimePolicy::Both => scheduled == earlier || scheduled == later,
+                };
+            }
+            scheduled == compatible
+        }
+    }
+}
+
+fn authored_weekday(day: crate::Weekday) -> jiff::civil::Weekday {
+    match day {
+        crate::Weekday::Monday => jiff::civil::Weekday::Monday,
+        crate::Weekday::Tuesday => jiff::civil::Weekday::Tuesday,
+        crate::Weekday::Wednesday => jiff::civil::Weekday::Wednesday,
+        crate::Weekday::Thursday => jiff::civil::Weekday::Thursday,
+        crate::Weekday::Friday => jiff::civil::Weekday::Friday,
+        crate::Weekday::Saturday => jiff::civil::Weekday::Saturday,
+        crate::Weekday::Sunday => jiff::civil::Weekday::Sunday,
+    }
+}
+
+fn timestamp_nanoseconds(timestamp: crate::Timestamp) -> i128 {
+    i128::from(timestamp.unix_seconds()) * 1_000_000_000 + i128::from(timestamp.nanosecond())
 }
 
 fn required_next(

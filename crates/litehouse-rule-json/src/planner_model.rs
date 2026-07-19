@@ -396,6 +396,7 @@ pub enum TriggerInput {
     },
     TimeSchedule {
         occurrence_id: String,
+        activation_anchor: Timestamp,
         scheduled_for: Timestamp,
     },
 }
@@ -486,12 +487,17 @@ impl TriggerInput {
 
     pub fn time_schedule(
         occurrence_id: impl Into<String>,
+        activation_anchor: Timestamp,
         scheduled_for: Timestamp,
     ) -> Result<Self, PlannerModelError> {
         let occurrence_id = occurrence_id.into();
         validate_id("occurrence_id", &occurrence_id)?;
+        if scheduled_for <= activation_anchor {
+            return Err(PlannerModelError::InvalidTimestampOrder);
+        }
         Ok(Self::TimeSchedule {
             occurrence_id,
+            activation_anchor,
             scheduled_for,
         })
     }
@@ -1832,9 +1838,10 @@ fn validate_trigger_input(trigger: &TriggerInput) -> Result<(), PlannerModelErro
         }
         TriggerInput::TimeSchedule {
             occurrence_id,
+            activation_anchor,
             scheduled_for,
         } => {
-            TriggerInput::time_schedule(occurrence_id.clone(), *scheduled_for)?;
+            TriggerInput::time_schedule(occurrence_id.clone(), *activation_anchor, *scheduled_for)?;
         }
     }
     Ok(())
@@ -2552,7 +2559,8 @@ mod tests {
 
     #[test]
     fn rejects_encoded_input_over_64_kib() {
-        let trigger = TriggerInput::time_schedule("occurrence", timestamp(1)).unwrap();
+        let trigger =
+            TriggerInput::time_schedule("occurrence", timestamp(0), timestamp(1)).unwrap();
         let snapshots = (1..=5)
             .map(|provider| {
                 CapabilitySnapshot::new(
