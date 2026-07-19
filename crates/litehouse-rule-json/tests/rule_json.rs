@@ -1354,6 +1354,376 @@ fn admission_windows_count_against_the_authored_timer_limit() {
 }
 
 #[test]
+fn deterministic_fork_join_merges_immediate_branches_in_declared_order() {
+    let mut document = planner_fixture();
+    document["semantic"]["nodes"] = json!([
+        {
+            "id":"fork","kind":"fork_join","version":1,"conflict_policy":"reject_conflict",
+            "phase":{"kind":"fork","join_node_id":"join","branches":[{"id":"root","order":0},{"id":"trailing","order":1}]}
+        },
+        {
+            "id":"join","kind":"fork_join","version":1,"conflict_policy":"reject_conflict",
+            "phase":{"kind":"join","fork_node_id":"fork","branches":[{"id":"root","order":0},{"id":"trailing","order":1}]}
+        },
+        {"id":"end","kind":"end","version":1,"outcome":"success"}
+    ]);
+    document["semantic"]["edges"] = json!([
+        {"id":"e00","from":{"node":"trigger","port":"next"},"to":{"node":"fork","port":"in"},"order":0},
+        {"id":"e01","from":{"node":"fork","port":"branch:root"},"to":{"node":"join","port":"arrival:root"},"order":0},
+        {"id":"e02","from":{"node":"fork","port":"branch:trailing"},"to":{"node":"join","port":"arrival:trailing"},"order":0},
+        {"id":"e03","from":{"node":"join","port":"next"},"to":{"node":"end","port":"in"},"order":0}
+    ]);
+    let compiled = compile_value(&document).unwrap();
+    let time = Timestamp::new(1_721_234_567, 0).unwrap();
+    let input = planner_microstep_input(
+        &compiled,
+        1,
+        EvaluationEvent::initial(state_trigger_for(&compiled, time)),
+        time,
+        Vec::new(),
+        Vec::new(),
+        microstep_state(),
+    );
+    let plan = plan_microstep(&compiled, &input).unwrap();
+    assert_eq!(plan.outcome(), TransitionOutcome::Success);
+    assert!(!plan.next_state().has_active_run());
+    assert!(plan.trace_node_ids().contains(&"join".to_owned()));
+    assert!(plan.trace_node_ids().contains(&"end".to_owned()));
+}
+
+#[test]
+fn fork_join_desired_conflicts_reject_or_apply_ordered_last_wins() {
+    for (policy, should_reject, with_next) in [
+        ("reject_conflict", true, true),
+        ("ordered_last_wins", false, true),
+        ("reject_conflict", true, false),
+        ("ordered_last_wins", false, false),
+    ] {
+        let mut document = planner_fixture();
+        let target = serde_json::to_value(target_selector()).unwrap();
+        document["semantic"]["nodes"] = json!([
+            {
+                "id":"fork","kind":"fork_join","version":1,"conflict_policy":policy,
+                "phase":{"kind":"fork","join_node_id":"join","branches":[{"id":"a","order":0},{"id":"b","order":1}]}
+            },
+            {"id":"snapshot_a","kind":"snapshot","version":1,"selector":target,"field":{"kind":"on_off_current"}},
+            {"id":"patch_a","kind":"desired_patch","version":1,"snapshot_node_id":"snapshot_a","operations":[{"op":"replace","value":{"path":"/on","value":false}}]},
+            {"id":"snapshot_b","kind":"snapshot","version":1,"selector":serde_json::to_value(target_selector()).unwrap(),"field":{"kind":"on_off_current"}},
+            {"id":"patch_b","kind":"desired_patch","version":1,"snapshot_node_id":"snapshot_b","operations":[{"op":"replace","value":{"path":"/on","value":true}}]},
+            {
+                "id":"join","kind":"fork_join","version":1,"conflict_policy":policy,
+                "phase":{"kind":"join","fork_node_id":"fork","branches":[{"id":"a","order":0},{"id":"b","order":1}]}
+            },
+            {"id":"end","kind":"end","version":1,"outcome":"success"}
+        ]);
+        document["semantic"]["edges"] = json!([
+            {"id":"e00","from":{"node":"trigger","port":"next"},"to":{"node":"fork","port":"in"},"order":0},
+            {"id":"e01","from":{"node":"fork","port":"branch:a"},"to":{"node":"snapshot_a","port":"in"},"order":0},
+            {"id":"e02","from":{"node":"snapshot_a","port":"next"},"to":{"node":"patch_a","port":"in"},"order":0},
+            {"id":"e03","from":{"node":"patch_a","port":"next"},"to":{"node":"join","port":"arrival:a"},"order":0},
+            {"id":"e04","from":{"node":"fork","port":"branch:b"},"to":{"node":"snapshot_b","port":"in"},"order":0},
+            {"id":"e05","from":{"node":"snapshot_b","port":"next"},"to":{"node":"patch_b","port":"in"},"order":0},
+            {"id":"e06","from":{"node":"patch_b","port":"next"},"to":{"node":"join","port":"arrival:b"},"order":0},
+            {"id":"e07","from":{"node":"join","port":"next"},"to":{"node":"end","port":"in"},"order":0}
+        ]);
+        if !with_next {
+            document["semantic"]["nodes"].as_array_mut().unwrap().pop();
+            document["semantic"]["edges"].as_array_mut().unwrap().pop();
+        }
+        let compiled = compile_value(&document).unwrap();
+        let time = Timestamp::new(1_721_234_567, 0).unwrap();
+        let target_snapshot = CapabilitySnapshot::new(
+            target_selector(),
+            8,
+            12,
+            None,
+            time,
+            Freshness::Fresh,
+            vec![
+                SnapshotField::new(
+                    StateFieldRef::OnOffCurrent,
+                    ValueState::Known {
+                        value: RuntimeValue::Bool(true),
+                    },
+                )
+                .unwrap(),
+            ],
+        )
+        .unwrap();
+        let input = planner_microstep_input(
+            &compiled,
+            1,
+            EvaluationEvent::initial(state_trigger_for(&compiled, time)),
+            time,
+            vec![target_snapshot],
+            Vec::new(),
+            microstep_state(),
+        );
+        let planned = plan_microstep(&compiled, &input);
+        if should_reject {
+            assert!(matches!(
+                planned,
+                Err(litehouse_rule_json::TransitionError::ParallelConflict { .. })
+            ));
+        } else {
+            let planned = planned.unwrap();
+            assert_eq!(
+                planned.outcome(),
+                if with_next {
+                    TransitionOutcome::Success
+                } else {
+                    TransitionOutcome::Noop
+                }
+            );
+            assert_eq!(
+                planned.desired().unwrap().fields[0].value,
+                Some(litehouse_rule_json::DesiredProjectionValue::On(true))
+            );
+        }
+    }
+}
+
+#[test]
+fn fork_join_retains_arrival_until_the_other_branch_receipt_resumes() {
+    let mut document = planner_fixture();
+    let effect = document["semantic"]["nodes"][3].clone();
+    let receipt = document["semantic"]["nodes"][4].clone();
+    document["semantic"]["nodes"] = json!([
+        {
+            "id":"fork","kind":"fork_join","version":1,"conflict_policy":"reject_conflict",
+            "phase":{"kind":"fork","join_node_id":"join","branches":[{"id":"effect","order":0},{"id":"noop","order":1}]}
+        },
+        effect,
+        receipt,
+        {
+            "id":"join","kind":"fork_join","version":1,"conflict_policy":"reject_conflict",
+            "phase":{"kind":"join","fork_node_id":"fork","branches":[{"id":"effect","order":0},{"id":"noop","order":1}]}
+        },
+        {"id":"end","kind":"end","version":1,"outcome":"success"}
+    ]);
+    document["semantic"]["edges"] = json!([
+        {"id":"e00","from":{"node":"trigger","port":"next"},"to":{"node":"fork","port":"in"},"order":0},
+        {"id":"e01","from":{"node":"fork","port":"branch:effect"},"to":{"node":"set_light","port":"in"},"order":0},
+        {"id":"e02","from":{"node":"set_light","port":"receipt"},"to":{"node":"receipt","port":"receipt"},"order":0},
+        {"id":"e03","from":{"node":"receipt","port":"accepted_for_delivery"},"to":{"node":"join","port":"arrival:effect"},"order":0},
+        {"id":"e04","from":{"node":"fork","port":"branch:noop"},"to":{"node":"join","port":"arrival:noop"},"order":0},
+        {"id":"e05","from":{"node":"join","port":"next"},"to":{"node":"end","port":"in"},"order":0}
+    ]);
+    let compiled = compile_value(&document).unwrap();
+    let time = Timestamp::new(1_721_234_567, 0).unwrap();
+    let initial = planner_microstep_input(
+        &compiled,
+        1,
+        EvaluationEvent::initial(state_trigger_for(&compiled, time)),
+        time,
+        Vec::new(),
+        vec![microstep_binding()],
+        microstep_state(),
+    );
+    let suspended = plan_microstep(&compiled, &initial).unwrap();
+    assert_eq!(suspended.effects().len(), 1);
+    assert!(suspended.next_state().has_active_run());
+    let effect = &suspended.effects()[0];
+    let receipt_time = Timestamp::new(1_721_234_568, 0).unwrap();
+    let receipt = EffectReceipt::new(
+        effect.intent_id.clone(),
+        "request",
+        effect.operation.clone(),
+        1,
+        effect.binding.provider_generation,
+        litehouse_rule_json::ReceiptConfidence::AcceptedForDelivery,
+        litehouse_rule_json::ReceiptOutcome::AcceptedForDelivery,
+        receipt_time,
+        None,
+        Some(effect.idempotency_key.clone()),
+    )
+    .unwrap();
+    let resume = PlannerEvaluationInput::new(
+        microstep_identity(&compiled, 2),
+        EvaluationEvent::effect_receipt(effect.suspension_id.clone(), receipt).unwrap(),
+        receipt_time,
+        Vec::new(),
+        vec![microstep_binding()],
+        suspended.next_state().clone(),
+    )
+    .unwrap();
+    let completed = plan_microstep(&compiled, &resume).unwrap();
+    assert_eq!(completed.outcome(), TransitionOutcome::Success);
+    assert!(!completed.next_state().has_active_run());
+}
+
+#[test]
+fn effect_before_fork_is_not_reattributed_to_each_child_branch() {
+    let mut document = planner_fixture();
+    let effect = document["semantic"]["nodes"][3].clone();
+    let receipt = document["semantic"]["nodes"][4].clone();
+    document["semantic"]["nodes"] = json!([
+        effect,
+        receipt,
+        {"id":"fork","kind":"fork_join","version":1,"conflict_policy":"reject_conflict","phase":{"kind":"fork","join_node_id":"join","branches":[{"id":"a","order":0},{"id":"b","order":1}]}},
+        {"id":"join","kind":"fork_join","version":1,"conflict_policy":"reject_conflict","phase":{"kind":"join","fork_node_id":"fork","branches":[{"id":"a","order":0},{"id":"b","order":1}]}},
+        {"id":"end","kind":"end","version":1,"outcome":"success"}
+    ]);
+    document["semantic"]["edges"] = json!([
+        {"id":"e00","from":{"node":"trigger","port":"next"},"to":{"node":"set_light","port":"in"},"order":0},
+        {"id":"e01","from":{"node":"set_light","port":"receipt"},"to":{"node":"receipt","port":"receipt"},"order":0},
+        {"id":"e02","from":{"node":"receipt","port":"accepted_for_delivery"},"to":{"node":"fork","port":"in"},"order":0},
+        {"id":"e03","from":{"node":"fork","port":"branch:a"},"to":{"node":"join","port":"arrival:a"},"order":0},
+        {"id":"e04","from":{"node":"fork","port":"branch:b"},"to":{"node":"join","port":"arrival:b"},"order":0},
+        {"id":"e05","from":{"node":"join","port":"next"},"to":{"node":"end","port":"in"},"order":0}
+    ]);
+    let compiled = compile_value(&document).unwrap();
+    let time = Timestamp::new(1_721_234_567, 0).unwrap();
+    let initial = planner_microstep_input(
+        &compiled,
+        1,
+        EvaluationEvent::initial(state_trigger_for(&compiled, time)),
+        time,
+        Vec::new(),
+        vec![microstep_binding()],
+        microstep_state(),
+    );
+    let suspended = plan_microstep(&compiled, &initial).unwrap();
+    let effect = suspended.effects()[0].clone();
+    let receipt_time = Timestamp::new(1_721_234_568, 0).unwrap();
+    let receipt = EffectReceipt::new(
+        effect.intent_id.clone(),
+        "request",
+        effect.operation.clone(),
+        1,
+        effect.binding.provider_generation,
+        litehouse_rule_json::ReceiptConfidence::AcceptedForDelivery,
+        litehouse_rule_json::ReceiptOutcome::AcceptedForDelivery,
+        receipt_time,
+        None,
+        Some(effect.idempotency_key),
+    )
+    .unwrap();
+    let resume = PlannerEvaluationInput::new(
+        microstep_identity(&compiled, 2),
+        EvaluationEvent::effect_receipt(effect.suspension_id, receipt).unwrap(),
+        receipt_time,
+        Vec::new(),
+        vec![microstep_binding()],
+        suspended.next_state().clone(),
+    )
+    .unwrap();
+    assert_eq!(
+        plan_microstep(&compiled, &resume).unwrap().outcome(),
+        TransitionOutcome::Success
+    );
+}
+
+#[test]
+fn fork_join_rejects_cross_microstep_effect_target_conflicts() {
+    let mut document = planner_fixture();
+    let effect_a = document["semantic"]["nodes"][3].clone();
+    let receipt_a = document["semantic"]["nodes"][4].clone();
+    let mut effect_b = effect_a.clone();
+    effect_b["id"] = json!("set_light_b");
+    effect_b["selector"]["rebind"] = json!("never");
+    let mut receipt_b = receipt_a.clone();
+    receipt_b["id"] = json!("receipt_b");
+    receipt_b["effect_node_id"] = json!("set_light_b");
+    document["semantic"]["nodes"] = json!([
+        {"id":"fork","kind":"fork_join","version":1,"conflict_policy":"reject_conflict","phase":{"kind":"fork","join_node_id":"join","branches":[{"id":"a","order":0},{"id":"b","order":1}]}},
+        effect_a,
+        receipt_a,
+        {"id":"delay_a","kind":"delay","version":1,"duration":{"milliseconds":20}},
+        {"id":"delay_b","kind":"delay","version":1,"duration":{"milliseconds":10}},
+        effect_b,
+        receipt_b,
+        {"id":"join","kind":"fork_join","version":1,"conflict_policy":"reject_conflict","phase":{"kind":"join","fork_node_id":"fork","branches":[{"id":"a","order":0},{"id":"b","order":1}]}},
+        {"id":"end","kind":"end","version":1,"outcome":"success"}
+    ]);
+    document["semantic"]["edges"] = json!([
+        {"id":"e00","from":{"node":"trigger","port":"next"},"to":{"node":"fork","port":"in"},"order":0},
+        {"id":"e01","from":{"node":"fork","port":"branch:a"},"to":{"node":"set_light","port":"in"},"order":0},
+        {"id":"e02","from":{"node":"set_light","port":"receipt"},"to":{"node":"receipt","port":"receipt"},"order":0},
+        {"id":"e03","from":{"node":"receipt","port":"accepted_for_delivery"},"to":{"node":"delay_a","port":"in"},"order":0},
+        {"id":"e03a","from":{"node":"delay_a","port":"next"},"to":{"node":"join","port":"arrival:a"},"order":0},
+        {"id":"e04","from":{"node":"fork","port":"branch:b"},"to":{"node":"delay_b","port":"in"},"order":0},
+        {"id":"e05","from":{"node":"delay_b","port":"next"},"to":{"node":"set_light_b","port":"in"},"order":0},
+        {"id":"e06","from":{"node":"set_light_b","port":"receipt"},"to":{"node":"receipt_b","port":"receipt"},"order":0},
+        {"id":"e07","from":{"node":"receipt_b","port":"accepted_for_delivery"},"to":{"node":"join","port":"arrival:b"},"order":0},
+        {"id":"e08","from":{"node":"join","port":"next"},"to":{"node":"end","port":"in"},"order":0}
+    ]);
+    let compiled = compile_value(&document).unwrap();
+    let mut target_b = target_selector();
+    target_b.rebind = RebindPolicy::Never;
+    let binding_b = EffectBinding::new(
+        "set_light_b",
+        target_b,
+        litehouse_rule_json::CapabilityOperationKind::OnOffSet,
+        8,
+        12,
+        5,
+        OperationKind::AbsoluteConvergent,
+        DeduplicationGuarantee::ProviderGeneration,
+        vec![litehouse_rule_json::ReceiptConfidence::AcceptedForDelivery],
+        1_000,
+        30_000,
+    )
+    .unwrap();
+    let time = Timestamp::new(1_721_234_567, 0).unwrap();
+    let initial = planner_microstep_input(
+        &compiled,
+        1,
+        EvaluationEvent::initial(state_trigger_for(&compiled, time)),
+        time,
+        Vec::new(),
+        vec![microstep_binding(), binding_b.clone()],
+        microstep_state(),
+    );
+    let suspended = plan_microstep(&compiled, &initial).unwrap();
+    let effect = suspended.effects()[0].clone();
+    let timer = suspended.timers()[0].clone();
+    let receipt_time = Timestamp::new(1_721_234_568, 0).unwrap();
+    let receipt = EffectReceipt::new(
+        effect.intent_id.clone(),
+        "request",
+        effect.operation.clone(),
+        1,
+        effect.binding.provider_generation,
+        litehouse_rule_json::ReceiptConfidence::AcceptedForDelivery,
+        litehouse_rule_json::ReceiptOutcome::AcceptedForDelivery,
+        receipt_time,
+        None,
+        Some(effect.idempotency_key),
+    )
+    .unwrap();
+    let arrived = PlannerEvaluationInput::new(
+        microstep_identity(&compiled, 2),
+        EvaluationEvent::effect_receipt(effect.suspension_id, receipt).unwrap(),
+        receipt_time,
+        Vec::new(),
+        vec![microstep_binding(), binding_b.clone()],
+        suspended.next_state().clone(),
+    )
+    .unwrap();
+    let arrived = plan_microstep(&compiled, &arrived).unwrap();
+    let timer_input = PlannerEvaluationInput::new(
+        microstep_identity(&compiled, 3),
+        EvaluationEvent::timer(
+            timer.timer_id,
+            timer.suspension_id,
+            timer.fire_at,
+            timer.fire_at,
+        )
+        .unwrap(),
+        receipt_time,
+        Vec::new(),
+        vec![microstep_binding(), binding_b],
+        arrived.next_state().clone(),
+    )
+    .unwrap();
+    assert!(matches!(
+        plan_microstep(&compiled, &timer_input),
+        Err(litehouse_rule_json::TransitionError::ParallelConflict { .. })
+    ));
+}
+
+#[test]
 fn pure_effect_intent_preserves_non_on_off_operation_arguments() {
     let mut document = planner_fixture();
     document["semantic"]["nodes"][3]["selector"]["contract"]["package"] = json!("level-control");

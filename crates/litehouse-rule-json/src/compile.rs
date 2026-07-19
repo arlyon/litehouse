@@ -566,11 +566,12 @@ pub(crate) fn compile(document: RuleDocument) -> Result<CompiledRule, CompileErr
             _ => None,
         })
         .collect();
-    let topological_rank = topological_order
+    let topological_rank: BTreeMap<String, usize> = topological_order
         .iter()
         .enumerate()
         .map(|(rank, node)| (node.clone(), rank))
         .collect();
+    validate_no_nested_forks(&nodes, &graph.outgoing)?;
     let artifacts = CompiledArtifacts {
         schema_sha256: document.schema.sha256.clone(),
         compiler_sha256: document.semantic.locks.compiler.sha256.clone(),
@@ -600,6 +601,51 @@ pub(crate) fn compile(document: RuleDocument) -> Result<CompiledRule, CompileErr
         topological_order,
         topological_rank,
     })
+}
+
+fn validate_no_nested_forks(
+    nodes: &BTreeMap<String, CompiledNode>,
+    outgoing: &BTreeMap<(String, String), String>,
+) -> Result<(), CompileError> {
+    for (fork_id, node) in nodes {
+        let CompiledNode::ForkJoin {
+            phase: ForkJoinPhase::Fork { join_node_id, .. },
+            ..
+        } = node
+        else {
+            continue;
+        };
+        let mut pending: Vec<String> = outgoing
+            .iter()
+            .filter(|((source, _), _)| source == fork_id)
+            .map(|(_, target)| target.clone())
+            .collect();
+        let mut visited = BTreeSet::new();
+        while let Some(current) = pending.pop() {
+            if current == *join_node_id || !visited.insert(current.clone()) {
+                continue;
+            }
+            if matches!(
+                nodes.get(&current),
+                Some(CompiledNode::ForkJoin {
+                    phase: ForkJoinPhase::Fork { .. },
+                    ..
+                })
+            ) {
+                return Err(CompileError::InvalidNodeData {
+                    node: current,
+                    reason: "nested fork regions are not supported in Rule JSON V1".to_owned(),
+                });
+            }
+            pending.extend(
+                outgoing
+                    .iter()
+                    .filter(|((source, _), _)| source == &current)
+                    .map(|(_, target)| target.clone()),
+            );
+        }
+    }
+    Ok(())
 }
 
 fn validate_json_value(value: &Value, depth: usize) -> Result<(), RuleJsonError> {
@@ -2513,6 +2559,87 @@ fn valid_manifest_decimal(value: &str) -> bool {
 mod tests {
     use super::*;
     use crate::{fixtures::fixture_values, schema::artifact_digests};
+
+    #[test]
+    fn nested_fork_regions_are_rejected_before_evaluation() {
+        let branches = vec![
+            crate::ForkBranch {
+                id: "a".to_owned(),
+                order: 0,
+            },
+            crate::ForkBranch {
+                id: "b".to_owned(),
+                order: 1,
+            },
+        ];
+        let mut nodes = BTreeMap::new();
+        nodes.insert(
+            "outer".to_owned(),
+            CompiledNode::ForkJoin {
+                phase: ForkJoinPhase::Fork {
+                    join_node_id: "outer_join".to_owned(),
+                    branches: branches.clone(),
+                },
+                conflict_policy: crate::PatchConflictPolicy::RejectConflict,
+            },
+        );
+        nodes.insert(
+            "inner".to_owned(),
+            CompiledNode::ForkJoin {
+                phase: ForkJoinPhase::Fork {
+                    join_node_id: "inner_join".to_owned(),
+                    branches,
+                },
+                conflict_policy: crate::PatchConflictPolicy::RejectConflict,
+            },
+        );
+        nodes.insert(
+            "inner_join".to_owned(),
+            CompiledNode::End {
+                outcome: EndOutcome::Noop,
+            },
+        );
+        nodes.insert(
+            "outer_join".to_owned(),
+            CompiledNode::End {
+                outcome: EndOutcome::Noop,
+            },
+        );
+        let nested = BTreeMap::from([
+            (
+                ("outer".to_owned(), "branch:a".to_owned()),
+                "inner".to_owned(),
+            ),
+            (
+                ("inner".to_owned(), "branch:a".to_owned()),
+                "inner_join".to_owned(),
+            ),
+            (
+                ("inner_join".to_owned(), "next".to_owned()),
+                "outer_join".to_owned(),
+            ),
+        ]);
+        assert!(matches!(
+            validate_no_nested_forks(&nodes, &nested),
+            Err(CompileError::InvalidNodeData { node, .. }) if node == "inner"
+        ));
+
+        let disjoint = BTreeMap::from([
+            (
+                ("outer".to_owned(), "branch:a".to_owned()),
+                "outer_join".to_owned(),
+            ),
+            (
+                ("outer_join".to_owned(), "next".to_owned()),
+                "inner".to_owned(),
+            ),
+            (
+                ("inner".to_owned(), "branch:a".to_owned()),
+                "inner_join".to_owned(),
+            ),
+        ]);
+        validate_no_nested_forks(&nodes, &disjoint).unwrap();
+    }
 
     #[test]
     fn resolved_catalog_ports_match_the_independent_compiler_inventory() {

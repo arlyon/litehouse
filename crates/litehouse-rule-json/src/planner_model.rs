@@ -844,10 +844,20 @@ pub(crate) enum SavedNodeValue {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(deny_unknown_fields)]
+pub(crate) struct EffectHistory {
+    pub(crate) node_id: String,
+    pub(crate) selector: Selector,
+    pub(crate) operation: CapabilityOperation,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct SavedFrame {
     pub(crate) branch_id: String,
+    pub(crate) fork_branch: bool,
     pub(crate) resume_node_id: String,
     pub(crate) trigger: TriggerInput,
+    pub(crate) effect_history: Vec<EffectHistory>,
     pub(crate) values: Vec<SavedValue>,
     pub(crate) desired: Option<DesiredProjection>,
     pub(crate) assumptions: Vec<RuntimeAssumption>,
@@ -857,8 +867,10 @@ pub(crate) struct SavedFrame {
 impl SavedFrame {
     pub(crate) fn new(
         branch_id: impl Into<String>,
+        fork_branch: bool,
         resume_node_id: impl Into<String>,
         trigger: TriggerInput,
+        effect_history: Vec<EffectHistory>,
         values: Vec<SavedValue>,
         desired: Option<DesiredProjection>,
         assumptions: Vec<RuntimeAssumption>,
@@ -895,10 +907,26 @@ impl SavedFrame {
             validate_id("saved trace node_id", node_id)?;
         }
         validate_trigger_input(&trigger)?;
+        if effect_history.len() > HARD_MAX_EFFECT_INTENTS {
+            return Err(PlannerModelError::CollectionBound {
+                collection: "effect history",
+                actual: effect_history.len(),
+                maximum: HARD_MAX_EFFECT_INTENTS,
+            });
+        }
+        for effect in &effect_history {
+            validate_id("effect history node_id", &effect.node_id)?;
+            validate_selector(&effect.selector)?;
+            if effect.selector.contract.package != effect.operation.kind().package() {
+                return Err(PlannerModelError::EffectContractMismatch);
+            }
+        }
         Ok(Self {
             branch_id,
+            fork_branch,
             resume_node_id,
             trigger,
+            effect_history,
             values,
             desired,
             assumptions,
@@ -1054,6 +1082,7 @@ impl Suspension {
 pub(crate) struct JoinArrival {
     pub(crate) join_node_id: String,
     pub(crate) branch_id: String,
+    pub(crate) frame: SavedFrame,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -1070,10 +1099,29 @@ impl Frontier {
         suspended: Vec<Suspension>,
         join_arrivals: Vec<JoinArrival>,
     ) -> Result<Self, PlannerModelError> {
-        if ready.len() + suspended.len() > HARD_MAX_PARALLEL_BRANCHES {
+        let mut parallel_branches = BTreeSet::new();
+        for frame in &ready {
+            if frame.fork_branch {
+                parallel_branches.insert(frame.branch_id.clone());
+            }
+        }
+        for suspension in &suspended {
+            let frame = match suspension {
+                Suspension::Effect { frame, .. }
+                | Suspension::Timer { frame, .. }
+                | Suspension::Admission { frame, .. } => frame,
+            };
+            if frame.fork_branch {
+                parallel_branches.insert(frame.branch_id.clone());
+            }
+        }
+        for arrival in &join_arrivals {
+            parallel_branches.insert(arrival.branch_id.clone());
+        }
+        if parallel_branches.len() > HARD_MAX_PARALLEL_BRANCHES {
             return Err(PlannerModelError::CollectionBound {
                 collection: "frontier branches",
-                actual: ready.len() + suspended.len(),
+                actual: parallel_branches.len(),
                 maximum: HARD_MAX_PARALLEL_BRANCHES,
             });
         }
@@ -1105,6 +1153,10 @@ impl Frontier {
         for arrival in &join_arrivals {
             validate_id("join_node_id", &arrival.join_node_id)?;
             validate_id("branch_id", &arrival.branch_id)?;
+            validate_saved_frame(&arrival.frame)?;
+            if arrival.frame.branch_id != arrival.branch_id {
+                return Err(PlannerModelError::InvalidRunState);
+            }
             if !arrivals.insert((arrival.join_node_id.clone(), arrival.branch_id.clone())) {
                 return Err(PlannerModelError::DuplicateJoinArrival);
             }
@@ -2027,6 +2079,20 @@ fn validate_saved_frame(frame: &SavedFrame) -> Result<(), PlannerModelError> {
     validate_id("branch_id", &frame.branch_id)?;
     validate_id("resume_node_id", &frame.resume_node_id)?;
     validate_trigger_input(&frame.trigger)?;
+    if frame.effect_history.len() > HARD_MAX_EFFECT_INTENTS {
+        return Err(PlannerModelError::CollectionBound {
+            collection: "effect history",
+            actual: frame.effect_history.len(),
+            maximum: HARD_MAX_EFFECT_INTENTS,
+        });
+    }
+    for effect in &frame.effect_history {
+        validate_id("effect history node_id", &effect.node_id)?;
+        validate_selector(&effect.selector)?;
+        if effect.selector.contract.package != effect.operation.kind().package() {
+            return Err(PlannerModelError::EffectContractMismatch);
+        }
+    }
     if frame.values.len() > HARD_MAX_NODES || frame.trace_node_ids.len() > HARD_MAX_NODES {
         return Err(PlannerModelError::CollectionBound {
             collection: "saved frame items",

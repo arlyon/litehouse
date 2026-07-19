@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use cel::Value as CelValue;
 use jiff::{Timestamp as JiffTimestamp, civil::DateTime as CivilDateTime, tz::TimeZone};
@@ -14,12 +14,12 @@ use crate::{
         EndOutcome, ReceiptOutcome, ReceiptRequirement, StateFieldRef,
     },
     planner_model::{
-        DesiredField, DesiredProjection, EffectBinding, EffectIntent, EvaluationEvent,
-        EvaluationIdentity, Frontier, PlannerEvaluationInput, PlannerModelError, PlannerState,
-        PredicateOutcome, RunState, RunStatus, RuntimeAssumption, RuntimeColorValue, RuntimeValue,
-        SavedFrame, SavedNodeValue, SavedValue, Suspension, TimerIntent, TransitionOutcome,
-        TransitionPlan, TriggerInput, ValueState, desired_path_rank, receipt_rank,
-        selector_identity,
+        DesiredField, DesiredProjection, EffectBinding, EffectHistory, EffectIntent,
+        EvaluationEvent, EvaluationIdentity, Frontier, JoinArrival, PlannerEvaluationInput,
+        PlannerModelError, PlannerState, PredicateOutcome, RunState, RunStatus, RuntimeAssumption,
+        RuntimeColorValue, RuntimeValue, SavedFrame, SavedNodeValue, SavedValue, Suspension,
+        TimerIntent, TransitionOutcome, TransitionPlan, TriggerInput, ValueState,
+        desired_path_rank, receipt_rank, selector_identity,
     },
 };
 
@@ -52,6 +52,10 @@ pub enum TransitionError {
         node: String,
         path: DesiredProjectionPath,
     },
+    #[error("parallel branch merge conflicts at {subject}")]
+    ParallelConflict { subject: String },
+    #[error("parallel branch {branch:?} terminated before its join")]
+    BranchTerminatedBeforeJoin { branch: String },
     #[error("desired-state operation requires an existing value at {node:?} path {path:?}")]
     DesiredValueMissing {
         node: String,
@@ -63,6 +67,10 @@ pub enum TransitionError {
     StepLimit,
     #[error("planner has {actual} timers; configured maximum is {maximum}")]
     TimerLimit { actual: usize, maximum: usize },
+    #[error("planner has {actual} parallel branches; configured maximum is {maximum}")]
+    ParallelLimit { actual: usize, maximum: usize },
+    #[error("planner emitted {actual} effects; configured maximum is {maximum}")]
+    EffectLimit { actual: usize, maximum: usize },
     #[error("encoded trace is {actual} bytes; maximum is {maximum}")]
     TraceTooLarge { actual: usize, maximum: usize },
     #[error("saved planner state is inconsistent with the compiled graph: {0}")]
@@ -74,8 +82,10 @@ pub enum TransitionError {
 #[derive(Clone)]
 struct WorkFrame {
     branch_id: String,
+    fork_branch: bool,
     current: String,
     trigger: TriggerInput,
+    effect_history: Vec<EffectHistory>,
     values: BTreeMap<String, SavedNodeValue>,
     desired: BTreeMap<String, DesiredField>,
     assumptions: Vec<RuntimeAssumption>,
@@ -86,8 +96,10 @@ impl WorkFrame {
     fn initial(current: String, trigger_id: &str, trigger: TriggerInput) -> Self {
         Self {
             branch_id: "root".to_owned(),
+            fork_branch: false,
             current,
             trigger,
+            effect_history: Vec::new(),
             values: BTreeMap::new(),
             desired: BTreeMap::new(),
             assumptions: Vec::new(),
@@ -108,8 +120,10 @@ impl WorkFrame {
             .unwrap_or_default();
         Self {
             branch_id: saved.branch_id,
+            fork_branch: saved.fork_branch,
             current: saved.resume_node_id,
             trigger: saved.trigger,
+            effect_history: saved.effect_history,
             values: saved
                 .values
                 .into_iter()
@@ -124,8 +138,10 @@ impl WorkFrame {
     fn into_saved(self, resume_node_id: String) -> Result<SavedFrame, PlannerModelError> {
         SavedFrame::new(
             self.branch_id,
+            self.fork_branch,
             resume_node_id,
             self.trigger,
+            self.effect_history,
             self.values
                 .into_iter()
                 .map(|(node_id, value)| SavedValue { node_id, value })
@@ -163,13 +179,20 @@ pub fn plan_microstep(
         next_queue.remove(0);
     }
 
-    let (frame, retained_suspensions, resume_terminal) = start_frame(compiled, input)?;
+    let (frame, retained_suspensions, join_arrivals, resume_terminal) =
+        start_frame(compiled, input)?;
     if let Some(outcome) = resume_terminal {
+        if frame.fork_branch {
+            return Err(TransitionError::BranchTerminatedBeforeJoin {
+                branch: frame.branch_id.clone(),
+            });
+        }
         return finish_or_continue_closed_admission(
             compiled,
             input,
             frame,
             retained_suspensions,
+            join_arrivals,
             outcome,
             Vec::new(),
             Vec::new(),
@@ -181,6 +204,7 @@ pub fn plan_microstep(
         input,
         frame,
         retained_suspensions,
+        join_arrivals,
         next_queue,
         Vec::new(),
         Vec::new(),
@@ -192,11 +216,13 @@ fn evaluate_frame(
     input: &PlannerEvaluationInput,
     mut frame: WorkFrame,
     mut retained_suspensions: Vec<Suspension>,
+    mut join_arrivals: Vec<JoinArrival>,
     next_queue: Vec<TriggerInput>,
     mut effects: Vec<EffectIntent>,
     mut timers: Vec<TimerIntent>,
 ) -> Result<TransitionPlan, TransitionError> {
     let mut terminal = None;
+    let mut pending_frames = VecDeque::new();
 
     for _ in 0..crate::model::HARD_MAX_NODES {
         frame.trace.push(frame.current.clone());
@@ -233,8 +259,12 @@ fn evaluate_frame(
                 match optional_next(compiled, &frame.current, port) {
                     Some(next) => frame.current = next.to_owned(),
                     None => {
+                        if frame.fork_branch {
+                            return Err(TransitionError::BranchTerminatedBeforeJoin {
+                                branch: frame.branch_id.clone(),
+                            });
+                        }
                         terminal = Some(outcome_transition(&outcome));
-                        break;
                     }
                 }
             }
@@ -260,6 +290,35 @@ fn evaluate_frame(
                             reason: "effect has no typed receipt continuation".to_owned(),
                         })?;
                 let binding = binding_for(input, &frame.current, selector, operation)?.clone();
+                let target_identity = selector_identity(&binding.selector);
+                let target_conflict =
+                    effects.iter().any(|existing| {
+                        existing.branch_id != frame.branch_id
+                            && selector_identity(&existing.binding.selector) == target_identity
+                    }) || retained_suspensions.iter().any(|suspension| {
+                        let existing_frame = match suspension {
+                            Suspension::Effect { frame, .. }
+                            | Suspension::Timer { frame, .. }
+                            | Suspension::Admission { frame, .. } => frame,
+                        };
+                        existing_frame.branch_id != frame.branch_id
+                            && existing_frame.effect_history.iter().any(|history| {
+                                selector_identity(&history.selector) == target_identity
+                            })
+                    }) || join_arrivals.iter().any(|arrival| {
+                        arrival.branch_id != frame.branch_id
+                            && arrival.frame.effect_history.iter().any(|history| {
+                                selector_identity(&history.selector) == target_identity
+                            })
+                    });
+                if target_conflict {
+                    return Err(TransitionError::ParallelConflict {
+                        subject: format!(
+                            "multiple effects target {}:{}",
+                            binding.selector.provider_instance_id, binding.selector.facet_key
+                        ),
+                    });
+                }
                 frame
                     .assumptions
                     .push(RuntimeAssumption::EffectBindingRevision {
@@ -282,6 +341,11 @@ fn evaluate_frame(
                 let required_confidence = effect.required_confidence;
                 let suspension_id = effect.suspension_id.clone();
                 let intent_id = effect.intent_id.clone();
+                frame.effect_history.push(EffectHistory {
+                    node_id: frame.current.clone(),
+                    selector: selector.clone(),
+                    operation: operation.clone(),
+                });
                 let saved = frame.clone().into_saved(continuation.to_owned())?;
                 retained_suspensions.push(Suspension::Effect {
                     suspension_id,
@@ -298,7 +362,6 @@ fn evaluate_frame(
                 });
                 effects.push(effect);
                 terminal = Some(TransitionOutcome::Suspended);
-                break;
             }
             CompiledNode::Delay { duration_ms } => {
                 let continuation = required_next(compiled, &frame.current, "next")?;
@@ -315,7 +378,6 @@ fn evaluate_frame(
                 });
                 timers.push(timer);
                 terminal = Some(TransitionOutcome::Suspended);
-                break;
             }
             CompiledNode::ReceiptBranch { .. } => {
                 return Err(TransitionError::InvalidCompiledGraph {
@@ -325,8 +387,12 @@ fn evaluate_frame(
                 });
             }
             CompiledNode::End { outcome } => {
+                if frame.fork_branch {
+                    return Err(TransitionError::BranchTerminatedBeforeJoin {
+                        branch: frame.branch_id.clone(),
+                    });
+                }
                 terminal = Some(end_outcome(*outcome));
-                break;
             }
             CompiledNode::DebounceThrottle { key, policy, .. } => {
                 let continuation =
@@ -365,21 +431,116 @@ fn evaluate_frame(
                 match policy {
                     crate::AdmissionPolicy::DebounceTrailing { .. } => {
                         terminal = Some(TransitionOutcome::Suspended);
-                        break;
                     }
                     crate::AdmissionPolicy::ThrottleLeading { .. } => {
                         if let Some(continuation) = continuation {
                             frame.current = continuation;
+                        } else if frame.fork_branch {
+                            return Err(TransitionError::BranchTerminatedBeforeJoin {
+                                branch: frame.branch_id.clone(),
+                            });
                         } else {
                             terminal = Some(TransitionOutcome::Noop);
-                            break;
                         }
                     }
                 }
             }
-            CompiledNode::ForkJoin { .. } => {
-                return Err(TransitionError::PhasePending { kind: "fork_join" });
+            CompiledNode::ForkJoin {
+                phase,
+                conflict_policy,
+            } => match phase {
+                crate::ForkJoinPhase::Fork { branches, .. } => {
+                    let mut branches = branches.clone();
+                    branches.sort_by_key(|branch| branch.order);
+                    let mut spawned = VecDeque::new();
+                    for branch in branches {
+                        let port = format!("branch:{}", branch.id);
+                        let current = required_next(compiled, &frame.current, &port)?;
+                        let mut branch_frame = frame.clone();
+                        branch_frame.branch_id = branch.id;
+                        branch_frame.fork_branch = true;
+                        branch_frame.effect_history.clear();
+                        branch_frame.current = current;
+                        spawned.push_back(branch_frame);
+                    }
+                    frame = spawned.pop_front().ok_or_else(|| {
+                        TransitionError::InvalidCompiledGraph {
+                            node: frame.current.clone(),
+                            reason: "fork has no branches".to_owned(),
+                        }
+                    })?;
+                    pending_frames.extend(spawned);
+                }
+                crate::ForkJoinPhase::Join { branches, .. } => {
+                    if !branches.iter().any(|branch| branch.id == frame.branch_id) {
+                        return Err(TransitionError::InvalidCompiledGraph {
+                            node: frame.current.clone(),
+                            reason: format!(
+                                "join has no arrival port for branch {:?}",
+                                frame.branch_id
+                            ),
+                        });
+                    }
+                    let join_node_id = frame.current.clone();
+                    let arrival = JoinArrival {
+                        join_node_id: join_node_id.clone(),
+                        branch_id: frame.branch_id.clone(),
+                        frame: frame.clone().into_saved(join_node_id.clone())?,
+                    };
+                    if join_arrivals.iter().any(|existing| {
+                        existing.join_node_id == arrival.join_node_id
+                            && existing.branch_id == arrival.branch_id
+                    }) {
+                        return Err(TransitionError::InvalidSavedState(
+                            "duplicate join arrival".to_owned(),
+                        ));
+                    }
+                    join_arrivals.push(arrival);
+                    let complete = branches.iter().all(|branch| {
+                        join_arrivals.iter().any(|arrival| {
+                            arrival.join_node_id == join_node_id && arrival.branch_id == branch.id
+                        })
+                    });
+                    if complete {
+                        let mut ordered = branches.clone();
+                        ordered.sort_by_key(|branch| branch.order);
+                        let mut arrivals = Vec::with_capacity(ordered.len());
+                        for branch in ordered {
+                            let index = join_arrivals
+                                .iter()
+                                .position(|arrival| {
+                                    arrival.join_node_id == join_node_id
+                                        && arrival.branch_id == branch.id
+                                })
+                                .expect("complete join has every branch");
+                            arrivals.push(join_arrivals.remove(index));
+                        }
+                        let next =
+                            optional_next(compiled, &join_node_id, "next").map(str::to_owned);
+                        frame = merge_join_arrivals(
+                            arrivals,
+                            next.clone().unwrap_or(join_node_id),
+                            *conflict_policy,
+                        )?;
+                        if next.is_none() {
+                            terminal = Some(TransitionOutcome::Noop);
+                        }
+                    } else {
+                        frame.values.clear();
+                        frame.desired.clear();
+                        frame.assumptions.clear();
+                        terminal = Some(TransitionOutcome::Suspended);
+                    }
+                }
+            },
+        }
+        if terminal.is_some() {
+            if let Some(next) = pending_frames.pop_front() {
+                frame = next;
+                terminal = None;
+                continue;
             }
+            break;
         }
     }
 
@@ -389,6 +550,7 @@ fn evaluate_frame(
         input,
         frame,
         retained_suspensions,
+        join_arrivals,
         outcome,
         effects,
         timers,
@@ -402,6 +564,7 @@ fn finish_or_continue_closed_admission(
     input: &PlannerEvaluationInput,
     frame: WorkFrame,
     mut retained_suspensions: Vec<Suspension>,
+    join_arrivals: Vec<JoinArrival>,
     outcome: TransitionOutcome,
     effects: Vec<EffectIntent>,
     timers: Vec<TimerIntent>,
@@ -430,6 +593,7 @@ fn finish_or_continue_closed_admission(
         };
         let mut trailing = WorkFrame::from_saved(frame);
         trailing.branch_id = "trailing".to_owned();
+        trailing.fork_branch = false;
         trailing.trigger = trigger;
         trailing.current = continuation;
         return evaluate_frame(
@@ -437,6 +601,7 @@ fn finish_or_continue_closed_admission(
             input,
             trailing,
             retained_suspensions,
+            join_arrivals,
             next_queue,
             effects,
             timers,
@@ -447,6 +612,7 @@ fn finish_or_continue_closed_admission(
         input,
         frame,
         retained_suspensions,
+        join_arrivals,
         outcome,
         effects,
         timers,
@@ -561,6 +727,7 @@ fn update_active_admission(
             input,
             dropped,
             run.frontier.suspended,
+            run.frontier.join_arrivals,
             input.state.queued_triggers.clone(),
             Vec::new(),
             timers,
@@ -713,6 +880,25 @@ fn validate_compiled_state(
         issued_identity.run_id = run.run_id.clone();
         for frame in &run.frontier.ready {
             validate_saved_frame_against_compiled(compiled, frame)?;
+        }
+        for arrival in &run.frontier.join_arrivals {
+            let Some(CompiledNode::ForkJoin {
+                phase: crate::ForkJoinPhase::Join { branches, .. },
+                ..
+            }) = compiled.nodes().get(&arrival.join_node_id)
+            else {
+                return Err(TransitionError::InvalidSavedState(
+                    "join arrival names an invalid join node".to_owned(),
+                ));
+            };
+            if arrival.frame.resume_node_id != arrival.join_node_id
+                || !branches.iter().any(|branch| branch.id == arrival.branch_id)
+            {
+                return Err(TransitionError::InvalidSavedState(
+                    "join arrival does not match its compiled branch".to_owned(),
+                ));
+            }
+            validate_saved_frame_against_compiled(compiled, &arrival.frame)?;
         }
         for suspension in &run.frontier.suspended {
             match suspension {
@@ -933,6 +1119,23 @@ fn validate_saved_frame_against_compiled(
             )));
         }
     }
+    for history in &frame.effect_history {
+        let Some(CompiledNode::EffectIntent {
+            selector,
+            operation,
+            ..
+        }) = compiled.nodes().get(&history.node_id)
+        else {
+            return Err(TransitionError::InvalidSavedState(
+                "effect history names an invalid effect node".to_owned(),
+            ));
+        };
+        if selector != &history.selector || operation != &history.operation {
+            return Err(TransitionError::InvalidSavedState(
+                "effect history does not match its compiled node".to_owned(),
+            ));
+        }
+    }
     for saved in &frame.values {
         let Some(node) = compiled.nodes().get(&saved.node_id) else {
             return Err(TransitionError::InvalidSavedState(format!(
@@ -996,7 +1199,15 @@ fn validate_saved_frame_against_compiled(
 fn start_frame(
     compiled: &CompiledRule,
     input: &PlannerEvaluationInput,
-) -> Result<(WorkFrame, Vec<Suspension>, Option<TransitionOutcome>), TransitionError> {
+) -> Result<
+    (
+        WorkFrame,
+        Vec<Suspension>,
+        Vec<JoinArrival>,
+        Option<TransitionOutcome>,
+    ),
+    TransitionError,
+> {
     match &input.event {
         EvaluationEvent::Initial { trigger } => {
             if input.state.active_run.is_some() {
@@ -1006,6 +1217,7 @@ fn start_frame(
             let current = required_next(compiled, compiled.trigger_id(), "next")?;
             Ok((
                 WorkFrame::initial(current, compiled.trigger_id(), trigger.clone()),
+                Vec::new(),
                 Vec::new(),
                 None,
             ))
@@ -1022,6 +1234,7 @@ fn start_frame(
                 .as_ref()
                 .ok_or(TransitionError::SuspensionMismatch)?;
             let mut retained = run.frontier.suspended.clone();
+            let arrivals = run.frontier.join_arrivals.clone();
             let index = retained
                 .iter()
                 .position(|suspension| match suspension {
@@ -1052,7 +1265,7 @@ fn start_frame(
                 .ok_or(TransitionError::SuspensionMismatch)?;
             match retained.remove(index) {
                 Suspension::Timer { frame, .. } => {
-                    Ok((WorkFrame::from_saved(frame), retained, None))
+                    Ok((WorkFrame::from_saved(frame), retained, arrivals, None))
                 }
                 mut admission @ Suspension::Admission { .. } => {
                     let (saved, winning_trigger, continuation) = match &admission {
@@ -1075,14 +1288,14 @@ fn start_frame(
                         };
                         *window_closed = true;
                         retained.push(admission);
-                        return Ok((frame, retained, Some(TransitionOutcome::Noop)));
+                        return Ok((frame, retained, arrivals, Some(TransitionOutcome::Noop)));
                     }
                     if let (Some(trigger), Some(continuation)) = (winning_trigger, continuation) {
                         frame.trigger = trigger;
                         frame.current = continuation;
-                        Ok((frame, retained, None))
+                        Ok((frame, retained, arrivals, None))
                     } else {
-                        Ok((frame, retained, Some(TransitionOutcome::Noop)))
+                        Ok((frame, retained, arrivals, Some(TransitionOutcome::Noop)))
                     }
                 }
                 Suspension::Effect { .. } => unreachable!("matched timer suspension"),
@@ -1098,6 +1311,7 @@ fn start_frame(
                 .as_ref()
                 .ok_or(TransitionError::SuspensionMismatch)?;
             let mut retained = run.frontier.suspended.clone();
+            let arrivals = run.frontier.join_arrivals.clone();
             let index = retained
                 .iter()
                 .position(|suspension| {
@@ -1137,12 +1351,13 @@ fn start_frame(
             frame.trace.push(continuation_node_id.clone());
             if let Some(next) = optional_next(compiled, &continuation_node_id, port) {
                 frame.current = next.to_owned();
-                Ok((frame, retained, None))
+                Ok((frame, retained, arrivals, None))
             } else {
                 frame.current = continuation_node_id;
                 Ok((
                     frame,
                     retained,
+                    arrivals,
                     Some(receipt_terminal_outcome(receipt.outcome)),
                 ))
             }
@@ -1995,6 +2210,82 @@ fn desired_key(selector: &crate::model::Selector, path: DesiredProjectionPath) -
     )
 }
 
+fn merge_join_arrivals(
+    arrivals: Vec<JoinArrival>,
+    continuation: String,
+    conflict_policy: crate::PatchConflictPolicy,
+) -> Result<WorkFrame, TransitionError> {
+    let mut merged_values = BTreeMap::new();
+    let mut merged_desired = BTreeMap::new();
+    let mut merged_assumptions = Vec::new();
+    let mut merged_trace = Vec::new();
+    let mut effect_targets = BTreeMap::new();
+    let mut trigger = None;
+    for arrival in arrivals {
+        let branch = WorkFrame::from_saved(arrival.frame);
+        if trigger
+            .as_ref()
+            .is_some_and(|existing| existing != &branch.trigger)
+        {
+            return Err(TransitionError::ParallelConflict {
+                subject: "trigger context".to_owned(),
+            });
+        }
+        trigger.get_or_insert_with(|| branch.trigger.clone());
+        for effect in &branch.effect_history {
+            let key = selector_identity(&effect.selector);
+            if let Some(existing_branch) = effect_targets.get(&key)
+                && existing_branch != &branch.branch_id
+            {
+                return Err(TransitionError::ParallelConflict {
+                    subject: format!("parallel effects target {key:?}"),
+                });
+            }
+            effect_targets.insert(key, branch.branch_id.clone());
+        }
+        for (node_id, value) in branch.values {
+            if let Some(existing) = merged_values.get(&node_id)
+                && existing != &value
+            {
+                return Err(TransitionError::ParallelConflict {
+                    subject: format!("saved value {node_id:?}"),
+                });
+            }
+            merged_values.insert(node_id, value);
+        }
+        for (key, field) in branch.desired {
+            if let Some(existing) = merged_desired.get(&key)
+                && existing != &field
+                && conflict_policy == crate::PatchConflictPolicy::RejectConflict
+            {
+                return Err(TransitionError::ParallelConflict {
+                    subject: format!("desired field {key:?}"),
+                });
+            }
+            merged_desired.insert(key, field);
+        }
+        for assumption in branch.assumptions {
+            if !merged_assumptions.contains(&assumption) {
+                merged_assumptions.push(assumption);
+            }
+        }
+        merged_trace.extend(branch.trace);
+    }
+    Ok(WorkFrame {
+        branch_id: "root".to_owned(),
+        fork_branch: false,
+        current: continuation,
+        trigger: trigger.ok_or_else(|| TransitionError::ParallelConflict {
+            subject: "empty join".to_owned(),
+        })?,
+        effect_history: Vec::new(),
+        values: merged_values,
+        desired: merged_desired,
+        assumptions: merged_assumptions,
+        trace: merged_trace,
+    })
+}
+
 fn desired_projection(
     fields: BTreeMap<String, DesiredField>,
 ) -> Result<Option<DesiredProjection>, PlannerModelError> {
@@ -2197,11 +2488,41 @@ fn finish_plan(
     input: &PlannerEvaluationInput,
     frame: WorkFrame,
     suspensions: Vec<Suspension>,
+    join_arrivals: Vec<JoinArrival>,
     outcome: TransitionOutcome,
     effects: Vec<EffectIntent>,
     timers: Vec<TimerIntent>,
     queued_triggers: Vec<TriggerInput>,
 ) -> Result<TransitionPlan, TransitionError> {
+    let maximum_parallel = compiled.limits().max_parallel_branches as usize;
+    let mut parallel_branches = BTreeSet::new();
+    for suspension in &suspensions {
+        let frame = match suspension {
+            Suspension::Effect { frame, .. }
+            | Suspension::Timer { frame, .. }
+            | Suspension::Admission { frame, .. } => frame,
+        };
+        if frame.fork_branch {
+            parallel_branches.insert(frame.branch_id.clone());
+        }
+    }
+    for arrival in &join_arrivals {
+        parallel_branches.insert(arrival.branch_id.clone());
+    }
+    let parallel_count = parallel_branches.len();
+    if parallel_count > maximum_parallel {
+        return Err(TransitionError::ParallelLimit {
+            actual: parallel_count,
+            maximum: maximum_parallel,
+        });
+    }
+    let maximum_effects = compiled.limits().max_effect_intents as usize;
+    if effects.len() > maximum_effects {
+        return Err(TransitionError::EffectLimit {
+            actual: effects.len(),
+            maximum: maximum_effects,
+        });
+    }
     let maximum_timers = compiled.limits().max_timers as usize;
     let retained_timer_count = suspensions
         .iter()
@@ -2241,7 +2562,7 @@ fn finish_plan(
         .version
         .checked_add(1)
         .ok_or(TransitionError::TimestampOverflow)?;
-    let active_run = if suspensions.is_empty() {
+    let active_run = if suspensions.is_empty() && join_arrivals.is_empty() {
         None
     } else {
         Some(RunState::new(
@@ -2252,7 +2573,7 @@ fn finish_plan(
                 .checked_add(1)
                 .ok_or(TransitionError::TimestampOverflow)?,
             RunStatus::Waiting,
-            Frontier::new(Vec::new(), suspensions, Vec::new())?,
+            Frontier::new(Vec::new(), suspensions, join_arrivals)?,
         )?)
     };
     let next_state = PlannerState::new(
