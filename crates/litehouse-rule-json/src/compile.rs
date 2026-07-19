@@ -1043,6 +1043,7 @@ fn validate_semantic_nodes(
                 policy,
                 ..
             } => {
+                timer_count += 1;
                 if *trigger != trigger_kind(&document.semantic.trigger) {
                     return invalid_node(
                         id,

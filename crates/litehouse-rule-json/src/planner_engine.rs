@@ -35,6 +35,8 @@ pub enum TransitionError {
     ScheduleMismatch,
     #[error("initial input cannot start while a run is active")]
     RunAlreadyActive,
+    #[error("initial trigger does not match the head of the process-local queue")]
+    QueuedTriggerMismatch,
     #[error("resume input does not match an active suspension")]
     SuspensionMismatch,
     #[error("missing capability snapshot for node {node:?}")]
@@ -59,6 +61,8 @@ pub enum TransitionError {
     PhasePending { kind: &'static str },
     #[error("planner exceeded the compiled node bound")]
     StepLimit,
+    #[error("planner has {actual} timers; configured maximum is {maximum}")]
+    TimerLimit { actual: usize, maximum: usize },
     #[error("encoded trace is {actual} bytes; maximum is {maximum}")]
     TraceTooLarge { actual: usize, maximum: usize },
     #[error("saved planner state is inconsistent with the compiled graph: {0}")]
@@ -71,6 +75,7 @@ pub enum TransitionError {
 struct WorkFrame {
     branch_id: String,
     current: String,
+    trigger: TriggerInput,
     values: BTreeMap<String, SavedNodeValue>,
     desired: BTreeMap<String, DesiredField>,
     assumptions: Vec<RuntimeAssumption>,
@@ -78,10 +83,11 @@ struct WorkFrame {
 }
 
 impl WorkFrame {
-    fn initial(current: String, trigger_id: &str) -> Self {
+    fn initial(current: String, trigger_id: &str, trigger: TriggerInput) -> Self {
         Self {
             branch_id: "root".to_owned(),
             current,
+            trigger,
             values: BTreeMap::new(),
             desired: BTreeMap::new(),
             assumptions: Vec::new(),
@@ -103,6 +109,7 @@ impl WorkFrame {
         Self {
             branch_id: saved.branch_id,
             current: saved.resume_node_id,
+            trigger: saved.trigger,
             values: saved
                 .values
                 .into_iter()
@@ -118,6 +125,7 @@ impl WorkFrame {
         SavedFrame::new(
             self.branch_id,
             resume_node_id,
+            self.trigger,
             self.values
                 .into_iter()
                 .map(|(node_id, value)| SavedValue { node_id, value })
@@ -136,10 +144,28 @@ pub fn plan_microstep(
     input.validate(compiled.limits().max_plan_input_bytes as usize)?;
     validate_identity(compiled, input)?;
     validate_compiled_state(compiled, input)?;
+    if let EvaluationEvent::Initial { trigger } = &input.event
+        && input.state.active_run.is_some()
+    {
+        validate_trigger(compiled, trigger)?;
+        if let Some(plan) = update_active_admission(compiled, input, trigger.clone())? {
+            return Ok(plan);
+        }
+        return queue_active_trigger(compiled, input, trigger.clone());
+    }
+    let mut next_queue = input.state.queued_triggers.clone();
+    if let EvaluationEvent::Initial { trigger } = &input.event
+        && let Some(queued) = next_queue.first()
+    {
+        if queued != trigger {
+            return Err(TransitionError::QueuedTriggerMismatch);
+        }
+        next_queue.remove(0);
+    }
 
-    let (mut frame, mut retained_suspensions, resume_terminal) = start_frame(compiled, input)?;
+    let (frame, retained_suspensions, resume_terminal) = start_frame(compiled, input)?;
     if let Some(outcome) = resume_terminal {
-        return finish_plan(
+        return finish_or_continue_closed_admission(
             compiled,
             input,
             frame,
@@ -147,10 +173,29 @@ pub fn plan_microstep(
             outcome,
             Vec::new(),
             Vec::new(),
+            next_queue,
         );
     }
-    let mut effects = Vec::new();
-    let mut timers = Vec::new();
+    evaluate_frame(
+        compiled,
+        input,
+        frame,
+        retained_suspensions,
+        next_queue,
+        Vec::new(),
+        Vec::new(),
+    )
+}
+
+fn evaluate_frame(
+    compiled: &CompiledRule,
+    input: &PlannerEvaluationInput,
+    mut frame: WorkFrame,
+    mut retained_suspensions: Vec<Suspension>,
+    next_queue: Vec<TriggerInput>,
+    mut effects: Vec<EffectIntent>,
+    mut timers: Vec<TimerIntent>,
+) -> Result<TransitionPlan, TransitionError> {
     let mut terminal = None;
 
     for _ in 0..crate::model::HARD_MAX_NODES {
@@ -246,6 +291,7 @@ pub fn plan_microstep(
                     required_confidence,
                     binding: binding.clone(),
                     idempotency_key: effect.idempotency_key.clone(),
+                    issued_microstep: input.identity.microstep,
                     issued_at: effect.issued_at,
                     continuation_node_id: continuation.to_owned(),
                     frame: saved,
@@ -262,6 +308,7 @@ pub fn plan_microstep(
                     suspension_id: timer.suspension_id.clone(),
                     timer_id: timer.timer_id.clone(),
                     continuation_node_id: continuation,
+                    issued_microstep: input.identity.microstep,
                     issued_at: timer.scheduled_at,
                     scheduled_for: timer.fire_at,
                     frame: saved,
@@ -281,10 +328,54 @@ pub fn plan_microstep(
                 terminal = Some(end_outcome(*outcome));
                 break;
             }
-            CompiledNode::DebounceThrottle { .. } => {
-                return Err(TransitionError::PhasePending {
-                    kind: "debounce_throttle",
+            CompiledNode::DebounceThrottle { key, policy, .. } => {
+                let continuation =
+                    optional_next(compiled, &frame.current, "admitted").map(str::to_owned);
+                let resume_node = continuation
+                    .clone()
+                    .unwrap_or_else(|| frame.current.clone());
+                let timer = build_admission_timer(
+                    input,
+                    &frame,
+                    &resume_node,
+                    admission_window_ms(*policy),
+                )?;
+                let saved = frame.clone().into_saved(resume_node)?;
+                let winning_trigger = match policy {
+                    crate::AdmissionPolicy::DebounceTrailing { .. } => Some(frame.trigger.clone()),
+                    crate::AdmissionPolicy::ThrottleLeading { .. } => None,
+                };
+                retained_suspensions.push(Suspension::Admission {
+                    suspension_id: timer.suspension_id.clone(),
+                    timer_id: timer.timer_id.clone(),
+                    node_id: frame.current.clone(),
+                    key: *key,
+                    policy: *policy,
+                    issued_microstep: input.identity.microstep,
+                    issued_at: timer.scheduled_at,
+                    scheduled_for: timer.fire_at,
+                    winning_trigger,
+                    dropped_count: 0,
+                    coalesced_count: 0,
+                    window_closed: false,
+                    continuation_node_id: continuation.clone(),
+                    frame: saved,
                 });
+                timers.push(timer);
+                match policy {
+                    crate::AdmissionPolicy::DebounceTrailing { .. } => {
+                        terminal = Some(TransitionOutcome::Suspended);
+                        break;
+                    }
+                    crate::AdmissionPolicy::ThrottleLeading { .. } => {
+                        if let Some(continuation) = continuation {
+                            frame.current = continuation;
+                        } else {
+                            terminal = Some(TransitionOutcome::Noop);
+                            break;
+                        }
+                    }
+                }
             }
             CompiledNode::ForkJoin { .. } => {
                 return Err(TransitionError::PhasePending { kind: "fork_join" });
@@ -293,6 +384,64 @@ pub fn plan_microstep(
     }
 
     let outcome = terminal.ok_or(TransitionError::StepLimit)?;
+    finish_or_continue_closed_admission(
+        compiled,
+        input,
+        frame,
+        retained_suspensions,
+        outcome,
+        effects,
+        timers,
+        next_queue,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn finish_or_continue_closed_admission(
+    compiled: &CompiledRule,
+    input: &PlannerEvaluationInput,
+    frame: WorkFrame,
+    mut retained_suspensions: Vec<Suspension>,
+    outcome: TransitionOutcome,
+    effects: Vec<EffectIntent>,
+    timers: Vec<TimerIntent>,
+    next_queue: Vec<TriggerInput>,
+) -> Result<TransitionPlan, TransitionError> {
+    if outcome != TransitionOutcome::Suspended
+        && retained_suspensions.len() == 1
+        && matches!(
+            retained_suspensions.first(),
+            Some(Suspension::Admission {
+                window_closed: true,
+                winning_trigger: Some(_),
+                continuation_node_id: Some(_),
+                ..
+            })
+        )
+    {
+        let Suspension::Admission {
+            frame,
+            winning_trigger: Some(trigger),
+            continuation_node_id: Some(continuation),
+            ..
+        } = retained_suspensions.remove(0)
+        else {
+            unreachable!("closed trailing admission was checked above")
+        };
+        let mut trailing = WorkFrame::from_saved(frame);
+        trailing.branch_id = "trailing".to_owned();
+        trailing.trigger = trigger;
+        trailing.current = continuation;
+        return evaluate_frame(
+            compiled,
+            input,
+            trailing,
+            retained_suspensions,
+            next_queue,
+            effects,
+            timers,
+        );
+    }
     finish_plan(
         compiled,
         input,
@@ -301,7 +450,203 @@ pub fn plan_microstep(
         outcome,
         effects,
         timers,
+        next_queue,
     )
+}
+
+fn update_active_admission(
+    compiled: &CompiledRule,
+    input: &PlannerEvaluationInput,
+    trigger: TriggerInput,
+) -> Result<Option<TransitionPlan>, TransitionError> {
+    let Some(mut run) = input.state.active_run.clone() else {
+        return Ok(None);
+    };
+    let Some(index) = run.frontier.suspended.iter().position(|suspension| {
+        matches!(
+            suspension,
+            Suspension::Admission {
+                window_closed: false,
+                ..
+            }
+        )
+    }) else {
+        return Ok(None);
+    };
+    if input.identity.run_id != run.run_id || input.identity.microstep != run.next_microstep {
+        return Err(TransitionError::IdentityMismatch);
+    }
+    let mut timers = Vec::new();
+    let mut dropped_frame = None;
+    let (node_id, outcome) = match &mut run.frontier.suspended[index] {
+        Suspension::Admission {
+            suspension_id,
+            timer_id,
+            node_id,
+            policy,
+            issued_microstep,
+            issued_at,
+            scheduled_for,
+            winning_trigger,
+            dropped_count,
+            coalesced_count,
+            continuation_node_id,
+            frame,
+            ..
+        } => {
+            *dropped_count = dropped_count
+                .checked_add(1)
+                .ok_or(TransitionError::StepLimit)?;
+            match policy {
+                crate::AdmissionPolicy::DebounceTrailing { window_ms } => {
+                    if let Some(dropped_node) = optional_next(compiled, node_id, "dropped") {
+                        let mut dropped = WorkFrame::from_saved(frame.clone());
+                        dropped.current = dropped_node.to_owned();
+                        dropped_frame = Some(dropped);
+                    }
+                    *coalesced_count = coalesced_count
+                        .checked_add(1)
+                        .ok_or(TransitionError::StepLimit)?;
+                    *winning_trigger = Some(trigger);
+                    frame.trigger = winning_trigger
+                        .clone()
+                        .expect("debounce retained a winning trigger");
+                    let seed = transition_seed(
+                        &input.identity,
+                        input.identity.microstep,
+                        node_id,
+                        &frame.branch_id,
+                    );
+                    *timer_id = format!("a_{}", &seed[..32]);
+                    *suspension_id = format!("s_{}", &seed[32..64]);
+                    *issued_microstep = input.identity.microstep;
+                    *issued_at = input.evaluation_time;
+                    *scheduled_for = add_milliseconds(input.evaluation_time, *window_ms)?;
+                    timers.push(TimerIntent::new(
+                        timer_id.clone(),
+                        frame.branch_id.clone(),
+                        suspension_id.clone(),
+                        continuation_node_id
+                            .clone()
+                            .unwrap_or_else(|| node_id.clone()),
+                        *issued_at,
+                        *scheduled_for,
+                    )?);
+                    (node_id.clone(), TransitionOutcome::Suspended)
+                }
+                crate::AdmissionPolicy::ThrottleLeading { trailing, .. } => {
+                    if let Some(dropped_node) = optional_next(compiled, node_id, "dropped") {
+                        let mut dropped = WorkFrame::from_saved(frame.clone());
+                        dropped.current = dropped_node.to_owned();
+                        dropped.trigger = trigger.clone();
+                        dropped_frame = Some(dropped);
+                    }
+                    if *trailing {
+                        *coalesced_count = coalesced_count
+                            .checked_add(1)
+                            .ok_or(TransitionError::StepLimit)?;
+                        *winning_trigger = Some(trigger);
+                        (node_id.clone(), TransitionOutcome::Suspended)
+                    } else {
+                        (node_id.clone(), TransitionOutcome::CapacityRejected)
+                    }
+                }
+            }
+        }
+        _ => unreachable!("admission suspension index was selected"),
+    };
+    if let Some(dropped) = dropped_frame {
+        return evaluate_frame(
+            compiled,
+            input,
+            dropped,
+            run.frontier.suspended,
+            input.state.queued_triggers.clone(),
+            Vec::new(),
+            timers,
+        )
+        .map(Some);
+    }
+    run.next_microstep = run
+        .next_microstep
+        .checked_add(1)
+        .ok_or(TransitionError::StepLimit)?;
+    let next_state = PlannerState::new(
+        input
+            .state
+            .version
+            .checked_add(1)
+            .ok_or(TransitionError::StepLimit)?,
+        input.state.process_epoch.clone(),
+        Some(run),
+        input.state.queued_triggers.clone(),
+    )?;
+    let plan = TransitionPlan::new(
+        input.identity.clone(),
+        outcome,
+        Vec::new(),
+        timers,
+        None,
+        next_state,
+        vec![RuntimeAssumption::PlannerStateVersion {
+            version: input.state.version,
+        }],
+        vec![compiled.trigger_id().to_owned(), node_id],
+    )?;
+    Ok(Some(plan))
+}
+
+fn queue_active_trigger(
+    compiled: &CompiledRule,
+    input: &PlannerEvaluationInput,
+    trigger: TriggerInput,
+) -> Result<TransitionPlan, TransitionError> {
+    let mut queued = input.state.queued_triggers.clone();
+    let maximum = compiled.limits().max_queued_triggers as usize;
+    let outcome = match compiled.policies().trigger_queue {
+        crate::TriggerQueuePolicy::DropNewest if queued.len() >= maximum => {
+            TransitionOutcome::CapacityRejected
+        }
+        crate::TriggerQueuePolicy::DropNewest => {
+            queued.push(trigger);
+            TransitionOutcome::Suspended
+        }
+        crate::TriggerQueuePolicy::DropOldest => {
+            if queued.len() >= maximum {
+                queued.remove(0);
+            }
+            queued.push(trigger);
+            TransitionOutcome::Suspended
+        }
+        crate::TriggerQueuePolicy::Coalesce => {
+            queued.clear();
+            queued.push(trigger);
+            TransitionOutcome::Suspended
+        }
+    };
+    let next_state = PlannerState::new(
+        input
+            .state
+            .version
+            .checked_add(1)
+            .ok_or(TransitionError::TimestampOverflow)?,
+        input.state.process_epoch.clone(),
+        input.state.active_run.clone(),
+        queued,
+    )?;
+    TransitionPlan::new(
+        input.identity.clone(),
+        outcome,
+        Vec::new(),
+        Vec::new(),
+        None,
+        next_state,
+        vec![RuntimeAssumption::PlannerStateVersion {
+            version: input.state.version,
+        }],
+        vec![compiled.trigger_id().to_owned()],
+    )
+    .map_err(Into::into)
 }
 
 fn validate_identity(
@@ -326,13 +671,10 @@ fn validate_compiled_state(
 ) -> Result<(), TransitionError> {
     match &input.event {
         EvaluationEvent::Initial { .. } => {
-            if input.identity.microstep != 1 {
+            if input.state.active_run.is_none() && input.identity.microstep != 1 {
                 return Err(TransitionError::InvalidSavedState(
-                    "initial events must use microstep 1".to_owned(),
+                    "a new run must start at microstep 1".to_owned(),
                 ));
-            }
-            if input.state.active_run.is_some() {
-                return Err(TransitionError::RunAlreadyActive);
             }
         }
         EvaluationEvent::Timer { .. } | EvaluationEvent::EffectReceipt { .. } => {
@@ -349,6 +691,26 @@ fn validate_compiled_state(
         }
     }
     if let Some(run) = &input.state.active_run {
+        let timer_count = run
+            .frontier
+            .suspended
+            .iter()
+            .filter(|suspension| {
+                matches!(
+                    suspension,
+                    Suspension::Timer { .. } | Suspension::Admission { .. }
+                )
+            })
+            .count();
+        let maximum_timers = compiled.limits().max_timers as usize;
+        if timer_count > maximum_timers {
+            return Err(TransitionError::TimerLimit {
+                actual: timer_count,
+                maximum: maximum_timers,
+            });
+        }
+        let mut issued_identity = input.identity.clone();
+        issued_identity.run_id = run.run_id.clone();
         for frame in &run.frontier.ready {
             validate_saved_frame_against_compiled(compiled, frame)?;
         }
@@ -362,6 +724,7 @@ fn validate_compiled_state(
                     required_confidence,
                     binding,
                     idempotency_key,
+                    issued_microstep,
                     continuation_node_id,
                     frame,
                     ..
@@ -375,15 +738,15 @@ fn validate_compiled_state(
                             "effect suspension names invalid node {effect_node_id:?}"
                         )));
                     };
-                    let issued_microstep =
-                        input.identity.microstep.checked_sub(1).ok_or_else(|| {
-                            TransitionError::InvalidSavedState(
-                                "suspension cannot precede microstep 1".to_owned(),
-                            )
-                        })?;
+                    if *issued_microstep >= run.next_microstep {
+                        return Err(TransitionError::InvalidSavedState(
+                            "effect suspension issuance is not before the next microstep"
+                                .to_owned(),
+                        ));
+                    }
                     let seed = transition_seed(
-                        &input.identity,
-                        issued_microstep,
+                        &issued_identity,
+                        *issued_microstep,
                         effect_node_id,
                         &frame.branch_id,
                     );
@@ -417,8 +780,8 @@ fn validate_compiled_state(
                         || suspension_id != &format!("s_{}", &seed[32..64])
                         || idempotency_key
                             != &effect_idempotency_key(
-                                &input.identity,
-                                issued_microstep,
+                                &issued_identity,
+                                *issued_microstep,
                                 effect_node_id,
                                 &seed,
                             )
@@ -450,6 +813,7 @@ fn validate_compiled_state(
                     suspension_id,
                     timer_id,
                     continuation_node_id,
+                    issued_microstep,
                     issued_at,
                     scheduled_for,
                     frame,
@@ -467,15 +831,14 @@ fn validate_compiled_state(
                             "timer frame was not issued by a delay node".to_owned(),
                         ));
                     }
-                    let issued_microstep =
-                        input.identity.microstep.checked_sub(1).ok_or_else(|| {
-                            TransitionError::InvalidSavedState(
-                                "suspension cannot precede microstep 1".to_owned(),
-                            )
-                        })?;
+                    if *issued_microstep >= run.next_microstep {
+                        return Err(TransitionError::InvalidSavedState(
+                            "timer suspension issuance is not before the next microstep".to_owned(),
+                        ));
+                    }
                     let seed = transition_seed(
-                        &input.identity,
-                        issued_microstep,
+                        &issued_identity,
+                        *issued_microstep,
                         delay_node_id,
                         &frame.branch_id,
                     );
@@ -494,6 +857,56 @@ fn validate_compiled_state(
                         return Err(TransitionError::InvalidSavedState(format!(
                             "timer continuation names invalid node {continuation_node_id:?}"
                         )));
+                    }
+                    validate_saved_frame_against_compiled(compiled, frame)?;
+                }
+                Suspension::Admission {
+                    suspension_id,
+                    timer_id,
+                    node_id,
+                    key,
+                    policy,
+                    issued_microstep,
+                    issued_at,
+                    scheduled_for,
+                    continuation_node_id,
+                    frame,
+                    ..
+                } => {
+                    let Some(CompiledNode::DebounceThrottle {
+                        key: compiled_key,
+                        policy: compiled_policy,
+                        ..
+                    }) = compiled.nodes().get(node_id)
+                    else {
+                        return Err(TransitionError::InvalidSavedState(
+                            "admission suspension names an invalid node".to_owned(),
+                        ));
+                    };
+                    if *issued_microstep >= run.next_microstep {
+                        return Err(TransitionError::InvalidSavedState(
+                            "admission suspension issuance is not before the next microstep"
+                                .to_owned(),
+                        ));
+                    }
+                    let seed = transition_seed(
+                        &issued_identity,
+                        *issued_microstep,
+                        node_id,
+                        &frame.branch_id,
+                    );
+                    let expected_due = add_milliseconds(*issued_at, admission_window_ms(*policy))?;
+                    if key != compiled_key
+                        || policy != compiled_policy
+                        || suspension_id != &format!("s_{}", &seed[32..64])
+                        || timer_id != &format!("a_{}", &seed[..32])
+                        || scheduled_for != &expected_due
+                        || optional_next(compiled, node_id, "admitted")
+                            != continuation_node_id.as_deref()
+                    {
+                        return Err(TransitionError::InvalidSavedState(
+                            "admission suspension does not match its compiled node".to_owned(),
+                        ));
                     }
                     validate_saved_frame_against_compiled(compiled, frame)?;
                 }
@@ -592,7 +1005,7 @@ fn start_frame(
             validate_trigger(compiled, trigger)?;
             let current = required_next(compiled, compiled.trigger_id(), "next")?;
             Ok((
-                WorkFrame::initial(current, compiled.trigger_id()),
+                WorkFrame::initial(current, compiled.trigger_id(), trigger.clone()),
                 Vec::new(),
                 None,
             ))
@@ -611,25 +1024,69 @@ fn start_frame(
             let mut retained = run.frontier.suspended.clone();
             let index = retained
                 .iter()
-                .position(|suspension| {
-                    matches!(
-                        suspension,
-                        Suspension::Timer {
-                            suspension_id: candidate,
-                            timer_id: candidate_timer,
-                            scheduled_for: candidate_scheduled,
-                            ..
-                        } if candidate == suspension_id
+                .position(|suspension| match suspension {
+                    Suspension::Timer {
+                        suspension_id: candidate,
+                        timer_id: candidate_timer,
+                        scheduled_for: candidate_scheduled,
+                        ..
+                    }
+                    | Suspension::Admission {
+                        suspension_id: candidate,
+                        timer_id: candidate_timer,
+                        scheduled_for: candidate_scheduled,
+                        window_closed: false,
+                        ..
+                    } => {
+                        candidate == suspension_id
                             && candidate_timer == timer_id
                             && candidate_scheduled == scheduled_for
                             && fired_at >= candidate_scheduled
-                    )
+                    }
+                    Suspension::Effect { .. }
+                    | Suspension::Admission {
+                        window_closed: true,
+                        ..
+                    } => false,
                 })
                 .ok_or(TransitionError::SuspensionMismatch)?;
-            let Suspension::Timer { frame, .. } = retained.remove(index) else {
-                unreachable!("matched timer suspension")
-            };
-            Ok((WorkFrame::from_saved(frame), retained, None))
+            match retained.remove(index) {
+                Suspension::Timer { frame, .. } => {
+                    Ok((WorkFrame::from_saved(frame), retained, None))
+                }
+                mut admission @ Suspension::Admission { .. } => {
+                    let (saved, winning_trigger, continuation) = match &admission {
+                        Suspension::Admission {
+                            frame,
+                            winning_trigger,
+                            continuation_node_id,
+                            ..
+                        } => (
+                            frame.clone(),
+                            winning_trigger.clone(),
+                            continuation_node_id.clone(),
+                        ),
+                        _ => unreachable!(),
+                    };
+                    let mut frame = WorkFrame::from_saved(saved);
+                    if winning_trigger.is_some() && !retained.is_empty() {
+                        let Suspension::Admission { window_closed, .. } = &mut admission else {
+                            unreachable!()
+                        };
+                        *window_closed = true;
+                        retained.push(admission);
+                        return Ok((frame, retained, Some(TransitionOutcome::Noop)));
+                    }
+                    if let (Some(trigger), Some(continuation)) = (winning_trigger, continuation) {
+                        frame.trigger = trigger;
+                        frame.current = continuation;
+                        Ok((frame, retained, None))
+                    } else {
+                        Ok((frame, retained, Some(TransitionOutcome::Noop)))
+                    }
+                }
+                Suspension::Effect { .. } => unreachable!("matched timer suspension"),
+            }
         }
         EvaluationEvent::EffectReceipt {
             suspension_id,
@@ -891,7 +1348,14 @@ fn data_source<'a>(
         })
 }
 
-const fn receipt_is_failure(outcome: ReceiptOutcome) -> bool {
+const fn admission_window_ms(policy: crate::AdmissionPolicy) -> u64 {
+    match policy {
+        crate::AdmissionPolicy::DebounceTrailing { window_ms }
+        | crate::AdmissionPolicy::ThrottleLeading { window_ms, .. } => window_ms,
+    }
+}
+
+fn receipt_is_failure(outcome: ReceiptOutcome) -> bool {
     matches!(
         outcome,
         ReceiptOutcome::Rejected
@@ -1659,6 +2123,29 @@ fn effect_idempotency_key(
     ])
 }
 
+fn build_admission_timer(
+    input: &PlannerEvaluationInput,
+    frame: &WorkFrame,
+    continuation: &str,
+    duration_ms: u64,
+) -> Result<TimerIntent, TransitionError> {
+    let seed = transition_seed(
+        &input.identity,
+        input.identity.microstep,
+        &frame.current,
+        &frame.branch_id,
+    );
+    TimerIntent::new(
+        format!("a_{}", &seed[..32]),
+        frame.branch_id.clone(),
+        format!("s_{}", &seed[32..64]),
+        continuation.to_owned(),
+        input.evaluation_time,
+        add_milliseconds(input.evaluation_time, duration_ms)?,
+    )
+    .map_err(Into::into)
+}
+
 fn transition_seed(
     identity: &EvaluationIdentity,
     microstep: u32,
@@ -1713,7 +2200,24 @@ fn finish_plan(
     outcome: TransitionOutcome,
     effects: Vec<EffectIntent>,
     timers: Vec<TimerIntent>,
+    queued_triggers: Vec<TriggerInput>,
 ) -> Result<TransitionPlan, TransitionError> {
+    let maximum_timers = compiled.limits().max_timers as usize;
+    let retained_timer_count = suspensions
+        .iter()
+        .filter(|suspension| {
+            matches!(
+                suspension,
+                Suspension::Timer { .. } | Suspension::Admission { .. }
+            )
+        })
+        .count();
+    if retained_timer_count > maximum_timers || timers.len() > maximum_timers {
+        return Err(TransitionError::TimerLimit {
+            actual: retained_timer_count.max(timers.len()),
+            maximum: maximum_timers,
+        });
+    }
     let trace_bytes = serde_json::to_vec(&frame.trace)
         .map_err(|error| TransitionError::InvalidCompiledGraph {
             node: frame.current.clone(),
@@ -1755,7 +2259,7 @@ fn finish_plan(
         next_version,
         input.identity.process_epoch.clone(),
         active_run,
-        input.state.queued_triggers.clone(),
+        queued_triggers,
     )?;
     let outcome = if next_state.active_run.is_some() {
         TransitionOutcome::Suspended

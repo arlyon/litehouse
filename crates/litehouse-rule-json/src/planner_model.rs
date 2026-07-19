@@ -847,6 +847,7 @@ pub(crate) enum SavedNodeValue {
 pub(crate) struct SavedFrame {
     pub(crate) branch_id: String,
     pub(crate) resume_node_id: String,
+    pub(crate) trigger: TriggerInput,
     pub(crate) values: Vec<SavedValue>,
     pub(crate) desired: Option<DesiredProjection>,
     pub(crate) assumptions: Vec<RuntimeAssumption>,
@@ -857,6 +858,7 @@ impl SavedFrame {
     pub(crate) fn new(
         branch_id: impl Into<String>,
         resume_node_id: impl Into<String>,
+        trigger: TriggerInput,
         values: Vec<SavedValue>,
         desired: Option<DesiredProjection>,
         assumptions: Vec<RuntimeAssumption>,
@@ -892,9 +894,11 @@ impl SavedFrame {
         for node_id in &trace_node_ids {
             validate_id("saved trace node_id", node_id)?;
         }
+        validate_trigger_input(&trigger)?;
         Ok(Self {
             branch_id,
             resume_node_id,
+            trigger,
             values,
             desired,
             assumptions,
@@ -914,6 +918,7 @@ pub(crate) enum Suspension {
         required_confidence: ReceiptConfidence,
         binding: EffectBinding,
         idempotency_key: String,
+        issued_microstep: u32,
         issued_at: Timestamp,
         continuation_node_id: String,
         frame: SavedFrame,
@@ -922,8 +927,25 @@ pub(crate) enum Suspension {
         suspension_id: String,
         timer_id: String,
         continuation_node_id: String,
+        issued_microstep: u32,
         issued_at: Timestamp,
         scheduled_for: Timestamp,
+        frame: SavedFrame,
+    },
+    Admission {
+        suspension_id: String,
+        timer_id: String,
+        node_id: String,
+        key: crate::AdmissionKey,
+        policy: crate::AdmissionPolicy,
+        issued_microstep: u32,
+        issued_at: Timestamp,
+        scheduled_for: Timestamp,
+        winning_trigger: Option<TriggerInput>,
+        dropped_count: u64,
+        coalesced_count: u64,
+        window_closed: bool,
+        continuation_node_id: Option<String>,
         frame: SavedFrame,
     },
 }
@@ -931,7 +953,9 @@ pub(crate) enum Suspension {
 impl Suspension {
     fn suspension_id(&self) -> &str {
         match self {
-            Self::Effect { suspension_id, .. } | Self::Timer { suspension_id, .. } => suspension_id,
+            Self::Effect { suspension_id, .. }
+            | Self::Timer { suspension_id, .. }
+            | Self::Admission { suspension_id, .. } => suspension_id,
         }
     }
 
@@ -943,6 +967,7 @@ impl Suspension {
                 effect_node_id,
                 binding,
                 idempotency_key,
+                issued_microstep,
                 continuation_node_id,
                 frame,
                 ..
@@ -950,6 +975,9 @@ impl Suspension {
                 validate_id("intent_id", intent_id)?;
                 validate_id("effect_node_id", effect_node_id)?;
                 validate_effect_binding(binding)?;
+                if *issued_microstep == 0 {
+                    return Err(PlannerModelError::ZeroRevision("issued_microstep"));
+                }
                 if !valid_hex_64(idempotency_key) {
                     return Err(PlannerModelError::InvalidDigest("idempotency_key"));
                 }
@@ -963,6 +991,7 @@ impl Suspension {
             Self::Timer {
                 timer_id,
                 continuation_node_id,
+                issued_microstep,
                 issued_at,
                 scheduled_for,
                 frame,
@@ -970,11 +999,48 @@ impl Suspension {
             } => {
                 validate_id("timer_id", timer_id)?;
                 validate_id("continuation_node_id", continuation_node_id)?;
+                if *issued_microstep == 0 {
+                    return Err(PlannerModelError::ZeroRevision("issued_microstep"));
+                }
                 if scheduled_for <= issued_at {
                     return Err(PlannerModelError::InvalidTimestampOrder);
                 }
                 validate_saved_frame(frame)?;
                 if frame.resume_node_id != *continuation_node_id {
+                    return Err(PlannerModelError::ContinuationMismatch);
+                }
+                Ok(())
+            }
+            Self::Admission {
+                timer_id,
+                node_id,
+                issued_microstep,
+                issued_at,
+                scheduled_for,
+                winning_trigger,
+                continuation_node_id,
+                frame,
+                ..
+            } => {
+                validate_id("timer_id", timer_id)?;
+                validate_id("node_id", node_id)?;
+                if let Some(continuation_node_id) = continuation_node_id {
+                    validate_id("continuation_node_id", continuation_node_id)?;
+                }
+                if *issued_microstep == 0 {
+                    return Err(PlannerModelError::ZeroRevision("issued_microstep"));
+                }
+                if scheduled_for <= issued_at {
+                    return Err(PlannerModelError::InvalidTimestampOrder);
+                }
+                if let Some(trigger) = winning_trigger {
+                    validate_trigger_input(trigger)?;
+                }
+                validate_saved_frame(frame)?;
+                if continuation_node_id
+                    .as_deref()
+                    .is_some_and(|continuation| frame.resume_node_id != continuation)
+                {
                     return Err(PlannerModelError::ContinuationMismatch);
                 }
                 Ok(())
@@ -1096,6 +1162,23 @@ impl RunState {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct ActiveRunCursor {
+    pub run_id: String,
+    pub next_microstep: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdmissionStatus {
+    pub node_id: String,
+    pub window_ends_at: Timestamp,
+    pub has_winning_trigger: bool,
+    pub dropped_count: u64,
+    pub coalesced_count: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct PlannerState {
     pub(crate) version: u64,
     pub(crate) process_epoch: String,
@@ -1150,6 +1233,37 @@ impl PlannerState {
 
     pub const fn has_active_run(&self) -> bool {
         self.active_run.is_some()
+    }
+
+    pub fn active_cursor(&self) -> Option<ActiveRunCursor> {
+        self.active_run.as_ref().map(|run| ActiveRunCursor {
+            run_id: run.run_id.clone(),
+            next_microstep: run.next_microstep,
+        })
+    }
+
+    pub fn admission_statuses(&self) -> Vec<AdmissionStatus> {
+        self.active_run
+            .iter()
+            .flat_map(|run| &run.frontier.suspended)
+            .filter_map(|suspension| match suspension {
+                Suspension::Admission {
+                    node_id,
+                    scheduled_for,
+                    winning_trigger,
+                    dropped_count,
+                    coalesced_count,
+                    ..
+                } => Some(AdmissionStatus {
+                    node_id: node_id.clone(),
+                    window_ends_at: *scheduled_for,
+                    has_winning_trigger: winning_trigger.is_some(),
+                    dropped_count: *dropped_count,
+                    coalesced_count: *coalesced_count,
+                }),
+                Suspension::Effect { .. } | Suspension::Timer { .. } => None,
+            })
+            .collect()
     }
 
     pub fn queued_triggers(&self) -> &[TriggerInput] {
@@ -1561,6 +1675,7 @@ impl PlannerEvaluationInput {
             return Err(PlannerModelError::StateIdentityMismatch);
         }
         if let Some(run) = &state.active_run
+            && !matches!(event, EvaluationEvent::Initial { .. })
             && (run.run_id != identity.run_id || run.next_microstep != identity.microstep)
         {
             return Err(PlannerModelError::StateIdentityMismatch);
@@ -1739,6 +1854,7 @@ fn validate_evaluation_input(input: &PlannerEvaluationInput) -> Result<(), Plann
         return Err(PlannerModelError::StateIdentityMismatch);
     }
     if let Some(run) = &input.state.active_run
+        && !matches!(input.event, EvaluationEvent::Initial { .. })
         && (run.run_id != input.identity.run_id || run.next_microstep != input.identity.microstep)
     {
         return Err(PlannerModelError::StateIdentityMismatch);
@@ -1910,6 +2026,7 @@ fn validate_effect_binding(binding: &EffectBinding) -> Result<(), PlannerModelEr
 fn validate_saved_frame(frame: &SavedFrame) -> Result<(), PlannerModelError> {
     validate_id("branch_id", &frame.branch_id)?;
     validate_id("resume_node_id", &frame.resume_node_id)?;
+    validate_trigger_input(&frame.trigger)?;
     if frame.values.len() > HARD_MAX_NODES || frame.trace_node_ids.len() > HARD_MAX_NODES {
         return Err(PlannerModelError::CollectionBound {
             collection: "saved frame items",

@@ -67,8 +67,9 @@ fn selector(instance: &str, facet: &str, package: &str) -> Selector {
     }
 }
 
-fn microstep_identity(
+fn microstep_identity_for(
     compiled: &litehouse_rule_json::CompiledRule,
+    run_id: &str,
     microstep: u32,
 ) -> EvaluationIdentity {
     EvaluationIdentity::new(
@@ -78,10 +79,17 @@ fn microstep_identity(
         compiled.semantic_sha256(),
         compiled.profile_sha256(),
         compiled.artifacts().clone(),
-        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        run_id,
         microstep,
     )
     .unwrap()
+}
+
+fn microstep_identity(
+    compiled: &litehouse_rule_json::CompiledRule,
+    microstep: u32,
+) -> EvaluationIdentity {
+    microstep_identity_for(compiled, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", microstep)
 }
 
 fn microstep_state() -> PlannerState {
@@ -859,6 +867,490 @@ fn receipt_failures_route_without_success_confidence_and_keys_are_exact() {
         plan_microstep(&compiled, &resumed),
         Err(litehouse_rule_json::TransitionError::SuspensionMismatch)
     );
+}
+
+#[test]
+fn active_run_coalesces_triggers_and_the_next_run_consumes_the_queue_head() {
+    let compiled = compile_rule_json(planner_bytes()).unwrap();
+    let initial = initial_microstep_input(&compiled, true);
+    let suspended = plan_microstep(&compiled, &initial).unwrap();
+    let event_time = Timestamp::new(1_721_234_568, 0).unwrap();
+
+    let queued_trigger = state_trigger_for(&compiled, event_time);
+    let queued = PlannerEvaluationInput::new(
+        microstep_identity_for(&compiled, "cccccccccccccccccccccccccccccccc", 1),
+        EvaluationEvent::initial(queued_trigger.clone()),
+        event_time,
+        vec![microstep_snapshot(false, event_time)],
+        vec![microstep_binding()],
+        suspended.next_state().clone(),
+    )
+    .unwrap();
+    let queued_plan = plan_microstep(&compiled, &queued).unwrap();
+    assert_eq!(queued_plan.outcome(), TransitionOutcome::Suspended);
+    assert_eq!(
+        queued_plan.next_state().queued_triggers(),
+        &[queued_trigger.clone()]
+    );
+
+    let effect = &suspended.effects()[0];
+    let receipt = EffectReceipt::new(
+        effect.intent_id.clone(),
+        "request",
+        effect.operation.clone(),
+        1,
+        effect.binding.provider_generation,
+        litehouse_rule_json::ReceiptConfidence::AcceptedForDelivery,
+        litehouse_rule_json::ReceiptOutcome::AcceptedForDelivery,
+        event_time,
+        None,
+        Some(effect.idempotency_key.clone()),
+    )
+    .unwrap();
+    let resume = PlannerEvaluationInput::new(
+        microstep_identity(&compiled, 2),
+        EvaluationEvent::effect_receipt(effect.suspension_id.clone(), receipt).unwrap(),
+        event_time,
+        vec![microstep_snapshot(true, event_time)],
+        vec![microstep_binding()],
+        queued_plan.next_state().clone(),
+    )
+    .unwrap();
+    let completed = plan_microstep(&compiled, &resume).unwrap();
+    assert!(!completed.next_state().has_active_run());
+    assert_eq!(
+        completed.next_state().queued_triggers(),
+        &[queued_trigger.clone()]
+    );
+
+    let next = PlannerEvaluationInput::new(
+        microstep_identity_for(&compiled, "cccccccccccccccccccccccccccccccc", 1),
+        EvaluationEvent::initial(queued_trigger),
+        event_time,
+        vec![microstep_snapshot(false, event_time)],
+        vec![microstep_binding()],
+        completed.next_state().clone(),
+    )
+    .unwrap();
+    let next_plan = plan_microstep(&compiled, &next).unwrap();
+    assert_eq!(next_plan.outcome(), TransitionOutcome::Noop);
+    assert!(next_plan.next_state().queued_triggers().is_empty());
+}
+
+#[test]
+fn bounded_trigger_queue_applies_drop_newest_and_drop_oldest_exactly() {
+    for (policy, expected_first) in [("drop_newest", true), ("drop_oldest", false)] {
+        let mut document = planner_fixture();
+        document["semantic"]["policies"]["trigger_queue"] = json!(policy);
+        document["semantic"]["limits"]["max_queued_triggers"] = json!(1);
+        let compiled = compile_value(&document).unwrap();
+        let active = plan_microstep(&compiled, &initial_microstep_input(&compiled, true)).unwrap();
+        let first_time = Timestamp::new(1_721_234_568, 0).unwrap();
+        let first_trigger = state_trigger_for(&compiled, first_time);
+        let first = PlannerEvaluationInput::new(
+            microstep_identity_for(&compiled, "cccccccccccccccccccccccccccccccc", 1),
+            EvaluationEvent::initial(first_trigger.clone()),
+            first_time,
+            Vec::new(),
+            Vec::new(),
+            active.next_state().clone(),
+        )
+        .unwrap();
+        let first = plan_microstep(&compiled, &first).unwrap();
+        let second_time = Timestamp::new(1_721_234_569, 0).unwrap();
+        let second_trigger = state_trigger_for(&compiled, second_time);
+        let second = PlannerEvaluationInput::new(
+            microstep_identity_for(&compiled, "dddddddddddddddddddddddddddddddd", 1),
+            EvaluationEvent::initial(second_trigger.clone()),
+            second_time,
+            Vec::new(),
+            Vec::new(),
+            first.next_state().clone(),
+        )
+        .unwrap();
+        let second = plan_microstep(&compiled, &second).unwrap();
+        assert_eq!(second.next_state().queued_triggers().len(), 1);
+        if expected_first {
+            assert_eq!(second.outcome(), TransitionOutcome::CapacityRejected);
+            assert_eq!(second.next_state().queued_triggers(), &[first_trigger]);
+        } else {
+            assert_eq!(second.outcome(), TransitionOutcome::Suspended);
+            assert_eq!(second.next_state().queued_triggers(), &[second_trigger]);
+        }
+    }
+}
+
+#[test]
+fn debounce_and_trailing_throttle_resume_the_latest_trigger_at_the_window() {
+    for (policy, reset_window) in [
+        (
+            json!({"kind": "debounce_trailing", "window_ms": 1_000}),
+            true,
+        ),
+        (
+            json!({"kind": "throttle_leading", "window_ms": 1_000, "trailing": true}),
+            false,
+        ),
+    ] {
+        let mut document = planner_fixture();
+        document["semantic"]["nodes"] = json!([
+            {
+                "id": "admission",
+                "kind": "debounce_throttle",
+                "version": 1,
+                "trigger": "state_observation",
+                "key": "rule_trigger_and_endpoint",
+                "policy": policy
+            },
+            {"id": "admitted", "kind": "end", "version": 1, "outcome": "success"},
+            {"id": "dropped", "kind": "end", "version": 1, "outcome": "noop"}
+        ]);
+        document["semantic"]["edges"] = json!([
+            {"id":"e00","from":{"node":"trigger","port":"next"},"to":{"node":"admission","port":"in"},"order":0},
+            {"id":"e01","from":{"node":"admission","port":"admitted"},"to":{"node":"admitted","port":"in"},"order":0},
+            {"id":"e02","from":{"node":"admission","port":"dropped"},"to":{"node":"dropped","port":"in"},"order":0}
+        ]);
+        let compiled = compile_value(&document).unwrap();
+        let first_time = Timestamp::new(1_721_234_567, 0).unwrap();
+        let first = planner_microstep_input(
+            &compiled,
+            1,
+            EvaluationEvent::initial(state_trigger_for(&compiled, first_time)),
+            first_time,
+            Vec::new(),
+            Vec::new(),
+            microstep_state(),
+        );
+        let opened = plan_microstep(&compiled, &first).unwrap();
+        assert_eq!(opened.outcome(), TransitionOutcome::Suspended);
+        assert_eq!(opened.timers().len(), 1);
+
+        let second_time = Timestamp::new(1_721_234_567, 100_000_000).unwrap();
+        let second = PlannerEvaluationInput::new(
+            microstep_identity(&compiled, 2),
+            EvaluationEvent::initial(state_trigger_for(&compiled, second_time)),
+            second_time,
+            Vec::new(),
+            Vec::new(),
+            opened.next_state().clone(),
+        )
+        .unwrap();
+        let retained = plan_microstep(&compiled, &second).unwrap();
+        assert_eq!(retained.outcome(), TransitionOutcome::Suspended);
+        assert!(retained.trace_node_ids().contains(&"dropped".to_owned()));
+        assert_eq!(
+            retained.next_state().admission_statuses(),
+            vec![litehouse_rule_json::AdmissionStatus {
+                node_id: "admission".to_owned(),
+                window_ends_at: if reset_window {
+                    retained.timers()[0].fire_at
+                } else {
+                    opened.timers()[0].fire_at
+                },
+                has_winning_trigger: true,
+                dropped_count: 1,
+                coalesced_count: 1,
+            }]
+        );
+        let timer = if reset_window {
+            assert_eq!(retained.timers().len(), 1);
+            &retained.timers()[0]
+        } else {
+            assert!(retained.timers().is_empty());
+            &opened.timers()[0]
+        };
+        let fired = PlannerEvaluationInput::new(
+            microstep_identity(&compiled, 3),
+            EvaluationEvent::timer(
+                timer.timer_id.clone(),
+                timer.suspension_id.clone(),
+                timer.fire_at,
+                timer.fire_at,
+            )
+            .unwrap(),
+            timer.fire_at,
+            Vec::new(),
+            Vec::new(),
+            retained.next_state().clone(),
+        )
+        .unwrap();
+        let completed = plan_microstep(&compiled, &fired).unwrap();
+        assert_eq!(completed.outcome(), TransitionOutcome::Success);
+        assert!(!completed.next_state().has_active_run());
+        assert!(completed.trace_node_ids().contains(&"admitted".to_owned()));
+    }
+}
+
+#[test]
+fn non_trailing_throttle_routes_dropped_and_closes_without_replay() {
+    let mut document = planner_fixture();
+    document["semantic"]["nodes"] = json!([
+        {
+            "id": "admission",
+            "kind": "debounce_throttle",
+            "version": 1,
+            "trigger": "state_observation",
+            "key": "rule_trigger",
+            "policy": {"kind": "throttle_leading", "window_ms": 1_000, "trailing": false}
+        },
+        {"id": "admitted", "kind": "end", "version": 1, "outcome": "success"},
+        {"id": "dropped", "kind": "end", "version": 1, "outcome": "noop"}
+    ]);
+    document["semantic"]["edges"] = json!([
+        {"id":"e00","from":{"node":"trigger","port":"next"},"to":{"node":"admission","port":"in"},"order":0},
+        {"id":"e01","from":{"node":"admission","port":"admitted"},"to":{"node":"admitted","port":"in"},"order":0},
+        {"id":"e02","from":{"node":"admission","port":"dropped"},"to":{"node":"dropped","port":"in"},"order":0}
+    ]);
+    let compiled = compile_value(&document).unwrap();
+    let first_time = Timestamp::new(1_721_234_567, 0).unwrap();
+    let opened = plan_microstep(
+        &compiled,
+        &planner_microstep_input(
+            &compiled,
+            1,
+            EvaluationEvent::initial(state_trigger_for(&compiled, first_time)),
+            first_time,
+            Vec::new(),
+            Vec::new(),
+            microstep_state(),
+        ),
+    )
+    .unwrap();
+    let timer = opened.timers()[0].clone();
+    let second_time = Timestamp::new(1_721_234_567, 100_000_000).unwrap();
+    let dropped = PlannerEvaluationInput::new(
+        microstep_identity(&compiled, 2),
+        EvaluationEvent::initial(state_trigger_for(&compiled, second_time)),
+        second_time,
+        Vec::new(),
+        Vec::new(),
+        opened.next_state().clone(),
+    )
+    .unwrap();
+    let dropped = plan_microstep(&compiled, &dropped).unwrap();
+    assert_eq!(dropped.outcome(), TransitionOutcome::Suspended);
+    assert!(dropped.trace_node_ids().contains(&"dropped".to_owned()));
+
+    let close = PlannerEvaluationInput::new(
+        microstep_identity(&compiled, 3),
+        EvaluationEvent::timer(
+            timer.timer_id,
+            timer.suspension_id,
+            timer.fire_at,
+            timer.fire_at,
+        )
+        .unwrap(),
+        timer.fire_at,
+        Vec::new(),
+        Vec::new(),
+        dropped.next_state().clone(),
+    )
+    .unwrap();
+    let closed = plan_microstep(&compiled, &close).unwrap();
+    assert_eq!(closed.outcome(), TransitionOutcome::Noop);
+    assert!(!closed.next_state().has_active_run());
+}
+
+#[test]
+fn dropped_only_admission_still_opens_and_expires_its_window() {
+    let mut document = planner_fixture();
+    document["semantic"]["nodes"] = json!([
+        {
+            "id": "admission",
+            "kind": "debounce_throttle",
+            "version": 1,
+            "trigger": "state_observation",
+            "key": "rule_trigger",
+            "policy": {"kind": "debounce_trailing", "window_ms": 1_000}
+        },
+        {"id": "dropped", "kind": "end", "version": 1, "outcome": "noop"}
+    ]);
+    document["semantic"]["edges"] = json!([
+        {"id":"e00","from":{"node":"trigger","port":"next"},"to":{"node":"admission","port":"in"},"order":0},
+        {"id":"e01","from":{"node":"admission","port":"dropped"},"to":{"node":"dropped","port":"in"},"order":0}
+    ]);
+    let compiled = compile_value(&document).unwrap();
+    let first_time = Timestamp::new(1_721_234_567, 0).unwrap();
+    let opened = plan_microstep(
+        &compiled,
+        &planner_microstep_input(
+            &compiled,
+            1,
+            EvaluationEvent::initial(state_trigger_for(&compiled, first_time)),
+            first_time,
+            Vec::new(),
+            Vec::new(),
+            microstep_state(),
+        ),
+    )
+    .unwrap();
+    assert_eq!(opened.timers().len(), 1);
+    let second_time = Timestamp::new(1_721_234_567, 100_000_000).unwrap();
+    let second = PlannerEvaluationInput::new(
+        microstep_identity(&compiled, 2),
+        EvaluationEvent::initial(state_trigger_for(&compiled, second_time)),
+        second_time,
+        Vec::new(),
+        Vec::new(),
+        opened.next_state().clone(),
+    )
+    .unwrap();
+    let dropped = plan_microstep(&compiled, &second).unwrap();
+    assert!(dropped.trace_node_ids().contains(&"dropped".to_owned()));
+    let timer = dropped.timers()[0].clone();
+    let close = PlannerEvaluationInput::new(
+        microstep_identity(&compiled, 3),
+        EvaluationEvent::timer(
+            timer.timer_id,
+            timer.suspension_id,
+            timer.fire_at,
+            timer.fire_at,
+        )
+        .unwrap(),
+        timer.fire_at,
+        Vec::new(),
+        Vec::new(),
+        dropped.next_state().clone(),
+    )
+    .unwrap();
+    let closed = plan_microstep(&compiled, &close).unwrap();
+    assert_eq!(closed.outcome(), TransitionOutcome::Noop);
+    assert!(!closed.next_state().has_active_run());
+}
+
+#[test]
+fn trailing_throttle_waits_for_terminal_leading_receipt_before_dispatching_again() {
+    let mut document = planner_fixture();
+    let effect = document["semantic"]["nodes"][3].clone();
+    let receipt = document["semantic"]["nodes"][4].clone();
+    document["semantic"]["nodes"] = json!([
+        {
+            "id": "admission",
+            "kind": "debounce_throttle",
+            "version": 1,
+            "trigger": "state_observation",
+            "key": "rule_trigger",
+            "policy": {"kind": "throttle_leading", "window_ms": 1_000, "trailing": true}
+        },
+        effect,
+        receipt,
+        {"id": "success", "kind": "end", "version": 1, "outcome": "success"},
+        {"id": "dropped", "kind": "end", "version": 1, "outcome": "noop"}
+    ]);
+    document["semantic"]["edges"] = json!([
+        {"id":"e00","from":{"node":"trigger","port":"next"},"to":{"node":"admission","port":"in"},"order":0},
+        {"id":"e01","from":{"node":"admission","port":"admitted"},"to":{"node":"set_light","port":"in"},"order":0},
+        {"id":"e02","from":{"node":"admission","port":"dropped"},"to":{"node":"dropped","port":"in"},"order":0},
+        {"id":"e03","from":{"node":"set_light","port":"receipt"},"to":{"node":"receipt","port":"receipt"},"order":0},
+        {"id":"e04","from":{"node":"receipt","port":"accepted_for_delivery"},"to":{"node":"success","port":"in"},"order":0}
+    ]);
+    let compiled = compile_value(&document).unwrap();
+    let first_time = Timestamp::new(1_721_234_567, 0).unwrap();
+    let first = planner_microstep_input(
+        &compiled,
+        1,
+        EvaluationEvent::initial(state_trigger_for(&compiled, first_time)),
+        first_time,
+        Vec::new(),
+        vec![microstep_binding()],
+        microstep_state(),
+    );
+    let leading = plan_microstep(&compiled, &first).unwrap();
+    assert_eq!(leading.effects().len(), 1);
+    assert_eq!(leading.timers().len(), 1);
+    let window_timer = leading.timers()[0].clone();
+    let leading_effect = leading.effects()[0].clone();
+
+    let second_time = Timestamp::new(1_721_234_567, 100_000_000).unwrap();
+    let second = PlannerEvaluationInput::new(
+        microstep_identity(&compiled, 2),
+        EvaluationEvent::initial(state_trigger_for(&compiled, second_time)),
+        second_time,
+        Vec::new(),
+        vec![microstep_binding()],
+        leading.next_state().clone(),
+    )
+    .unwrap();
+    let retained = plan_microstep(&compiled, &second).unwrap();
+    let window = PlannerEvaluationInput::new(
+        microstep_identity(&compiled, 3),
+        EvaluationEvent::timer(
+            window_timer.timer_id,
+            window_timer.suspension_id,
+            window_timer.fire_at,
+            window_timer.fire_at,
+        )
+        .unwrap(),
+        window_timer.fire_at,
+        Vec::new(),
+        vec![microstep_binding()],
+        retained.next_state().clone(),
+    )
+    .unwrap();
+    let waiting = plan_microstep(&compiled, &window).unwrap();
+    assert!(waiting.effects().is_empty());
+    assert!(waiting.next_state().has_active_run());
+
+    let receipt_time = Timestamp::new(1_721_234_569, 0).unwrap();
+    let leading_receipt = EffectReceipt::new(
+        leading_effect.intent_id.clone(),
+        "request",
+        leading_effect.operation.clone(),
+        1,
+        leading_effect.binding.provider_generation,
+        litehouse_rule_json::ReceiptConfidence::AcceptedForDelivery,
+        litehouse_rule_json::ReceiptOutcome::Rejected,
+        receipt_time,
+        None,
+        Some(leading_effect.idempotency_key.clone()),
+    )
+    .unwrap();
+    let resume = PlannerEvaluationInput::new(
+        microstep_identity(&compiled, 4),
+        EvaluationEvent::effect_receipt(leading_effect.suspension_id.clone(), leading_receipt)
+            .unwrap(),
+        receipt_time,
+        Vec::new(),
+        vec![microstep_binding()],
+        waiting.next_state().clone(),
+    )
+    .unwrap();
+    let trailing = plan_microstep(&compiled, &resume).unwrap();
+    assert_eq!(trailing.effects().len(), 1);
+    assert_ne!(trailing.effects()[0].intent_id, leading_effect.intent_id);
+    assert_eq!(trailing.effects()[0].branch_id, "trailing");
+}
+
+#[test]
+fn admission_windows_count_against_the_authored_timer_limit() {
+    let mut document = planner_fixture();
+    document["semantic"]["limits"]["max_timers"] = json!(1);
+    document["semantic"]["nodes"] = json!([
+        {
+            "id": "admission",
+            "kind": "debounce_throttle",
+            "version": 1,
+            "trigger": "state_observation",
+            "key": "rule_trigger",
+            "policy": {"kind": "throttle_leading", "window_ms": 1_000, "trailing": false}
+        },
+        {"id": "delay", "kind": "delay", "version": 1, "duration": {"milliseconds": 1}},
+        {"id": "end", "kind": "end", "version": 1, "outcome": "noop"}
+    ]);
+    document["semantic"]["edges"] = json!([
+        {"id":"e00","from":{"node":"trigger","port":"next"},"to":{"node":"admission","port":"in"},"order":0},
+        {"id":"e01","from":{"node":"admission","port":"admitted"},"to":{"node":"delay","port":"in"},"order":0},
+        {"id":"e02","from":{"node":"delay","port":"next"},"to":{"node":"end","port":"in"},"order":0}
+    ]);
+    assert!(matches!(
+        compile_error(&document),
+        CompileError::InvalidLimit {
+            name: "timers",
+            actual: 2,
+            maximum: 1,
+            ..
+        }
+    ));
 }
 
 #[test]
