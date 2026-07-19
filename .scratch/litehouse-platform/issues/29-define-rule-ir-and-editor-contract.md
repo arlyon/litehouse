@@ -82,6 +82,32 @@ IANA timezone availability, and retains explicit gap/fold policy. Closed compile
 forms are available to T8.1c; non-comparison quantity execution and scheduled
 trigger microsteps remain intentionally fail-closed until that planner tranche.
 
+### T8.1c completion evidence (2026-07-18)
+
+The compatibility planner is removed. One pure deterministic evaluator accepts
+only immutable `initial`, `timer`, and `effect_receipt` microsteps and executes
+all three triggers, all eleven post-trigger families, all seven quantity
+operations, and all 29 typed effects. It returns typed desired projections,
+effect intents, timers, assumptions, traces, and opaque process-local next state
+without persistence, dispatch, timer execution, live handles, or
+observed-state mutation.
+
+Schedules validate exact Jiff occurrences and explicit DST behavior. Admission
+implements drop-newest, drop-oldest, coalesce, debounce trailing, and throttle
+leading/trailing with bounded deterministic queues and serialized winners.
+Forks spawn two to four branches in authored order; joins retain arrivals across
+receipt/timer suspensions and merge with `reject_conflict` or
+`ordered_last_wins`. Cross-branch desired conflicts and same-target effects fail
+closed before conflicting dispatch. Nested fork regions are rejected in V1.
+Every retained frame, binding, timer, receipt, continuation, process epoch,
+identity, collection bound, and compiled reference is revalidated on entry.
+
+Package tests, dependency-contract tests, Rule JSON integration tests,
+management-contract tests, generator parity, native all-target checking,
+Rustfmt, Taplo, LSP diagnostics, full T0 baseline validation, secret scanning,
+and repeated adversarial review form the local completion evidence. Persistence,
+provider execution, observation ingestion, and restart wiring remain T8.2–T8.6.
+
 ### T8.0 implementation locks
 
 - Use Fjall `3.1.7` `SingleWriterTxDatabase` in a fresh Fjall V3 directory. Every

@@ -1,6 +1,6 @@
 # Implementation decision log
 
-Updated: 2026-07-17
+Updated: 2026-07-18
 Owner: T1–T15 implementation route
 Status: active; review requested in the morning
 
@@ -694,5 +694,27 @@ configuration.
   provider dispatch, and workflow recovery remain outside the pure planner.
 - **Evidence:** every checked valid fixture now compiles completely; selector,
   graph, port, retry, receipt, deadline, quantity, CEL, and schedule failures
-  remain typed compile diagnostics. Existing compatibility-plan tests stay green
-  while the closed microstep evaluator is replaced in subsequent T8.1c phases.
+  remain typed compile diagnostics.
+
+### R-019 — Complete pure restart-clean planner parity
+
+- **Resolution:** one deterministic `plan_microstep` interpreter now evaluates
+  every V1 trigger and post-trigger family from immutable `initial`, `timer`, or
+  `effect_receipt` input. Opaque constructor-validated process state retains exact
+  continuations, trigger queues, admission windows, fork arrivals, effect history,
+  and timer/receipt identities. Admission serializes debounce/throttle winners.
+  Forks execute two to four branches in declared order; joins preserve arrivals
+  across microsteps, reject same-target parallel effects before dispatch, and
+  merge desired projections with the authored conflict policy. Nested fork regions
+  fail compilation in V1. Plans may contain typed desired projections, effects,
+  timers, assumptions, traces, and next state, but never persistence, dispatch,
+  live guest handles, restart recovery, or observed-state mutation.
+- **Evidence:** deterministic tests cover sequential execution, all operation
+  argument families, exact quantities and schedules, receipt/timer mismatch,
+  admission queues, debounce/throttle, immediate and suspended forks, terminal
+  joins, desired/effect conflicts, state forgery, and configured bounds. Repeated
+  adversarial reviews drove exact saved-state validation, reachability-based nested
+  fork rejection, selector-identity effect checks, and pre-fork history scoping;
+  the final review passed. Package/dependency/management tests, generator parity,
+  native all-target checking, Rustfmt, Taplo, diagnostics, full T0 validation, and
+  secret scanning complete the local evidence seam.

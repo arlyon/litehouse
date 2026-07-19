@@ -92,12 +92,14 @@ provider execution, an exact `receipt<CapabilityOperationKind>`. A receipt branc
 names the effect node it continues and accepts that exact same parameterized
 receipt type. Wiring a receipt from another operation is a compile error.
 
-T8.1c compilation retains the complete typed effect operation, deadline, receipt
-requirement, and retry policy for all 29 operations. The preceding compatibility
-planner can still demonstrate absolute On/Off suspension while the closed
-microstep evaluator is replaced in the remaining T8.1c phases; it never dispatches
-a provider or visits a receipt branch in the same microstep. Operation/selector,
-receipt, retry, and deadline mismatches remain compile errors.
+T8.1c evaluates all 29 typed effects as immutable intents carrying the exact
+operation arguments, binding identity, deadline, receipt requirement, retry
+policy, deterministic idempotency key, and continuation. Evaluation suspends
+before dispatch and resumes only from the exact typed receipt for that suspension.
+Failure receipts route without claiming success confidence; unconnected optional
+outcomes halt with their documented terminal result. Operation/selector, receipt,
+retry, binding, deadline, and continuation mismatches fail closed. The planner
+never calls a provider or changes an observation.
 
 ## Desired projections
 
@@ -107,8 +109,9 @@ value type cannot be paired with `/level`, `/color`, or another path. `remove`
 uses a separate enum containing only optional writable fields.
 
 A desired patch must reference an existing snapshot node. Every path must be
-writable for that snapshot's selector contract. These checks run before a
-planner-subset diagnostic. Desired patches never mutate observed state.
+writable for that snapshot's selector contract. These checks run before
+evaluation. Desired patches produce typed hypothetical projections and never
+mutate observed state.
 
 ## Retry and deadlines
 
@@ -158,10 +161,10 @@ and concrete binding handles belong to the later activation record. They are not
 fabricated in authored `RuleDocument` JSON. Activation and execution must still
 recheck them before dispatch.
 
-## T8.1a bounds and deliberate deferrals
+## Compiler and pure-planner bounds
 
 `compile_rule_json` enforces raw JSON size/depth/string/collection bounds and all
-narrow model bounds needed before compatibility lowering, including rule-local
+narrow model bounds needed before compilation, including rule-local
 maxima, deadlines, CEL source and input counts, annotation/editor maps, schedules,
 delays, fork branches, effects, timers, desired operation counts/bytes, retry,
 node/edge counts, and graph depth.
@@ -192,14 +195,31 @@ One-shot, bounded fixed-interval, and weekly civil
 schedules compile to Jiff values against bundled tzdb 2026c while retaining the
 explicit nonexistent-time and duplicate-time policies.
 
-T8.1c compilation now has closed forms for all three triggers and all eleven node
-families; no valid release fixture returns a planner-subset compiler diagnostic.
+T8.1c evaluates all three trigger kinds and all eleven post-trigger node families
+as deterministic immutable `initial`, `timer`, or `effect_receipt` microsteps.
+The closed planner state retains only process-local run identity, admission queues,
+continuations, fork arrivals, and exact effect/timer metadata. Schedule triggers
+must name an exact valid occurrence; one-shot, fixed-interval, and weekly civil
+occurrences follow the compiled Jiff and DST policy. Debounce trailing and
+throttle leading/trailing serialize their retained winner, while drop-newest,
+drop-oldest, and coalesce apply the authored bounded queue policy.
+
+Forks spawn two to four branches in declared order. Joins retain suspended
+arrivals across microsteps and merge desired projections with either
+`reject_conflict` or `ordered_last_wins`. Same-target effects in parallel branches
+fail before a conflicting intent is emitted. Nested fork regions are deliberately
+rejected in V1 rather than represented ambiguously. Planner input, trace, effect,
+timer, branch, queue, and retained-state bounds are checked at construction and
+again against the compiled rule.
+
 Still deferred explicitly:
 
-- execution parity for non-comparison quantity operations, scheduled trigger
-  microsteps, and the remaining node families: the subsequent T8.1c phases;
-- executor receipt/timer behavior: T8.1c; and
-- persisted activation binding locks/provider generations/grant revisions: T8.2.
+- persistence of authored rules and activation binding locks/provider generations/
+  grant revisions: T8.2;
+- provider dispatch, timer scheduling, and observed-state ingestion: the later T8
+  executor/observation tranches; and
+- any restart recovery of process-local planner state, which is intentionally not
+  part of the restart-clean contract.
 
 ## Deterministic release fixture matrix
 
