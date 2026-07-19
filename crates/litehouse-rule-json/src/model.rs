@@ -1187,24 +1187,6 @@ impl StateFieldRef {
             Self::ObservationRevision { .. } => TypeRef::U64,
         }
     }
-
-    pub(crate) fn planner_value_type(&self) -> Option<ValueType> {
-        match self {
-            Self::OnOffCurrent | Self::BooleanCurrent | Self::ThermostatRunning => {
-                Some(ValueType::Bool)
-            }
-            Self::ThermostatFan | Self::ThermostatSwing | Self::ThermostatPreset => {
-                Some(ValueType::String)
-            }
-            Self::ObservationRevision { .. } | Self::LevelTransitionRemaining => {
-                Some(ValueType::U64)
-            }
-            Self::MeasurementCurrent { profile } => Some(ValueType::Quantity {
-                profile: profile.as_str().to_owned(),
-            }),
-            _ => None,
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -2140,15 +2122,6 @@ pub struct EditorViewport {
     pub y: i32,
     #[schemars(range(min = 100, max = 4000))]
     pub zoom_milli: u16,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum ValueType {
-    Bool,
-    String,
-    I64,
-    U64,
-    Quantity { profile: String },
 }
 
 pub(crate) fn valid_id(value: &str) -> bool {

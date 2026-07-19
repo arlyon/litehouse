@@ -8,14 +8,16 @@ use jsonschema::{Draft, JSONSchema};
 use litehouse_contracts::{
     CONTRACT_ARTIFACT_MANIFEST,
     management::{CAPABILITY_OPERATION_IDS, MANAGEMENT_OPERATIONS_V1_JSON, management_manifest},
-    quantity::{Quantity, profile_ids},
+    quantity::Quantity,
 };
 use litehouse_rule_json::{
-    AssumptionError, CompileError, CompiledSchedule, ContractRef, EvaluationErrorCode,
-    EvaluationInput, Freshness, InputError, ObservationValue, ObservedRevision, PlanError,
-    PlanOutcome, QuantityCatalogRef, QuantityProfileRef, RebindPolicy, RuleDocument, RuleJsonError,
-    ScalarValue, Selector, SelectorCardinality, SnapshotInput, StateObservationInput,
-    StatefulContractKind, TargetInput, Timestamp, TypeRef, UnknownReason, compile_rule_json, plan,
+    CapabilitySnapshot, CompileError, CompiledSchedule, ContractRef, DeduplicationGuarantee,
+    EffectBinding, EffectReceipt, EvaluationErrorCode, EvaluationEvent, EvaluationIdentity,
+    Freshness, ObservationDelivery, OperationKind, PlannerEvaluationInput, PlannerState,
+    QuantityProfileRef, RebindPolicy, RuleDocument, RuleJsonError, RuntimeValue, Selector,
+    SelectorCardinality, SnapshotField, StateFieldRef, StatefulContractKind, Timestamp,
+    TransitionOutcome, TriggerInput, TypeRef, UnknownReason, ValueState, compile_rule_json,
+    plan_microstep,
     schema::{
         CHECKED_EVALUATION_ARTIFACTS, CHECKED_FIXTURE_INVENTORY, CHECKED_FIXTURES,
         CHECKED_PORT_CATALOG, CHECKED_RULE_SCHEMA, evaluation_profile_sha256,
@@ -26,8 +28,6 @@ use litehouse_rule_json::{
 };
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
-
-const RULE_ID: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 fn planner_bytes() -> &'static [u8] {
     include_bytes!("../fixtures/valid-planner-compat.json")
@@ -67,36 +67,125 @@ fn selector(instance: &str, facet: &str, package: &str) -> Selector {
     }
 }
 
-fn input(value: ObservationValue) -> EvaluationInput {
-    input_for_snapshot(value, trigger_selector(), "on_off_current")
+fn microstep_identity(
+    compiled: &litehouse_rule_json::CompiledRule,
+    microstep: u32,
+) -> EvaluationIdentity {
+    EvaluationIdentity::new(
+        "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        compiled.rule_id(),
+        compiled.revision(),
+        compiled.semantic_sha256(),
+        compiled.profile_sha256(),
+        compiled.artifacts().clone(),
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        microstep,
+    )
+    .unwrap()
 }
 
-fn input_for_snapshot(
-    value: ObservationValue,
-    snapshot_selector: Selector,
-    field: &str,
-) -> EvaluationInput {
-    let time = Timestamp::new(1_721_234_567, 123_000_000).unwrap();
-    EvaluationInput::new(
-        RULE_ID,
-        7,
-        evaluation_profile_sha256(),
-        time,
-        StateObservationInput::new(trigger_selector(), 3, 40, time).unwrap(),
+fn microstep_state() -> PlannerState {
+    PlannerState::initial(1, "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", Vec::new()).unwrap()
+}
+
+fn microstep_snapshot(on: bool, observed_at: Timestamp) -> CapabilitySnapshot {
+    CapabilitySnapshot::new(
+        trigger_selector(),
+        3,
+        40,
+        None,
+        observed_at,
+        Freshness::Fresh,
         vec![
-            SnapshotInput::new(
-                "snapshot",
-                snapshot_selector,
-                field,
-                3,
-                40,
-                time,
-                Freshness::Fresh,
-                value,
+            SnapshotField::new(
+                StateFieldRef::OnOffCurrent,
+                ValueState::Known {
+                    value: RuntimeValue::Bool(on),
+                },
             )
             .unwrap(),
         ],
-        vec![TargetInput::new(target_selector(), 8, 12, 5, true).unwrap()],
+    )
+    .unwrap()
+}
+
+fn microstep_binding() -> EffectBinding {
+    EffectBinding::new(
+        "set_light",
+        target_selector(),
+        litehouse_rule_json::CapabilityOperationKind::OnOffSet,
+        8,
+        12,
+        5,
+        OperationKind::AbsoluteConvergent,
+        DeduplicationGuarantee::ProviderGeneration,
+        vec![litehouse_rule_json::ReceiptConfidence::AcceptedForDelivery],
+        1_000,
+        30_000,
+    )
+    .unwrap()
+}
+
+fn initial_microstep_input(
+    compiled: &litehouse_rule_json::CompiledRule,
+    on: bool,
+) -> PlannerEvaluationInput {
+    let time = Timestamp::new(1_721_234_567, 123_000_000).unwrap();
+    PlannerEvaluationInput::new(
+        microstep_identity(compiled, 1),
+        EvaluationEvent::initial(
+            TriggerInput::state_observation(
+                trigger_selector(),
+                3,
+                40,
+                time,
+                ObservationDelivery::ValueChanged,
+            )
+            .unwrap(),
+        ),
+        time,
+        vec![microstep_snapshot(on, time)],
+        vec![microstep_binding()],
+        microstep_state(),
+    )
+    .unwrap()
+}
+
+fn state_trigger_for(
+    compiled: &litehouse_rule_json::CompiledRule,
+    time: Timestamp,
+) -> TriggerInput {
+    let litehouse_rule_json::CompiledTrigger::StateObservation { selector, .. } =
+        compiled.trigger()
+    else {
+        panic!("expected state trigger")
+    };
+    TriggerInput::state_observation(
+        selector.clone(),
+        3,
+        40,
+        time,
+        ObservationDelivery::ValueChanged,
+    )
+    .unwrap()
+}
+
+fn planner_microstep_input(
+    compiled: &litehouse_rule_json::CompiledRule,
+    microstep: u32,
+    event: EvaluationEvent,
+    time: Timestamp,
+    snapshots: Vec<CapabilitySnapshot>,
+    bindings: Vec<EffectBinding>,
+    state: PlannerState,
+) -> PlannerEvaluationInput {
+    PlannerEvaluationInput::new(
+        microstep_identity(compiled, microstep),
+        event,
+        time,
+        snapshots,
+        bindings,
+        state,
     )
     .unwrap()
 }
@@ -594,24 +683,512 @@ fn receipt_graph_must_match_the_declared_effect_and_planner_suspends_before_succ
         compile_error(&mismatched),
         CompileError::IncompatiblePorts { .. } | CompileError::ReceiptEffectMismatch { .. }
     ));
+}
 
+#[test]
+fn pure_microsteps_suspend_for_effect_and_resume_from_typed_receipt() {
     let compiled = compile_rule_json(planner_bytes()).unwrap();
-    let transition = plan(
-        &compiled,
-        &input(ObservationValue::Known {
-            value: ScalarValue::Bool { value: true },
-        }),
+    let initial = initial_microstep_input(&compiled, true);
+    let suspended = plan_microstep(&compiled, &initial).unwrap();
+    assert_eq!(suspended, plan_microstep(&compiled, &initial).unwrap());
+    assert_eq!(suspended.outcome(), TransitionOutcome::Suspended);
+    assert_eq!(suspended.effects().len(), 1);
+    assert!(suspended.next_state().has_active_run());
+    assert!(suspended.assumptions().iter().any(|assumption| matches!(
+        assumption,
+        litehouse_rule_json::RuntimeAssumption::EffectBindingRevision {
+            node_id,
+            provider_generation: 8,
+            facet_revision: 12,
+            grant_revision: 5,
+        } if node_id == "set_light"
+    )));
+    assert!(!suspended.trace_node_ids().contains(&"receipt".to_owned()));
+
+    let effect = &suspended.effects()[0];
+    let accepted_at = Timestamp::new(1_721_234_568, 0).unwrap();
+    let receipt = EffectReceipt::new(
+        effect.intent_id.clone(),
+        "request",
+        effect.operation.clone(),
+        1,
+        effect.binding.provider_generation,
+        litehouse_rule_json::ReceiptConfidence::AcceptedForDelivery,
+        litehouse_rule_json::ReceiptOutcome::AcceptedForDelivery,
+        accepted_at,
+        None,
+        Some(effect.idempotency_key.clone()),
     )
     .unwrap();
-    assert_eq!(transition.outcome(), PlanOutcome::AwaitingReceipt);
-    assert_eq!(transition.intents().len(), 1);
-    assert_eq!(transition.intents()[0].node_id, "set_light");
-    assert!(!transition.visited_nodes().contains(&"receipt".to_owned()));
+    let resumed = PlannerEvaluationInput::new(
+        microstep_identity(&compiled, 2),
+        EvaluationEvent::effect_receipt(effect.suspension_id.clone(), receipt).unwrap(),
+        accepted_at,
+        vec![microstep_snapshot(true, accepted_at)],
+        vec![microstep_binding()],
+        suspended.next_state().clone(),
+    )
+    .unwrap();
+    let completed = plan_microstep(&compiled, &resumed).unwrap();
+    assert_eq!(completed.outcome(), TransitionOutcome::Success);
+    assert!(completed.effects().is_empty());
+    assert!(!completed.next_state().has_active_run());
+    assert!(completed.trace_node_ids().contains(&"receipt".to_owned()));
     assert!(
-        !transition
-            .visited_nodes()
+        completed
+            .trace_node_ids()
             .contains(&"end_success".to_owned())
     );
+}
+
+#[test]
+fn receipt_failures_route_without_success_confidence_and_keys_are_exact() {
+    let mut document = planner_fixture();
+    document["semantic"]["nodes"][3]["selector"]["contract"]["package"] =
+        json!("notification-sink");
+    document["semantic"]["nodes"][3]["operation"] = json!({
+        "operation": "capability.notification.send@1",
+        "notification_template_id": "arrival",
+        "priority": "high",
+        "expires_in_ms": 60_000
+    });
+    document["semantic"]["nodes"][3]["required_receipt"] = json!("notification_advertised_maximum");
+    let compiled = compile_value(&document).unwrap();
+    let time = Timestamp::new(1_721_234_567, 0).unwrap();
+    let binding = EffectBinding::new(
+        "set_light",
+        selector(
+            "22222222222222222222222222222222",
+            "target_light",
+            "notification-sink",
+        ),
+        litehouse_rule_json::CapabilityOperationKind::NotificationSend,
+        8,
+        12,
+        5,
+        OperationKind::Momentary,
+        DeduplicationGuarantee::ProviderGeneration,
+        vec![
+            litehouse_rule_json::ReceiptConfidence::AcceptedForDelivery,
+            litehouse_rule_json::ReceiptConfidence::ObservedCompleted,
+        ],
+        1_000,
+        30_000,
+    )
+    .unwrap();
+    let initial = planner_microstep_input(
+        &compiled,
+        1,
+        EvaluationEvent::initial(state_trigger_for(&compiled, time)),
+        time,
+        vec![microstep_snapshot(true, time)],
+        vec![binding.clone()],
+        microstep_state(),
+    );
+    let suspended = plan_microstep(&compiled, &initial).unwrap();
+    let effect = &suspended.effects()[0];
+
+    for (receipt_outcome, expected) in [
+        (
+            litehouse_rule_json::ReceiptOutcome::Rejected,
+            TransitionOutcome::Error,
+        ),
+        (
+            litehouse_rule_json::ReceiptOutcome::Error,
+            TransitionOutcome::Error,
+        ),
+        (
+            litehouse_rule_json::ReceiptOutcome::Cancelled,
+            TransitionOutcome::Cancelled,
+        ),
+        (
+            litehouse_rule_json::ReceiptOutcome::OutcomeUnknown,
+            TransitionOutcome::Unknown,
+        ),
+    ] {
+        let receipt = EffectReceipt::new(
+            effect.intent_id.clone(),
+            "request",
+            effect.operation.clone(),
+            1,
+            effect.binding.provider_generation,
+            litehouse_rule_json::ReceiptConfidence::AcceptedForDelivery,
+            receipt_outcome,
+            time,
+            None,
+            Some(effect.idempotency_key.clone()),
+        )
+        .unwrap();
+        let resumed = planner_microstep_input(
+            &compiled,
+            2,
+            EvaluationEvent::effect_receipt(effect.suspension_id.clone(), receipt).unwrap(),
+            time,
+            vec![microstep_snapshot(true, time)],
+            vec![binding.clone()],
+            suspended.next_state().clone(),
+        );
+        let completed = plan_microstep(&compiled, &resumed).unwrap();
+        assert_eq!(completed.outcome(), expected);
+        assert!(!completed.next_state().has_active_run());
+    }
+
+    let wrong_key = EffectReceipt::new(
+        effect.intent_id.clone(),
+        "request",
+        effect.operation.clone(),
+        1,
+        effect.binding.provider_generation,
+        litehouse_rule_json::ReceiptConfidence::ObservedCompleted,
+        litehouse_rule_json::ReceiptOutcome::ObservedCompleted,
+        time,
+        None,
+        Some("0".repeat(64)),
+    )
+    .unwrap();
+    let resumed = planner_microstep_input(
+        &compiled,
+        2,
+        EvaluationEvent::effect_receipt(effect.suspension_id.clone(), wrong_key).unwrap(),
+        time,
+        vec![microstep_snapshot(true, time)],
+        vec![binding],
+        suspended.next_state().clone(),
+    );
+    assert_eq!(
+        plan_microstep(&compiled, &resumed),
+        Err(litehouse_rule_json::TransitionError::SuspensionMismatch)
+    );
+}
+
+#[test]
+fn pure_effect_intent_preserves_non_on_off_operation_arguments() {
+    let mut document = planner_fixture();
+    document["semantic"]["nodes"][3]["selector"]["contract"]["package"] = json!("level-control");
+    document["semantic"]["nodes"][3]["operation"] = json!({
+        "operation": "capability.level.set@1",
+        "level": "0.75"
+    });
+    let compiled = compile_value(&document).unwrap();
+    let time = Timestamp::new(1_721_234_567, 0).unwrap();
+    let level_selector = selector(
+        "22222222222222222222222222222222",
+        "target_light",
+        "level-control",
+    );
+    let binding = EffectBinding::new(
+        "set_light",
+        level_selector,
+        litehouse_rule_json::CapabilityOperationKind::LevelSet,
+        8,
+        12,
+        5,
+        OperationKind::AbsoluteConvergent,
+        DeduplicationGuarantee::ProviderGeneration,
+        vec![litehouse_rule_json::ReceiptConfidence::AcceptedForDelivery],
+        1_000,
+        30_000,
+    )
+    .unwrap();
+    let input = planner_microstep_input(
+        &compiled,
+        1,
+        EvaluationEvent::initial(state_trigger_for(&compiled, time)),
+        time,
+        vec![microstep_snapshot(true, time)],
+        vec![binding],
+        microstep_state(),
+    );
+    let transition = plan_microstep(&compiled, &input).unwrap();
+    assert_eq!(transition.outcome(), TransitionOutcome::Suspended);
+    assert_eq!(
+        transition.effects()[0].operation,
+        litehouse_rule_json::CapabilityOperation::LevelSet {
+            level: litehouse_rule_json::DecimalValue::new("0.75")
+        }
+    );
+}
+
+#[test]
+fn pure_delay_microstep_suspends_and_resumes_only_from_its_timer() {
+    let mut document = fixture("fixtures/valid-minimal.json");
+    document["semantic"]["nodes"] = json!([
+        {
+            "id": "delay",
+            "kind": "delay",
+            "version": 1,
+            "duration": {"milliseconds": 250}
+        },
+        {"id": "end", "kind": "end", "version": 1, "outcome": "noop"}
+    ]);
+    document["semantic"]["edges"] = json!([
+        {
+            "id": "e_trigger_delay",
+            "from": {"node": "trigger", "port": "next"},
+            "to": {"node": "delay", "port": "in"},
+            "order": 0
+        },
+        {
+            "id": "e_delay_end",
+            "from": {"node": "delay", "port": "next"},
+            "to": {"node": "end", "port": "in"},
+            "order": 0
+        }
+    ]);
+    let compiled = compile_value(&document).unwrap();
+    let start = Timestamp::new(1_721_234_567, 0).unwrap();
+    let initial = planner_microstep_input(
+        &compiled,
+        1,
+        EvaluationEvent::initial(state_trigger_for(&compiled, start)),
+        start,
+        Vec::new(),
+        Vec::new(),
+        microstep_state(),
+    );
+    let suspended = plan_microstep(&compiled, &initial).unwrap();
+    assert_eq!(suspended.outcome(), TransitionOutcome::Suspended);
+    assert_eq!(suspended.timers().len(), 1);
+    let timer = &suspended.timers()[0];
+    let wrong_due = planner_microstep_input(
+        &compiled,
+        2,
+        EvaluationEvent::timer(
+            timer.timer_id.clone(),
+            timer.suspension_id.clone(),
+            timer.scheduled_at,
+            timer.fire_at,
+        )
+        .unwrap(),
+        timer.fire_at,
+        Vec::new(),
+        Vec::new(),
+        suspended.next_state().clone(),
+    );
+    assert_eq!(
+        plan_microstep(&compiled, &wrong_due),
+        Err(litehouse_rule_json::TransitionError::SuspensionMismatch)
+    );
+    let resumed = planner_microstep_input(
+        &compiled,
+        2,
+        EvaluationEvent::timer(
+            timer.timer_id.clone(),
+            timer.suspension_id.clone(),
+            timer.fire_at,
+            timer.fire_at,
+        )
+        .unwrap(),
+        timer.fire_at,
+        Vec::new(),
+        Vec::new(),
+        suspended.next_state().clone(),
+    );
+    let completed = plan_microstep(&compiled, &resumed).unwrap();
+    assert_eq!(completed.outcome(), TransitionOutcome::Noop);
+    assert!(!completed.next_state().has_active_run());
+    assert!(completed.trace_node_ids().contains(&"delay".to_owned()));
+    assert!(completed.trace_node_ids().contains(&"end".to_owned()));
+}
+
+#[test]
+fn pure_desired_patch_changes_only_the_hypothetical_projection() {
+    let mut document = planner_fixture();
+    let snapshot = document["semantic"]["nodes"][0].clone();
+    document["semantic"]["nodes"] = json!([
+        snapshot,
+        {
+            "id": "patch",
+            "kind": "desired_patch",
+            "version": 1,
+            "snapshot_node_id": "snapshot",
+            "operations": [
+                {"op": "test", "expected": {"path": "/on", "value": true}},
+                {"op": "replace", "value": {"path": "/on", "value": false}}
+            ]
+        },
+        {"id": "end", "kind": "end", "version": 1, "outcome": "success"}
+    ]);
+    document["semantic"]["edges"] = json!([
+        {
+            "id": "e_trigger_snapshot",
+            "from": {"node": "trigger", "port": "next"},
+            "to": {"node": "snapshot", "port": "in"},
+            "order": 0
+        },
+        {
+            "id": "e_snapshot_patch",
+            "from": {"node": "snapshot", "port": "next"},
+            "to": {"node": "patch", "port": "in"},
+            "order": 0
+        },
+        {
+            "id": "e_patch_end",
+            "from": {"node": "patch", "port": "next"},
+            "to": {"node": "end", "port": "in"},
+            "order": 0
+        }
+    ]);
+    let compiled = compile_value(&document).unwrap();
+    let time = Timestamp::new(1_721_234_567, 0).unwrap();
+    let snapshot = microstep_snapshot(true, time);
+    let original = snapshot.clone();
+    let input = planner_microstep_input(
+        &compiled,
+        1,
+        EvaluationEvent::initial(state_trigger_for(&compiled, time)),
+        time,
+        vec![snapshot],
+        Vec::new(),
+        microstep_state(),
+    );
+    let transition = plan_microstep(&compiled, &input).unwrap();
+    assert_eq!(transition.outcome(), TransitionOutcome::Success);
+    let desired = transition.desired().unwrap();
+    assert_eq!(desired.fields.len(), 1);
+    assert_eq!(
+        desired.fields[0].value,
+        Some(litehouse_rule_json::DesiredProjectionValue::On(false))
+    );
+    assert_eq!(input.snapshots()[0], original);
+
+    let stale_snapshot = CapabilitySnapshot::new(
+        trigger_selector(),
+        3,
+        40,
+        None,
+        time,
+        Freshness::Stale,
+        vec![
+            SnapshotField::new(
+                StateFieldRef::OnOffCurrent,
+                ValueState::Known {
+                    value: RuntimeValue::Bool(true),
+                },
+            )
+            .unwrap(),
+        ],
+    )
+    .unwrap();
+    let stale = planner_microstep_input(
+        &compiled,
+        1,
+        EvaluationEvent::initial(state_trigger_for(&compiled, time)),
+        time,
+        vec![stale_snapshot],
+        Vec::new(),
+        microstep_state(),
+    );
+    assert!(matches!(
+        plan_microstep(&compiled, &stale),
+        Err(litehouse_rule_json::TransitionError::DesiredTestFailed { .. })
+    ));
+}
+
+#[test]
+fn pure_quantity_pipeline_executes_shared_engine_results() {
+    let mut document = planner_fixture();
+    let measurement_selector = selector(
+        "11111111111111111111111111111111",
+        "source_switch",
+        "measurement",
+    );
+    document["semantic"]["nodes"] = json!([
+        {
+            "id": "snapshot",
+            "kind": "snapshot",
+            "version": 1,
+            "selector": serde_json::to_value(&measurement_selector).unwrap(),
+            "field": {
+                "kind": "measurement_current",
+                "profile": "litehouse:quantity/power@1"
+            }
+        },
+        {
+            "id": "add",
+            "kind": "quantity",
+            "version": 1,
+            "input_profile": "litehouse:quantity/power@1",
+            "operation": {
+                "kind": "add",
+                "right": {
+                    "profile": "litehouse:quantity/power@1",
+                    "magnitude": "1",
+                    "unit": "W"
+                }
+            }
+        },
+        {
+            "id": "compare",
+            "kind": "quantity",
+            "version": 1,
+            "input_profile": "litehouse:quantity/power@1",
+            "operation": {
+                "kind": "compare",
+                "operator": "greater_or_equal",
+                "right": {
+                    "profile": "litehouse:quantity/power@1",
+                    "magnitude": "41",
+                    "unit": "W"
+                }
+            }
+        },
+        {"id": "branch", "kind": "branch", "version": 1},
+        {"id": "success", "kind": "end", "version": 1, "outcome": "success"},
+        {"id": "false_end", "kind": "end", "version": 1, "outcome": "error"},
+        {"id": "unknown_end", "kind": "end", "version": 1, "outcome": "unknown"},
+        {"id": "error_end", "kind": "end", "version": 1, "outcome": "error"}
+    ]);
+    document["semantic"]["edges"] = json!([
+        {"id":"e00","from":{"node":"trigger","port":"next"},"to":{"node":"snapshot","port":"in"},"order":0},
+        {"id":"e01","from":{"node":"snapshot","port":"next"},"to":{"node":"add","port":"in"},"order":0},
+        {"id":"e02","from":{"node":"snapshot","port":"value"},"to":{"node":"add","port":"value"},"order":0},
+        {"id":"e03","from":{"node":"add","port":"next"},"to":{"node":"compare","port":"in"},"order":0},
+        {"id":"e04","from":{"node":"add","port":"result"},"to":{"node":"compare","port":"value"},"order":0},
+        {"id":"e05","from":{"node":"compare","port":"next"},"to":{"node":"branch","port":"in"},"order":0},
+        {"id":"e06","from":{"node":"compare","port":"result"},"to":{"node":"branch","port":"predicate"},"order":0},
+        {"id":"e07","from":{"node":"branch","port":"true"},"to":{"node":"success","port":"in"},"order":0},
+        {"id":"e08","from":{"node":"branch","port":"false"},"to":{"node":"false_end","port":"in"},"order":0},
+        {"id":"e09","from":{"node":"branch","port":"unknown"},"to":{"node":"unknown_end","port":"in"},"order":0},
+        {"id":"e10","from":{"node":"branch","port":"error"},"to":{"node":"error_end","port":"in"},"order":0}
+    ]);
+    let compiled = compile_value(&document).unwrap();
+    let time = Timestamp::new(1_721_234_567, 0).unwrap();
+    let snapshot = CapabilitySnapshot::new(
+        measurement_selector,
+        3,
+        40,
+        None,
+        time,
+        Freshness::Fresh,
+        vec![
+            SnapshotField::new(
+                StateFieldRef::MeasurementCurrent {
+                    profile: QuantityProfileRef::Power,
+                },
+                ValueState::Known {
+                    value: RuntimeValue::Quantity(
+                        Quantity::parse("litehouse:quantity/power@1", "40", "W").unwrap(),
+                    ),
+                },
+            )
+            .unwrap(),
+        ],
+    )
+    .unwrap();
+    let input = planner_microstep_input(
+        &compiled,
+        1,
+        EvaluationEvent::initial(state_trigger_for(&compiled, time)),
+        time,
+        vec![snapshot],
+        Vec::new(),
+        microstep_state(),
+    );
+    let transition = plan_microstep(&compiled, &input).unwrap();
+    assert_eq!(transition.outcome(), TransitionOutcome::Success);
+    assert!(transition.trace_node_ids().contains(&"add".to_owned()));
+    assert!(transition.trace_node_ids().contains(&"compare".to_owned()));
 }
 
 #[test]
@@ -1321,200 +1898,16 @@ fn runtime_enforces_narrow_bounds_before_compatibility_lowering() {
 }
 
 #[test]
-fn evaluation_input_and_effective_planner_bounds_fail_closed_before_planning() {
-    let time = Timestamp::new(1_721_234_567, 123_000_000).unwrap();
-    let trigger = StateObservationInput::new(trigger_selector(), 1, 1, time).unwrap();
-
-    let mut invalid_selector = trigger_selector();
-    invalid_selector.facet_key = "f".repeat(65);
+fn planner_input_bound_fails_closed_before_evaluation() {
+    let mut document = planner_fixture();
+    document["semantic"]["limits"]["max_plan_input_bytes"] = json!(1_024);
+    let compiled = compile_value(&document).unwrap();
+    let input = initial_microstep_input(&compiled, true);
     assert!(matches!(
-        TargetInput::new(invalid_selector, 1, 1, 1, true),
-        Err(InputError::InvalidSelector)
-    ));
-    assert!(matches!(
-        SnapshotInput::new(
-            "snapshot",
-            trigger_selector(),
-            "on_off_current",
-            1,
-            1,
-            time,
-            Freshness::Fresh,
-            ObservationValue::Known {
-                value: ScalarValue::String {
-                    value: "v".repeat(litehouse_rule_json::HARD_MAX_STRING_BYTES + 1),
-                },
-            },
-        ),
-        Err(InputError::ValueTooLarge { .. })
-    ));
-
-    let snapshots = (0..=litehouse_rule_json::HARD_MAX_NODES)
-        .map(|index| {
-            SnapshotInput::new(
-                format!("snapshot_{index:03}"),
-                trigger_selector(),
-                "on_off_current",
-                1,
-                1,
-                time,
-                Freshness::Fresh,
-                ObservationValue::Known {
-                    value: ScalarValue::Bool { value: true },
-                },
-            )
-            .unwrap()
-        })
-        .collect();
-    assert!(matches!(
-        EvaluationInput::new(
-            RULE_ID,
-            7,
-            evaluation_profile_sha256(),
-            time,
-            trigger.clone(),
-            snapshots,
-            vec![],
-        ),
-        Err(InputError::TooManySnapshots { .. })
-    ));
-
-    let targets = (0..=litehouse_rule_json::HARD_MAX_EFFECT_INTENTS)
-        .map(|index| {
-            TargetInput::new(
-                selector(&format!("{index:032x}"), "target", "on-off"),
-                1,
-                1,
-                1,
-                true,
-            )
-            .unwrap()
-        })
-        .collect();
-    assert!(matches!(
-        EvaluationInput::new(
-            RULE_ID,
-            7,
-            evaluation_profile_sha256(),
-            time,
-            trigger.clone(),
-            vec![],
-            targets,
-        ),
-        Err(InputError::TooManyTargets { .. })
-    ));
-
-    let large_snapshots = (0..120)
-        .map(|index| {
-            SnapshotInput::new(
-                format!("snapshot_{index:03}"),
-                trigger_selector(),
-                "on_off_current",
-                1,
-                1,
-                time,
-                Freshness::Fresh,
-                ObservationValue::Known {
-                    value: ScalarValue::String {
-                        value: "v".repeat(512),
-                    },
-                },
-            )
-            .unwrap()
-        })
-        .collect();
-    assert!(matches!(
-        EvaluationInput::new(
-            RULE_ID,
-            7,
-            evaluation_profile_sha256(),
-            time,
-            trigger.clone(),
-            large_snapshots,
-            vec![],
-        ),
-        Err(InputError::InputTooLarge { .. })
-    ));
-
-    let mut narrow_input = planner_fixture();
-    narrow_input["semantic"]["limits"]["max_plan_input_bytes"] = json!(1_024);
-    let compiled = compile_value(&narrow_input).unwrap();
-    assert!(matches!(
-        plan(
-            &compiled,
-            &input(ObservationValue::Known {
-                value: ScalarValue::Bool { value: true },
-            }),
-        ),
-        Err(PlanError::InputTooLarge { maximum: 1_024, .. })
-    ));
-
-    let mut trace_document = fixture("fixtures/valid-minimal.json");
-    let mut nodes = Vec::new();
-    let mut edges = Vec::new();
-    let mut previous = "trigger".to_owned();
-    for index in 0..16 {
-        let id = format!("s{index:02}{}", "a".repeat(61));
-        nodes.push(json!({
-            "kind": "snapshot",
-            "id": id,
-            "version": 1,
-            "selector": serde_json::to_value(trigger_selector()).unwrap(),
-            "field": {"kind": "on_off_current"}
-        }));
-        edges.push(json!({
-            "id": format!("e{index:02}"),
-            "from": {"node": previous, "port": "next"},
-            "to": {"node": id, "port": "in"},
-            "order": 0
-        }));
-        previous = id;
-    }
-    nodes.push(json!({"kind": "end", "id": "end", "version": 1, "outcome": "noop"}));
-    edges.push(json!({
-        "id": "e_end",
-        "from": {"node": previous, "port": "next"},
-        "to": {"node": "end", "port": "in"},
-        "order": 0
-    }));
-    trace_document["semantic"]["nodes"] = Value::Array(nodes);
-    trace_document["semantic"]["edges"] = Value::Array(edges);
-    trace_document["semantic"]["limits"]["max_trace_bytes"] = json!(1_024);
-    let compiled = compile_value(&trace_document).unwrap();
-    let snapshots = trace_document["semantic"]["nodes"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|node| node["kind"] == "snapshot")
-        .map(|node| {
-            SnapshotInput::new(
-                node["id"].as_str().unwrap(),
-                trigger_selector(),
-                "on_off_current",
-                1,
-                1,
-                time,
-                Freshness::Fresh,
-                ObservationValue::Known {
-                    value: ScalarValue::Bool { value: true },
-                },
-            )
-            .unwrap()
-        })
-        .collect();
-    let trace_input = EvaluationInput::new(
-        "00000000000000000000000000000000",
-        1,
-        evaluation_profile_sha256(),
-        time,
-        trigger,
-        snapshots,
-        vec![],
-    )
-    .unwrap();
-    assert!(matches!(
-        plan(&compiled, &trace_input),
-        Err(PlanError::TraceTooLarge { maximum: 1_024, .. })
+        plan_microstep(&compiled, &input),
+        Err(litehouse_rule_json::TransitionError::Model(
+            litehouse_rule_json::PlannerModelError::EncodedInputTooLarge { maximum: 1_024, .. }
+        ))
     ));
 }
 
@@ -1716,6 +2109,56 @@ fn remaining_model_and_rule_local_bounds_fail_closed_before_subset_dispatch() {
 }
 
 #[test]
+fn configured_trace_bound_fails_closed_before_plan_publication() {
+    let mut document = fixture("fixtures/valid-minimal.json");
+    let mut nodes = Vec::new();
+    let mut edges = Vec::new();
+    let mut previous = "trigger".to_owned();
+    for index in 0..16 {
+        let id = format!("s{index:02}{}", "a".repeat(61));
+        nodes.push(json!({
+            "kind": "snapshot",
+            "id": id,
+            "version": 1,
+            "selector": serde_json::to_value(trigger_selector()).unwrap(),
+            "field": {"kind": "on_off_current"}
+        }));
+        edges.push(json!({
+            "id": format!("e{index:02}"),
+            "from": {"node": previous, "port": "next"},
+            "to": {"node": id, "port": "in"},
+            "order": 0
+        }));
+        previous = id;
+    }
+    nodes.push(json!({"kind": "end", "id": "end", "version": 1, "outcome": "noop"}));
+    edges.push(json!({
+        "id": "e_end",
+        "from": {"node": previous, "port": "next"},
+        "to": {"node": "end", "port": "in"},
+        "order": 0
+    }));
+    document["semantic"]["nodes"] = Value::Array(nodes);
+    document["semantic"]["edges"] = Value::Array(edges);
+    document["semantic"]["limits"]["max_trace_bytes"] = json!(1_024);
+    let compiled = compile_value(&document).unwrap();
+    let time = Timestamp::new(1_721_234_567, 0).unwrap();
+    let input = planner_microstep_input(
+        &compiled,
+        1,
+        EvaluationEvent::initial(state_trigger_for(&compiled, time)),
+        time,
+        vec![microstep_snapshot(true, time)],
+        Vec::new(),
+        microstep_state(),
+    );
+    assert!(matches!(
+        plan_microstep(&compiled, &input),
+        Err(litehouse_rule_json::TransitionError::TraceTooLarge { maximum: 1_024, .. })
+    ));
+}
+
+#[test]
 fn invalid_kinds_legacy_spellings_and_schema_bounds_fail_closed() {
     let validator = validator();
     for fixture in CHECKED_FIXTURES
@@ -1872,167 +2315,118 @@ fn minimal_maximal_and_matrix_fixtures_cover_the_frozen_release_contract() {
 }
 
 #[test]
-fn compatibility_planner_routes_false_unknown_stale_and_error_without_dispatch() {
+fn pure_planner_routes_false_unknown_stale_and_error_without_effects() {
     let compiled = compile_rule_json(planner_bytes()).unwrap();
-    let false_plan = plan(
-        &compiled,
-        &input(ObservationValue::Known {
-            value: ScalarValue::Bool { value: false },
-        }),
-    )
-    .unwrap();
-    assert_eq!(false_plan.outcome(), PlanOutcome::Noop);
-    assert!(false_plan.intents().is_empty());
-
-    let unknown_plan = plan(
-        &compiled,
-        &input(ObservationValue::Unknown {
-            reason: UnknownReason::Unavailable,
-        }),
-    )
-    .unwrap();
-    assert_eq!(unknown_plan.outcome(), PlanOutcome::Unknown);
-
-    let error_plan = plan(
-        &compiled,
-        &input(ObservationValue::Error {
-            code: EvaluationErrorCode::SourceError,
-        }),
-    )
-    .unwrap();
-    assert_eq!(error_plan.outcome(), PlanOutcome::Error);
-
     let time = Timestamp::new(1_721_234_567, 123_000_000).unwrap();
-    let stale_input = EvaluationInput::new(
-        RULE_ID,
-        7,
-        evaluation_profile_sha256(),
+    let evaluate = |freshness, state| {
+        let snapshot = CapabilitySnapshot::new(
+            trigger_selector(),
+            3,
+            40,
+            None,
+            time,
+            freshness,
+            vec![SnapshotField::new(StateFieldRef::OnOffCurrent, state).unwrap()],
+        )
+        .unwrap();
+        let input = planner_microstep_input(
+            &compiled,
+            1,
+            EvaluationEvent::initial(state_trigger_for(&compiled, time)),
+            time,
+            vec![snapshot],
+            vec![microstep_binding()],
+            microstep_state(),
+        );
+        plan_microstep(&compiled, &input).unwrap()
+    };
+
+    let false_plan = evaluate(
+        Freshness::Fresh,
+        ValueState::Known {
+            value: RuntimeValue::Bool(false),
+        },
+    );
+    assert_eq!(false_plan.outcome(), TransitionOutcome::Noop);
+    assert!(false_plan.effects().is_empty());
+
+    let unknown_plan = evaluate(
+        Freshness::Fresh,
+        ValueState::Unknown {
+            reason: UnknownReason::Unavailable,
+        },
+    );
+    assert_eq!(unknown_plan.outcome(), TransitionOutcome::Unknown);
+    assert!(unknown_plan.effects().is_empty());
+
+    let stale_plan = evaluate(
+        Freshness::Stale,
+        ValueState::Known {
+            value: RuntimeValue::Bool(true),
+        },
+    );
+    assert_eq!(stale_plan.outcome(), TransitionOutcome::Unknown);
+    assert!(stale_plan.effects().is_empty());
+
+    let error_plan = evaluate(
+        Freshness::Fresh,
+        ValueState::Error {
+            code: EvaluationErrorCode::SourceError,
+        },
+    );
+    assert_eq!(error_plan.outcome(), TransitionOutcome::Error);
+    assert!(error_plan.effects().is_empty());
+}
+
+#[test]
+fn pure_string_condition_evaluates_closed_snapshot_value() {
+    let mut document = planner_fixture();
+    let thermostat_selector = selector(
+        "11111111111111111111111111111111",
+        "thermostat",
+        "thermostat",
+    );
+    document["semantic"]["nodes"][0]["selector"] =
+        serde_json::to_value(&thermostat_selector).unwrap();
+    document["semantic"]["nodes"][0]["field"] = json!({"kind": "thermostat_fan"});
+    document["semantic"]["nodes"][1]["expression"]["inputs"][0]["type_ref"] =
+        json!({"kind": "optional", "item": {"kind": "string"}});
+    let source = "left == \"eco\"";
+    document["semantic"]["nodes"][1]["expression"]["source"] = json!(source);
+    document["semantic"]["nodes"][1]["expression"]["normalized_source_sha256"] =
+        json!(digest(source));
+    let compiled = compile_value(&document).unwrap();
+    let time = Timestamp::new(1_721_234_567, 0).unwrap();
+    let snapshot = CapabilitySnapshot::new(
+        thermostat_selector,
+        3,
+        40,
+        None,
         time,
-        StateObservationInput::new(trigger_selector(), 3, 40, time).unwrap(),
+        Freshness::Fresh,
         vec![
-            SnapshotInput::new(
-                "snapshot",
-                trigger_selector(),
-                "on_off_current",
-                3,
-                40,
-                time,
-                Freshness::Stale,
-                ObservationValue::Known {
-                    value: ScalarValue::Bool { value: true },
+            SnapshotField::new(
+                StateFieldRef::ThermostatFan,
+                ValueState::Known {
+                    value: RuntimeValue::String("eco".to_owned()),
                 },
             )
             .unwrap(),
         ],
-        vec![TargetInput::new(target_selector(), 8, 12, 5, true).unwrap()],
     )
     .unwrap();
-    assert_eq!(
-        plan(&compiled, &stale_input).unwrap().outcome(),
-        PlanOutcome::Unknown
+    let input = planner_microstep_input(
+        &compiled,
+        1,
+        EvaluationEvent::initial(state_trigger_for(&compiled, time)),
+        time,
+        vec![snapshot],
+        vec![microstep_binding()],
+        microstep_state(),
     );
-}
-
-#[test]
-fn bool_string_and_quantity_comparisons_lower_safely() {
-    struct Case {
-        field: Value,
-        selector: Selector,
-        field_name: String,
-        type_ref: TypeRef,
-        source: &'static str,
-        observed: ScalarValue,
-        quantity: Option<(QuantityProfileRef, Value)>,
-    }
-    let cases = [
-        Case {
-            field: json!({"kind": "on_off_current"}),
-            selector: trigger_selector(),
-            field_name: "on_off_current".to_owned(),
-            type_ref: TypeRef::Optional {
-                item: Box::new(TypeRef::Bool),
-            },
-            source: "left == true",
-            observed: ScalarValue::Bool { value: true },
-            quantity: None,
-        },
-        Case {
-            field: json!({"kind": "thermostat_fan"}),
-            selector: selector(
-                "99999999999999999999999999999999",
-                "thermostat",
-                "thermostat",
-            ),
-            field_name: "thermostat_fan".to_owned(),
-            type_ref: TypeRef::Optional {
-                item: Box::new(TypeRef::String),
-            },
-            source: "left == \"auto\"",
-            observed: ScalarValue::String {
-                value: "auto".to_owned(),
-            },
-            quantity: None,
-        },
-        Case {
-            field: json!({"kind": "measurement_current", "profile": profile_ids::POWER}),
-            selector: selector("99999999999999999999999999999999", "power", "measurement"),
-            field_name: "measurement_current_power".to_owned(),
-            type_ref: TypeRef::Optional {
-                item: Box::new(TypeRef::Quantity {
-                    catalog: QuantityCatalogRef::V1,
-                    profile: QuantityProfileRef::Power,
-                }),
-            },
-            source: "",
-            observed: ScalarValue::Quantity {
-                value: Quantity::parse(profile_ids::POWER, "41", "W").unwrap(),
-            },
-            quantity: Some((
-                QuantityProfileRef::Power,
-                json!({
-                    "kind": "compare",
-                    "operator": "greater_or_equal",
-                    "right": {"profile": profile_ids::POWER, "magnitude": "40", "unit": "W"}
-                }),
-            )),
-        },
-    ];
-
-    for case in cases {
-        let mut document = planner_fixture();
-        document["semantic"]["nodes"][0]["field"] = case.field;
-        document["semantic"]["nodes"][0]["selector"] =
-            serde_json::to_value(&case.selector).unwrap();
-        if let Some((profile, operation)) = case.quantity {
-            document["semantic"]["nodes"][1] = json!({
-                "kind": "quantity",
-                "id": "condition",
-                "version": 1,
-                "input_profile": profile,
-                "operation": operation
-            });
-            document["semantic"]["edges"][2]["to"]["port"] = json!("value");
-        } else {
-            document["semantic"]["nodes"][1]["expression"]["inputs"][0]["type_ref"] =
-                serde_json::to_value(case.type_ref).unwrap();
-            document["semantic"]["nodes"][1]["expression"]["source"] = json!(case.source);
-            document["semantic"]["nodes"][1]["expression"]["normalized_source_sha256"] =
-                json!(digest(case.source));
-        }
-        let compiled = compile_value(&document).unwrap();
-        let transition = plan(
-            &compiled,
-            &input_for_snapshot(
-                ObservationValue::Known {
-                    value: case.observed,
-                },
-                case.selector,
-                &case.field_name,
-            ),
-        )
-        .unwrap();
-        assert_eq!(transition.outcome(), PlanOutcome::AwaitingReceipt);
-    }
+    let transition = plan_microstep(&compiled, &input).unwrap();
+    assert_eq!(transition.outcome(), TransitionOutcome::Suspended);
+    assert_eq!(transition.effects().len(), 1);
 }
 
 #[test]
@@ -2061,17 +2455,8 @@ fn cel_profile_uses_declared_immutable_values_and_rejects_dynamic_language_featu
     timestamp_rule["semantic"]["nodes"][1]["expression"]["normalized_source_sha256"] =
         json!(digest(source));
     let compiled = compile_value(&timestamp_rule).unwrap();
-    assert_eq!(
-        plan(
-            &compiled,
-            &input(ObservationValue::Known {
-                value: ScalarValue::Bool { value: true },
-            }),
-        )
-        .unwrap()
-        .outcome(),
-        PlanOutcome::AwaitingReceipt
-    );
+    let transition = plan_microstep(&compiled, &initial_microstep_input(&compiled, true)).unwrap();
+    assert_eq!(transition.outcome(), TransitionOutcome::Suspended);
 
     let mut undeclared = planner_fixture();
     let source = "left == true && ambient == true";
@@ -2111,39 +2496,59 @@ fn cel_profile_uses_declared_immutable_values_and_rejects_dynamic_language_featu
 }
 
 #[test]
-fn stale_transition_assumption_is_detected_without_dispatch() {
+fn initial_microstep_identity_fails_closed() {
     let compiled = compile_rule_json(planner_bytes()).unwrap();
-    let transition = plan(
+    let time = Timestamp::new(1_721_234_567, 0).unwrap();
+    let wrong_initial = planner_microstep_input(
         &compiled,
-        &input(ObservationValue::Known {
-            value: ScalarValue::Bool { value: true },
-        }),
+        2,
+        EvaluationEvent::initial(state_trigger_for(&compiled, time)),
+        time,
+        vec![microstep_snapshot(true, time)],
+        vec![microstep_binding()],
+        microstep_state(),
+    );
+    assert!(matches!(
+        plan_microstep(&compiled, &wrong_initial),
+        Err(litehouse_rule_json::TransitionError::InvalidSavedState(_))
+    ));
+}
+
+#[test]
+fn receipt_resume_rejects_a_stale_suspension_without_dispatch() {
+    let compiled = compile_rule_json(planner_bytes()).unwrap();
+    let initial = initial_microstep_input(&compiled, true);
+    let suspended = plan_microstep(&compiled, &initial).unwrap();
+    let effect = &suspended.effects()[0];
+    let time = Timestamp::new(1_721_234_568, 0).unwrap();
+    let receipt = EffectReceipt::new(
+        effect.intent_id.clone(),
+        "request",
+        effect.operation.clone(),
+        1,
+        effect.binding.provider_generation,
+        litehouse_rule_json::ReceiptConfidence::AcceptedForDelivery,
+        litehouse_rule_json::ReceiptOutcome::AcceptedForDelivery,
+        time,
+        None,
+        Some(effect.idempotency_key.clone()),
     )
     .unwrap();
-    let current = [
-        ObservedRevision {
-            selector: trigger_selector(),
-            provider_generation: 3,
-            facet_revision: 40,
-            grant_revision: None,
-            absolute_set: false,
-        },
-        ObservedRevision {
-            selector: target_selector(),
-            provider_generation: 9,
-            facet_revision: 12,
-            grant_revision: Some(5),
-            absolute_set: true,
-        },
-    ];
-    assert!(matches!(
-        transition.check_assumptions(&current),
-        Err(AssumptionError::Stale {
-            expected_generation: 8,
-            actual_generation: 9,
-            ..
-        })
-    ));
+    let event =
+        EvaluationEvent::effect_receipt("cccccccccccccccccccccccccccccccc", receipt).unwrap();
+    let stale_resume = PlannerEvaluationInput::new(
+        microstep_identity(&compiled, 2),
+        event,
+        time,
+        vec![microstep_snapshot(true, time)],
+        vec![microstep_binding()],
+        suspended.next_state().clone(),
+    )
+    .unwrap();
+    assert_eq!(
+        plan_microstep(&compiled, &stale_resume),
+        Err(litehouse_rule_json::TransitionError::SuspensionMismatch)
+    );
 }
 
 fn set_admission_trigger(document: &mut Value, kind: &str) {

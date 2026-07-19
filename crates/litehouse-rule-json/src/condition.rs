@@ -31,7 +31,7 @@ impl CheckedCelProgram {
         &self.inputs
     }
 
-    pub(crate) fn static_steps(&self) -> usize {
+    pub fn static_steps(&self) -> usize {
         self.static_steps
     }
 }

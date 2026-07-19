@@ -1,10 +1,9 @@
-//! Authoritative, closed Litehouse Rule JSON V1 model and compatibility planner.
+//! Authoritative, closed Litehouse Rule JSON V1 model and pure microstep planner.
 //!
 //! The crate owns strict JSON shape parsing, generated Draft 2020-12 artifacts,
-//! semantic graph compilation, and the existing pure immutable-input planner.
-//! Families not yet executable return a precise planner-subset diagnostic. A
-//! supported effect produces an intent and `AwaitingReceipt`; it never claims
-//! success before the exact typed receipt microstep. This crate does not persist
+//! semantic graph compilation, and immutable `initial`, `timer`, and
+//! `effect_receipt` transitions. Plans contain typed desired projections, effect
+//! intents, timers, assumptions, and process-local next state; they never persist
 //! rules, dispatch providers, mutate observed state, or execute timers.
 
 mod artifacts;
@@ -14,7 +13,7 @@ mod compile;
 mod condition;
 mod fixtures;
 mod model;
-mod planner;
+mod planner_engine;
 mod planner_model;
 pub mod schema;
 
@@ -25,10 +24,5 @@ pub use compile::{
 };
 pub use condition::CheckedCelProgram;
 pub use model::*;
-pub use planner::{
-    Assumption, AssumptionError, AssumptionKind, EvaluationErrorCode, EvaluationInput, Freshness,
-    InputError, ObservationValue, ObservedRevision, OnOffOperation, OnOffSetArguments, PlanError,
-    PlanOutcome, ScalarValue, SnapshotInput, StateObservationInput, TargetInput, UnknownReason,
-    plan,
-};
+pub use planner_engine::{TransitionError, plan_microstep};
 pub use planner_model::*;

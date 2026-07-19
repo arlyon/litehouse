@@ -4,6 +4,7 @@ use jiff::{
     SignedDuration, Timestamp as JiffTimestamp, civil::Time as CivilJiffTime, tz::TimeZone,
 };
 use litehouse_contracts::quantity::{Quantity, lookup_profile};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use thiserror::Error;
@@ -198,8 +199,6 @@ pub struct CompiledRule {
     pub(crate) receipt_continuations: BTreeMap<String, String>,
     pub(crate) topological_order: Vec<String>,
     pub(crate) topological_rank: BTreeMap<String, usize>,
-    pub(crate) max_plan_input_bytes: usize,
-    pub(crate) max_trace_bytes: usize,
 }
 
 impl CompiledRule {
@@ -265,7 +264,8 @@ impl CompiledRule {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CompiledArtifacts {
     pub schema_sha256: String,
     pub compiler_sha256: String,
@@ -599,8 +599,6 @@ pub(crate) fn compile(document: RuleDocument) -> Result<CompiledRule, CompileErr
         receipt_continuations,
         topological_order,
         topological_rank,
-        max_plan_input_bytes: document.semantic.limits.max_plan_input_bytes as usize,
-        max_trace_bytes: document.semantic.limits.max_trace_bytes as usize,
     })
 }
 
@@ -1870,7 +1868,7 @@ fn validate_edges(
                 node: edge.to.node.clone(),
                 port: edge.to.port.clone(),
             })?;
-        if from.type_ref != to.type_ref {
+        if !types_connect(&from.type_ref, &to.type_ref) {
             return Err(CompileError::IncompatiblePorts {
                 edge: edge.id.clone(),
                 from: type_ref_name(&from.type_ref),
@@ -2307,6 +2305,10 @@ fn data_input(type_ref: TypeRef) -> Port {
     }
 }
 
+fn types_connect(from: &TypeRef, to: &TypeRef) -> bool {
+    from == to || matches!(to, TypeRef::Optional { item } if item.as_ref() == from)
+}
+
 fn type_ref_name(type_ref: &TypeRef) -> String {
     serde_json::to_string(type_ref).unwrap_or_else(|_| type_ref.scalar_name().to_owned())
 }
@@ -2570,10 +2572,15 @@ mod tests {
             QuantityOperation::Quantize { scale: 2 },
         ];
         for operation in operations {
-            assert!(matches!(
-                lower_quantity("quantity", QuantityProfileRef::Power, &operation),
-                Ok(CompiledNode::Quantity { .. })
-            ));
+            let compiled = lower_quantity("quantity", QuantityProfileRef::Power, &operation)
+                .expect("operation should compile");
+            let CompiledNode::Quantity { operation, .. } = compiled else {
+                unreachable!()
+            };
+            let input = Quantity::parse("litehouse:quantity/power@1", "40", "W").unwrap();
+            operation
+                .evaluate(&input)
+                .expect("compiled operation should execute through the shared engine");
         }
 
         assert!(matches!(
