@@ -1,6 +1,12 @@
 # Litehouse management
 
-This crate owns the canonical handlers used by the first connected-release proof:
+This crate owns deterministic authored-workflow loading and the canonical handlers
+used by the first connected-release proof. `WorkflowDirectory` recursively loads
+one strict Rule JSON document per JSON/YAML file through bounded capability-scoped
+handles, rejects symlinks and duplicate rule IDs, and returns one immutable
+compiled snapshot plus an authored-directory SHA-256 digest.
+
+The existing proof handlers are:
 
 - `inventory_snapshot`
 - `facet_query`

@@ -34,6 +34,22 @@ or `time_schedule`. The exact eleven post-trigger node families are:
 The retired `compare` and `on_off_set` spellings are invalid. A condition emits a
 single `predicate_outcome`; only `branch` routes true, false, unknown, and error.
 
+## Authored workflow files
+
+`settings.json` names one `workflows/` directory. Each `.json`, `.yaml`, or `.yml`
+file below it contains exactly one complete `RuleDocument`; normalized relative
+paths are processed lexically, while workflow identity comes from `rule_id`.
+Duplicate IDs fail the complete directory load. Discovery rejects root, directory,
+and file symlinks and enforces bounded depth, entry, directory, file-count, and
+source-byte limits through capability-scoped file handles.
+
+JSON and YAML are syntax projections of the same closed Rust model and compile to
+the same semantic digest. YAML is restricted to the JSON-compatible subset:
+exactly one document, string mapping keys, bounded collections and strings, and
+no floating point, tags, anchors, aliases, or merge expansion. Duplicate YAML
+keys fail parsing. `enabled` is a required authored Boolean. It controls admission
+but is excluded, along with `revision` and editor layout, from semantic identity.
+
 `CapabilityOperation` is a closed tagged union for the exact 29 capability
 operations in the authoritative management manifest. `CapabilityOperationKind`,
 contract payload type references, quantity catalog/profile references, and

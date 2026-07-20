@@ -186,6 +186,7 @@ pub enum CompileError {
 pub struct CompiledRule {
     pub(crate) rule_id: String,
     pub(crate) revision: u64,
+    pub(crate) enabled: bool,
     pub(crate) profile_sha256: String,
     pub(crate) semantic_sha256: String,
     pub(crate) artifacts: CompiledArtifacts,
@@ -208,6 +209,10 @@ impl CompiledRule {
 
     pub fn revision(&self) -> u64 {
         self.revision
+    }
+
+    pub fn enabled(&self) -> bool {
+        self.enabled
     }
 
     pub fn profile_sha256(&self) -> &str {
@@ -587,6 +592,7 @@ pub(crate) fn compile(document: RuleDocument) -> Result<CompiledRule, CompileErr
     Ok(CompiledRule {
         rule_id: document.rule_id,
         revision: document.revision,
+        enabled: document.enabled,
         profile_sha256: document.schema.profile_sha256,
         semantic_sha256,
         artifacts,

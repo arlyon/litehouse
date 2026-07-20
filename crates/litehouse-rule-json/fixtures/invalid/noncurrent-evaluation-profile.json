@@ -17,11 +17,12 @@
       "zoom_milli": 1000
     }
   },
+  "enabled": true,
   "revision": 7,
   "rule_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "schema": {
     "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "sha256": "3e911d83383ced436a24ad24dd5b044149625ffce9ffddff34196d688c41202d",
+    "sha256": "6e7b95bf72706e757355077a5289043abecae844478f5610f5871f32667c6755",
     "url": "https://schemas.litehouse.dev/rule-ir/v1.0.0/schema.json",
     "version": "1.0.0"
   },

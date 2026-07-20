@@ -745,3 +745,22 @@ configuration.
   container examples mount one writable `/config` directory so sibling rename is
   possible; config tests and native Litehouse all-target checking pass. Workflow
   discovery, JSON/YAML parity, and per-workflow writes continue in T8.2b/c.
+
+### R-021 — Load one strict workflow per JSON/YAML file
+
+- **Resolution:** recursively discover at most 256 workflow files under the
+  configured directory through capability-scoped directory handles. Reject root,
+  directory, and file symlinks; bound total entries, directories, depth, source
+  bytes, YAML events, and expanded values; open files no-follow and nonblocking;
+  and read at most 128 KiB plus one from the verified regular-file handle. JSON
+  and YAML deserialize to the same required-`enabled` Rule JSON model. YAML
+  rejects duplicate keys, multiple documents, floats, non-string keys, tags,
+  anchors, aliases, and merge expansion before compilation. Duplicate `rule_id`s
+  fail the complete directory load, while the directory SHA-256 commits to sorted
+  normalized relative paths and exact source bytes.
+- **Evidence:** JSON/YAML equivalents and the maximal workflow compile to equal
+  semantics under the strict event budget; tests cover recursive ordering,
+  creation-order-independent directory identity, duplicate IDs, required and
+  disabled enablement, YAML exclusions, oversized files, and root/child symlinks.
+  Rule schema/fixture generation is byte-reproducible, package suites pass, and a
+  final adversarial risk review passed after the nonblocking-open hardening.

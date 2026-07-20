@@ -1703,6 +1703,7 @@ fn document(
         },
         rule_id: rule_id.to_owned(),
         revision,
+        enabled: true,
         semantic: SemanticRule {
             name: name.to_owned(),
             description: "Deterministically generated Rule JSON V1 fixture.".to_owned(),

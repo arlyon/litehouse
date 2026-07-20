@@ -3948,6 +3948,9 @@
     "editor": {
       "$ref": "#/$defs/EditorData"
     },
+    "enabled": {
+      "type": "boolean"
+    },
     "revision": {
       "format": "uint64",
       "minimum": 1,
@@ -3968,6 +3971,7 @@
     "schema",
     "rule_id",
     "revision",
+    "enabled",
     "semantic",
     "editor"
   ],

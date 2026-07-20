@@ -4,7 +4,7 @@
   "version": 1,
   "rule_schema": {
     "id": "https://schemas.litehouse.dev/rule-ir/v1.0.0/schema.json",
-    "sha256": "3e911d83383ced436a24ad24dd5b044149625ffce9ffddff34196d688c41202d",
+    "sha256": "6e7b95bf72706e757355077a5289043abecae844478f5610f5871f32667c6755",
     "source": "generated_rule_schema"
   },
   "entries": [

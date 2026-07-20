@@ -1,3 +1,9 @@
+mod workflow_files;
+
+pub use workflow_files::{
+    LoadedWorkflow, WorkflowDirectory, WorkflowFileFormat, WorkflowFilesError,
+};
+
 use litehouse_contracts::management::{OAuthScope, ScopePolicy, management_manifest};
 use litehouse_provider_host::{
     Availability as HostAvailability, CallContext, ColorModel as HostColorModel,

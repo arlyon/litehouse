@@ -45,6 +45,7 @@ pub struct RuleDocument {
     pub rule_id: String,
     #[schemars(range(min = 1))]
     pub revision: u64,
+    pub enabled: bool,
     pub semantic: SemanticRule,
     pub editor: EditorData,
 }

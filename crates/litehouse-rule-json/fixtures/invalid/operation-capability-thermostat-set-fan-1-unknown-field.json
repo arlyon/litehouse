@@ -17,11 +17,12 @@
       "zoom_milli": 1000
     }
   },
+  "enabled": true,
   "revision": 1,
   "rule_id": "00000000000000000000000000000013",
   "schema": {
-    "profile_sha256": "10d91c897516802b25059481eb898ec06f3ed6a66dd7651c3e2e122d9a7c7f3e",
-    "sha256": "3e911d83383ced436a24ad24dd5b044149625ffce9ffddff34196d688c41202d",
+    "profile_sha256": "ed5272b961610e73e123c630822a8a2df0b505d2d1759510cac3e8550cc36ff5",
+    "sha256": "6e7b95bf72706e757355077a5289043abecae844478f5610f5871f32667c6755",
     "url": "https://schemas.litehouse.dev/rule-ir/v1.0.0/schema.json",
     "version": "1.0.0"
   },
