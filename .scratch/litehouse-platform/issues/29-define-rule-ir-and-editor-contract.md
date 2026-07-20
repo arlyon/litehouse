@@ -27,8 +27,9 @@ plugin parity?
 > process-epoch-local. A restart discards unfinished work, rehydrates each rule's
 > dependencies before arming it, and schedules only the next future time
 > occurrence. It never catches up, resumes, compensates, or replays an ambiguous
-> effect. Persisted authority is limited to authored rules, immutable revisions,
-> active/predecessor pointers, grants, and enabled state.
+> effect. Authored authority is deterministic `settings.json` plus one Rule JSON
+> document per JSON/YAML file under the configured `workflows/` directory. Git
+> owns history and rollback; Litehouse maintains no competing authored database.
 
 ### T8.1a completion evidence (2026-07-18)
 
@@ -55,8 +56,8 @@ activation-record fields rather than fabricated authored JSON.
 
 T8.1a deliberately does not claim RFC 8785 digest or the exact 64-KiB
 canonical-semantic check, full CEL/Jiff/quantity compilation, full receipt/timer
-execution, or persisted activation binding revisions. Those remain T8.1b (#64),
-T8.1c, and T8.2 as applicable. Generator parity, bounded-memory
+execution, or runtime activation bindings. Those remain T8.1b (#64), T8.1c,
+and T8.2 as applicable. Generator parity, bounded-memory
 native tests, formatting, management-contract tests, diagnostics, and source-only
 T0 checks provide the local completion seam; `litehouse:provider@1.0.0` remains
 byte-identical. The final `wasm32-wasip2` and Clippy reruns are environment-blocked
@@ -110,11 +111,12 @@ provider execution, observation ingestion, and restart wiring remain T8.2–T8.6
 
 ### T8.0 implementation locks
 
-- Use Fjall `3.1.7` `SingleWriterTxDatabase` in a fresh Fjall V3 directory. Every
-  authored mutation is one cross-keyspace transaction with
-  `PersistMode::SyncAll`; the database's exclusive path lock rejects a second
-  process. Litehouse also stores and validates its own application format
-  version and has no implicit V2-to-V3 migration.
+- Keep `settings.json` and the configured `workflows/` directory as the sole
+  authored authority. Each JSON/YAML workflow file contains one complete Rule
+  JSON document. Discovery is deterministic by normalized relative path;
+  symlinks, escapes, duplicate rule IDs, unknown fields, and invalid documents
+  fail closed. Atomic management writes require the expected content digest and
+  use a sibling temporary file, sync, and rename before explicit reload.
 - Use `serde_json_canonicalizer` `0.3.2` for RFC 8785 JCS after depth, string,
   collection, and raw-size validation. Litehouse-authored JSON cannot contain
   duplicate names; duplicate names in external raw JSON are unsupported and use
@@ -132,13 +134,12 @@ provider execution, observation ingestion, and restart wiring remain T8.2–T8.6
   due-time polling. Seven stateful families enter seven typed host ingress
   paths; stateless Momentary and Notification facets do not.
 - Revise the unreleased management V1 catalog in place: Rule JSON is the only
-  top-level authored language, raw source is at most 128 KiB, and no manual
-  `rules.trigger@1` exists. Draft creation accepts the document's client-created
-  128-bit rule ID and never rewrites `rule_id`, `revision`, or semantic name;
-  updates use the record's optimistic base revision. Provider-safe config is
-  bounded JSON validated against exact component metadata, authority grants are
-  closed and explicit, and all run/result/stream cursors are process-epoch-
-  qualified.
+  authored workflow language, each source file is at most 128 KiB, and no manual
+  `rules.trigger@1` exists. File mutations use normalized relative paths and
+  optimistic content digests; they never rewrite `rule_id`, `revision`, or the
+  semantic name. Provider-safe config is bounded JSON validated against exact
+  component metadata, authority grants are closed and explicit, and all
+  run/result/stream cursors are process-epoch-qualified.
 
 Publish a small, typed, versioned **Litehouse Rule JSON** language and its JSON
 Schema. The JSON graph is the authored language and persistence authority; React
@@ -193,9 +194,10 @@ Major versions may break semantics. Minor releases are additive only: existing
 valid documents retain identical meaning. Patch releases clarify diagnostics or
 fix implementations without changing accepted semantics. Unknown node kinds,
 ports, required fields, contract majors, quantity profiles, or CEL profiles fail
-closed. Migrations are pure version-to-version functions that emit a new draft,
-preserve the old immutable revision, record source/target digests and warnings,
-and require explicit activation. Never silently rewrite an active rule.
+closed. Migrations are pure version-to-version functions that emit a new
+authored file, record source/target digests and warnings, and require explicit
+reload. Source control preserves the previous document. Never silently rewrite a
+workflow that the caller did not identify by its expected content digest.
 
 ### Canonical document
 
@@ -211,6 +213,7 @@ The published schema defines this closed top-level shape:
   },
   "rule_id": "<32-lower-hex>",
   "revision": 1,
+  "enabled": true,
   "semantic": {
     "name": "...",
     "description": "...",
@@ -225,17 +228,17 @@ The published schema defines this closed top-level shape:
 ```
 
 `semantic` contains exactly one trigger, bounded semantic nodes/edges, exact
-contract/quantity/runtime/CEL locks, activation/binding policy, resource limits,
-and optional namespaced annotations. A separate mutable `RuleRecord` stores
-`enabled`, active/draft revision pointers, runtime health, and editor revision;
-these are not smuggled into immutable semantic meaning. Editor metadata contains
-only positions, viewport, groups, collapsed state, and presentation hints.
+contract/quantity/runtime/CEL locks, binding policy, resource limits, and optional
+namespaced annotations. `enabled` is authored operational state in the same file;
+it is not part of semantic meaning. Runtime health, resolved bindings, and other
+transient state remain memory-only. Editor metadata contains only positions,
+viewport, groups, collapsed state, and presentation hints.
 
 The semantic digest is RFC 8785 JCS over `semantic` plus every `schema` lock. It
-excludes `editor`, mutable RuleRecord state, transient diagnostics, resolved
-handles, compiled CEL ASTs, and runtime state. Layout-only saves advance editor
-revision but neither semantic rule revision nor runtime activation. Another
-conforming editor can still preserve layout.
+excludes `revision`, `enabled`, `editor`, transient diagnostics, resolved handles,
+compiled CEL ASTs, and runtime state. Layout-only saves may advance authored and
+editor revisions without changing semantic identity. Another conforming editor
+can still preserve layout.
 
 Use stable semantic node/edge/port IDs rather than React Flow array indices.
 Canonical arrays sort by ID where order is not semantic. Ordered outgoing edges
@@ -397,8 +400,9 @@ typed. V1 triggers are:
   with IANA timezone and explicit nonexistent/duplicate DST policy.
 
 Time is always injected. Fixed intervals use monotonic elapsed time anchored by
-activation and persist only their activation wall-clock anchor so restart can
-select the next strictly future interval. Civil schedules record timezone
+the current process's loaded workflow snapshot. Restart discards that anchor and
+selects only the next strictly future interval from the authored schedule. Civil
+schedules record timezone
 database version and occurrence ID. A nonexistent civil time explicitly chooses
 `skip` or `shift-forward`; a duplicated civil time chooses `first`, `second`, or
 `both`. One-shots in the past and missed interval/weekly occurrences are skipped
@@ -414,12 +418,13 @@ coalesced counts in traces.
 
 ### Restart-clean execution, ordering, and effects
 
-Draft edits never affect execution. Validation plus binding/permission/feature
-review atomically activates one immutable revision. Existing process-local runs
-retain their revision; disabling prevents new triggers and cooperatively cancels
-undispatched work, while dispatched effects keep explicit ambiguous-outcome
-semantics. Activation may drain or cancel old undispatched runs but never
-retargets them to the new graph.
+File edits never affect execution until startup or explicit reload. Reload
+validates the complete settings/workflow set, performs binding/permission/feature
+review, and atomically swaps one immutable in-memory snapshot. A failed reload
+keeps the previous snapshot. Existing process-local runs retain their workflow
+digest; disabling prevents new triggers and cooperatively cancels undispatched
+work, while dispatched effects keep explicit ambiguous-outcome semantics. Reload
+may drain or cancel old undispatched runs but never retargets them to a new graph.
 
 V1 serializes runs per rule. One run may execute or wait; at most 16 subsequent
 trigger inputs queue under the trigger's explicit `drop-newest`, `drop-oldest`,
@@ -427,12 +432,13 @@ or `coalesce` policy. Parallelism exists only inside the active run's statically
 bounded fork. Run records, queues, frontier/control state, timers, plans, traces,
 receipts, and result lookups live only in bounded memory for one process epoch.
 No run journal, checkpoint partition, effect outbox, or receipt continuation is
-written to Fjall.
+written to authored files.
 
-Before every dispatch Litehouse rechecks enabled revision, endpoint generation,
-grant revision, assumptions, deadline, and authorization. One process-local
-idempotency key derives from process epoch, rule, revision, run, microstep, node,
-and intent. It may suppress duplicates only while that process remains alive;
+Before every dispatch Litehouse rechecks the enabled workflow digest, endpoint
+generation, grant revision, assumptions, deadline, and authorization. One
+process-local idempotency key derives from process epoch, rule, workflow digest,
+run, microstep, node, and intent. It may suppress duplicates only while that
+process remains alive;
 it is neither an effect-recovery key nor a promise across restart.
 
 Actions are sequential in edge order unless inside a bounded fork/join. Every
@@ -465,29 +471,28 @@ effect requires an edge and cannot upgrade confidence. V1 has no observation-
 wait node, rollback claim, arbitrary compensation language, event sequences,
 loops, races, or long-lived sagas.
 
-### Drafts, activation, and migration
+### Files, reload, and migration
 
-Store a stable rule record plus immutable revisions. One mutable draft may be
-based on an active revision and carries an optimistic base revision. Saving a
-draft does not compile into the runtime. Validate/dry-run returns deterministic
-shape/type/CEL/binding/permission/feature/unit/resource diagnostics with node,
-port, edge, and source spans. Activation requires the base revision still match,
-shows a semantic diff excluding layout, resolves bindings, compiles, and atomically
-moves the active pointer. A stale draft returns conflict rather than merging
-silently.
+`settings.json` and the configured `workflows/` directory are the sole authored
+authority. Each workflow file contains one complete Rule JSON document. Git owns
+drafts, history, review, and rollback. Management writes require the expected
+content digest, write one sibling temporary file, sync it, and atomically rename
+it; stale content conflicts rather than merging silently. Validation and
+simulation return deterministic shape/type/CEL/binding/permission/feature/unit/
+resource diagnostics with node, port, edge, and source spans.
 
 `enabled`, `disabled`, `invalid`, `binding-stale`, `degraded`, and `migration-
-required` are distinct states. Enabled means new triggers may run; it does not
-claim bindings/devices are healthy. The last successfully active revision and
-one predecessor remain available for explicit rollback. Rollback is ordinary
-revalidation/activation and never rewinds observed state or effect receipts.
+required` are distinct evaluated states. Enabled is authored in the workflow and
+means new triggers may run; it does not claim bindings/devices are healthy. A
+source-control rollback becomes ordinary file replacement followed by explicit
+revalidation/reload and never rewinds observed state or effect receipts.
 
-Every active revision pins its exact schema, compiler, CEL, quantity catalog,
-timezone database, and rule-runtime profile artifacts. A server upgrade discards
-all old process-local runs before rehydration. If the new process cannot host an
-active evaluator, it marks that rule `migration-required` and admits no triggers.
-Migration always creates and activates a new revision; no unfinished run delays
-artifact removal.
+Every workflow pins its exact schema, compiler, CEL, quantity catalog, timezone
+database, and rule-runtime profile artifacts. A server upgrade discards all old
+process-local runs before rehydration. If the new process cannot host an authored
+evaluator, it marks that workflow `migration-required` and admits no triggers.
+Migration writes a new authored document; no unfinished run delays artifact
+removal.
 
 ### Simulation and traces
 
@@ -552,8 +557,9 @@ Before implementation commitment, prove:
 - receipt confidence, cancellation, deadline, definitely-pre-dispatch retry,
   crash-after-dispatch ambiguity, process-local result lookup, and no optimistic
   observed-state mutation;
-- draft conflict, activation, disable/drain/cancel, migration, predecessor
-  rollback, and stale binding/generation handling;
+- stale content-digest conflicts, atomic file writes, explicit reload,
+  disable/drain/cancel, migration, source-control rollback, and stale binding/
+  generation handling;
 - simulation never dispatches and real/simulated traces remain distinguishable;
   and
 - HTTP/WebRTC/MCP/web/native consumers observe the same operation behavior and

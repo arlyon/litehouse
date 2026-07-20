@@ -368,9 +368,14 @@ configuration.
 - **Question:** Which state must survive a Litehouse restart, and which workflow
   guarantees are proportionate for a home automation server rather than a
   business-critical workflow engine?
-- **Resolution:** persist authored instance configuration, Rule JSON, immutable
-  revisions, active pointers, grants, and enabled state atomically in Fjall.
-  Rule runs, delays, debounce/throttle windows, trigger queues, pending effects,
+- **Resolution:** keep authored configuration in deterministic files:
+  `settings.json` plus one complete Rule JSON workflow per JSON/YAML file under
+  the explicitly configured `workflows/` directory. Files are the sole authority
+  and may be changed through source control, explicit CLI commands, or atomic
+  management writes guarded by expected content digests. Git owns authored
+  history and rollback; Litehouse does not maintain database drafts, revision
+  pointers, or a competing persistence model. Rule runs, delays,
+  debounce/throttle windows, trigger queues, pending effects,
   receipt continuations, stream cursors, and short-lived idempotency results are
   process-epoch-local. A crash discards unfinished work; Litehouse never resumes,
   catches up, compensates, or replays it. Time schedules continue at their next
@@ -393,10 +398,14 @@ configuration.
   top-level CEL/manual triggering. Rule source is JSON-only and bounded to 128
   KiB; provider-safe config is bounded JSON checked against exact component
   metadata with closed authority grants; run/result/stream cursors carry a fresh
-  process epoch. Standardize on Fjall 3.1.7 `SingleWriterTxDatabase` in a fresh
-  V3 directory, one `SyncAll` cross-keyspace transaction per authored mutation,
-  its exclusive path lock, and a separate Litehouse application-format marker.
-  Use `serde_json_canonicalizer` 0.3.2 for JCS after bounded JSON validation.
+  process epoch. `settings.json` remains deterministic JSON and explicitly names
+  a `workflows/` directory. Each workflow file contains exactly one Rule JSON
+  document; normalized relative paths are processed lexically, symlinks and
+  escapes are rejected, and duplicate rule IDs fail the whole load. JSON and
+  YAML are syntax projections of the same strict Rust model. Settings and
+  workflow mutations use sibling temporary files, file sync, atomic rename, and
+  expected content digests; an explicit reload is all-or-nothing. Use
+  `serde_json_canonicalizer` 0.3.2 for JCS after bounded JSON validation.
   Litehouse-authored JSON has unique keys; unsupported external duplicates use
   `serde_json`'s deterministic last-value behavior rather than a second parser.
   Use the `cel` 0.14.0 bounded parser and interpreter with immutable variables,
@@ -407,9 +416,10 @@ configuration.
   Native API frames and allowing Tasmota/Open-Meteo to poll only when due. Guest
   handles remain confined to their actor/store and seven stateful families use
   seven exact typed ingress paths.
-- **Evidence:** Fjall 3.1.7 committed `SyncAll` writes across two keyspaces
-  survived immediate abort, uncommitted writes did not, and a second process was
-  rejected with `Locked`. CEL-parser/JCS/Jiff probes compiled natively, for
+- **Evidence:** Git history proves Fjall was added to Cockpit in 2024 but never
+  referenced by any Litehouse source; Cockpit has always used in-memory
+  connection maps and documents itself as stateless. Therefore no Fjall data or
+  migration exists. CEL-parser/JCS/Jiff probes compiled natively, for
   `wasm32-wasip2`, and for `wasm32-unknown-unknown` using the installed Rust
   sources; the RFC 8785 number/string vector and New York DST gap/fold rejection
   passed. The disposable release browser-Wasm probe was 1,765,990 bytes before
@@ -661,7 +671,7 @@ configuration.
   cover receipt wiring, selector/contract ordering, all three retained trigger
   contexts, fail-closed retry, and narrow model bounds. RFC 8785 semantic digest
   and the exact 64-KiB canonical bound remain T8.1b #64; executor receipts/timers
-  and persisted activation revisions remain T8.1c/T8.2.
+  and runtime activation bindings remain T8.1c/T8.2.
   Native checks pass without changing provider WIT. The immediately preceding
   repair passed `wasm32-wasip2`; the final local rerun is blocked because the
   synchronized toolchain no longer has that optional target component installed.
@@ -718,3 +728,20 @@ configuration.
   the final review passed. Package/dependency/management tests, generator parity,
   native all-target checking, Rustfmt, Taplo, diagnostics, full T0 validation, and
   secret scanning complete the local evidence seam.
+
+### R-020 — Keep authored setup deterministic and file-backed
+
+- **Resolution:** `settings.json` plus one Rule JSON document per JSON/YAML file
+  under its configured `workflows/` directory are the sole authored authority.
+  Git owns review, history, and rollback. Litehouse may perform atomic file writes
+  only with the expected SHA-256 content digest, stable serialization, a shared
+  authoring lock, sibling temp-file sync, and rename; explicit reload swaps one
+  validated in-memory snapshot. Unknown config fields fail closed. Fjall is
+  removed because repository history proves it was added to stateless Cockpit in
+  2024 but never used by any source or data format.
+- **Evidence:** settings maps serialize in stable order with a trailing newline;
+  stale writers conflict without losing the accepted update; encoding failure
+  preserves the previous bytes; init creates the configured workflows directory;
+  container examples mount one writable `/config` directory so sibling rename is
+  possible; config tests and native Litehouse all-target checking pass. Workflow
+  discovery, JSON/YAML parity, and per-workflow writes continue in T8.2b/c.

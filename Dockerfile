@@ -28,6 +28,7 @@ LABEL org.opencontainers.image.source https://github.com/arlyon/litehouse
 LABEL org.opencontainers.image.description A lightweight home automation server
 
 COPY --from=builder-litehouse /app/target/x86_64-unknown-linux-musl/release/litehouse /litehouse
+WORKDIR /config
 
 CMD ["/litehouse", "run"]
 

@@ -42,7 +42,8 @@ path and SHA-256 under **Define signing and trust**. The host generates the stab
 instance ID; neither plugin nor user supplies/reuses it. Desired config stores:
 
 - exact plugin package/version/release digest, or local path/artifact digest;
-- host-generated instance ID and optimistic config revision;
+- host-generated instance ID; updates are guarded by the expected whole-file
+  `settings.json` content digest;
 - complete bounded connector configuration such as canonical address, port,
   protocol options, and device-specific settings; address fields persist locally
   but are redacted from AI/MCP output;
@@ -82,37 +83,38 @@ environment. It never
 enumerates/forwards other variables, persists a value, or offers secret CRUD,
 sharing, lookup, rotation, or export. Values are UTF-8 or schema-declared base64,
 at most 64 KiB each; missing/empty/oversized/invalid values fail that instance's
-activation with a redacted field error. Config APIs/forms may return the derived
-variable name and configured status, never its value. Creating a draft that adds
-an environment-secret field returns required names; the operator injects them
-and recreates the container before activation.
+reload with a redacted field error. Config APIs/forms may return the derived
+variable name and configured status, never its value. A digest-guarded settings
+update that adds an environment-secret field returns required names; the operator
+injects them and recreates the container before reload.
 
 ### Validation and activation
 
-The management API exposes validate, create/update draft, activate, disable, and
-delete under fixed OAuth scopes and optimistic revisions. There is no adoption
-API. Shape validation never runs guest code. Activation follows the existing
-desired-versus-active transaction rather than pretending process start and
-storage commit are atomic:
+The management API exposes validate, content-digest-guarded file mutation,
+explicit reload, disable, and delete under fixed OAuth scopes. There is no
+adoption API. Shape validation never runs guest code. Reload treats deterministic
+`settings.json` as authored authority without pretending a file commit and
+process start are atomic:
 
 1. validate artifact source/digest, schema, runtime profile, bounds, environment-
    secret field tokens/derived-name uniqueness, and requested service/WASI grants;
 2. normalize connector authority and resolve it through the host; reject any
    multicast, broadcast, wildcard, CIDR/range, port range, raw-socket, DNS-SD,
    mDNS, SSDP, or guest-controlled arbitrary resolution authority;
-3. atomically persist the new desired config/grant revision, visibly pending and
-   distinct from the last active set;
-4. for a new/disabled instance with no predecessor, resolve only that instance's
-   protected environment fields and prepare one hidden provider generation with
-   exact real runtime grants; for replacement, use issue 38's no-grant preflight,
-   quiesce/drop the predecessor, and only then start one granted candidate;
+3. atomically replace `settings.json` only when its expected content digest still
+   matches, then report the authored digest as distinct from the loaded runtime
+   snapshot;
+4. on explicit reload, resolve only that instance's protected environment fields
+   and prepare one hidden provider generation with exact real runtime grants; for
+   replacement, use issue 38's no-grant preflight, quiesce/drop the previous
+   in-memory generation, and only then start one granted candidate;
 5. connect and return proposed facets plus a protocol-scoped identity proof where
    available;
-6. under one local activation transaction/lock, compare a unique key of plugin
-   package plus proof kind/version/digest, reject a duplicate, persist the proof
-   digest on the instance and candidate `ActivationSet`, and switch the active-
-   set pointer; and
-7. only after pointer commit expose that generation and facets.
+6. under one process-local activation lock, compare a unique key of plugin
+   package plus proof kind/version/digest, reject a duplicate, retain the proof
+   digest in the loaded instance snapshot, and atomically swap that immutable
+   in-memory snapshot; and
+7. only after snapshot swap expose that generation and facets.
 
 A granted hidden generation is real trusted plugin execution, not a read-only
 sandbox. Network capability confinement cannot prove arbitrary protocol bytes
@@ -125,27 +127,25 @@ enforced read-only validation.
 
 The identity proof is protocol/plugin-scoped and host-owned. It may use an
 authenticated device identifier returned inside the secured session; address,
-hostname, label, list position, or user name alone is never proof. Persist only
-bounded proof kind/version/digest and safe provenance in the existing instance/
-ActivationSet records, not a device container or unrestricted identifier.
-Protocols without trustworthy stable identity leave it absent and receive no
-duplicate or silent-retarget guarantee.
+hostname, label, list position, or user name alone is never proof. Retain bounded
+proof kind/version/digest and safe provenance only in the loaded process snapshot
+unless the operator explicitly authors an expected identity pin in
+`settings.json`. Protocols without trustworthy stable identity leave it absent
+and receive no duplicate or silent-retarget guarantee.
 
-Every activation phase is journaled and idempotently reconciled after crash. For
-a new install, a prepared-but-uncommitted generation remains hidden and is
-terminated/retried; a committed pointer is authoritative and startup completes
-publication. For replacement, issue 38's journal is authoritative: a crash after
-predecessor drop but before candidate commit restarts the prior digest, so two
-real sessions never overlap. Failure leaves desired versus active state visibly
-unresolved. A schema-valid offline instance may be saved disabled/unverified; it
-exposes no facets and cannot enable until activation succeeds. Connector/config/
-credential changes use that replacement path and never retarget live bindings
-before commit.
+Activation is process-local and restart-clean. A prepared generation remains
+hidden until one in-memory snapshot swap; failure keeps the previous loaded
+snapshot and generation. A crash discards both hidden work and activation state,
+then startup reconstructs exactly the authored files without journal replay or
+predecessor recovery. A schema-valid offline instance may be authored disabled/
+unverified; it exposes no facets and cannot enable until reload succeeds.
+Connector/config/credential changes use the same hidden replacement path and
+never retarget live bindings before snapshot swap.
 
 ### Runtime and lifecycle
 
 An active instance owns one store/actor, provider generation, connection/cache,
-config revision, grant revision, and physical-device lifecycle. It may reconnect
+loaded settings digest, grant snapshot, and physical-device lifecycle. It may reconnect
 to its one configured authority under its exact unicast host/port/protocol grant
 and reconcile its facets. It cannot scan neighbors, browse multicast/broadcast,
 create siblings, modify desired config, obtain OAuth tokens, or call management.
@@ -156,26 +156,25 @@ may be tried only in a hidden reconnect path and become usable after proving the
 same stored identity digest. Issue 38's exact-name WebPKI proof is the stable
 `tls-dns-name` identity for HTTPS and additionally requires the same address-class
 policy; it is not generic permission to change authority. Without stable identity,
-any resolution-set change fails closed until an explicit config revision/
-activation. Literal address or
-hostname changes always require config revision. Resolution never grants a
+any resolution-set change fails closed until an explicit settings update and
+reload. Literal address or hostname changes always require an expected-digest
+settings update. Resolution never grants a
 subnet, interface, DNS suffix, redirect target, or same-network host. Labels and
 metadata may change without identity change.
 
 Disabling stops admission, quiesces/drops the store, withdraws facets, and keeps
 desired non-secret config and derived environment requirements for restart.
 
-Deletion defaults to reject while any binding, rule, or other dependency remains.
-Explicit cascade lists exact dependency IDs/revisions and the resulting disable/
-removal diff.
-A durable `deleting` tombstone first blocks admission/restart, then idempotently
-quiesces the actor and withdraws facets; one revision-checked transaction removes
-approved dependencies, desired instance, scoped identity key, and activation-
-set entry. Crash recovery resumes the tombstone.
+Deletion rejects while any workflow or other dependency remains; V1 does not
+claim an atomic cascade across separate authored files. The caller removes exact
+workflow dependencies first, then removes the instance from `settings.json` with
+its expected digest and explicitly reloads. Reload quiesces the actor and
+withdraws facets; a crash reconstructs the already-authored absence without a
+tombstone or recovery journal.
 
 Plugin update/restart preserves instance identity only after revalidating config,
-grants, profile, DNS/connector identity, and facets through the same activation-
-pointer protocol.
+grants, profile, DNS/connector identity, and facets through the same hidden
+process-local reload path.
 
 ### Deferred discovery boundary
 
@@ -197,7 +196,7 @@ plugin requests it. Installation and pure validation execute no plugin code.
 ### Observability and validation
 
 Use bounded redacted tracing for pure config validation, hidden activation,
-identity-digest/duplicate decision, grants, pointer commit, retargeting, disable,
+identity-digest/duplicate decision, grants, loaded-snapshot swap, retargeting, disable,
 and deletion. Include safe plugin/instance/config/grant/generation/correlation
 IDs and typed outcomes. Never log raw identity evidence, secret values, full
 connection strings, unrestricted protocol metadata/config, guest diagnostic
@@ -210,7 +209,8 @@ oversized value failure, ambient-environment non-enumeration, authority
 normalization, pinned DNS/rebinding, and categorical discovery-grant rejection.
 Also cover exact unicast network/service grants and hidden-generation
 confinement. Test first-party no-startup-control conformance, offline disabled
-drafts, transactional identity uniqueness, absent-identity protocols, every activation/
-pointer crash point, config conflicts, retarget rejection, facet reconciliation,
-deletion reject/cascade/tombstone recovery, update compatibility, and proof that
-installed or validating plugins cannot browse LAN discovery or create instances.
+entries, process-local identity uniqueness, absent-identity protocols, every
+hidden-generation/snapshot-swap failure point, content-digest conflicts, retarget
+rejection, facet reconciliation, dependency-blocked deletion, restart-clean
+absence, update compatibility, and proof that installed or validating plugins
+cannot browse LAN discovery or create instances.

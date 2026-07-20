@@ -1,7 +1,7 @@
 //! Plugin runtime
 
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashSet},
     ffi::OsString,
     future::Future,
     net::SocketAddr,
@@ -619,7 +619,7 @@ pub async fn instantiate_plugin_hosts<'a, T: Send + Clone>(
     engine: &Engine,
     store_builder: &StoreStrategy<T>,
     linker: &Linker<PluginRunner<T>>,
-    plugins: &'a HashMap<String, PluginConfig>,
+    plugins: &'a BTreeMap<String, PluginConfig>,
     base_path: &Path,
     max_parallel_builds: u8,
     max_parallel_instantiations: u8,

@@ -195,14 +195,14 @@ are forbidden.
   instances, impact, and blockers, then explicitly applies the unchanged plan
   and revision. Completion means verified bytes are installed; it does not
   create a physical-device instance.
-- **Configure a device:** Start from an installed exact plugin release; create a
-  host-ID draft for one physical device; render only closed schema annotations;
-  collect bounded non-secret connector config and exact grants; and show each
-  environment field's deterministic variable name and status without accepting
-  a value. Shape validation executes no guest. Explain that activation performs
-  real connector work, then activate the hidden generation. Completion means the
-  active pointer commits and typed facets become available. Offline config may
-  be saved disabled and unverified.
+- **Configure a device:** Start from an installed exact plugin release; add one
+  stable host-ID entry to deterministic `settings.json`; render only closed
+  schema annotations; collect bounded non-secret connector config and exact
+  grants; and show each environment field's deterministic variable name and
+  status without accepting a value. Shape validation executes no guest. Explain
+  that explicit reload performs real connector work, then prepares and swaps a
+  hidden generation. Completion means the loaded in-memory snapshot exposes its
+  typed facets. Offline config may be saved disabled and unverified.
 - **Observe and control:** Hydrate current snapshots before enabling controls;
   group independently bindable facets under their configured device; show
   availability, freshness/gap, feature support, generation, and safe units; and
@@ -210,20 +210,20 @@ are forbidden.
   Present accepted, acknowledged, completed, observed-completed, rejected,
   cancelled, and ambiguous outcomes honestly. A successful request never alone
   claims that physical state changed.
-- **Author an automation:** Create or branch an immutable draft; edit the same
+- **Author an automation:** Create or branch one workflow file; edit the same
   Rule JSON through canvas plus synchronized outline/inspector; validate shape,
   types, bindings, features, grants, units, and CEL; simulate with explicit
-  hypothetical state/receipts; show a semantic diff excluding layout; save
-  without activating; and explicitly activate against the expected base
-  revision. Completion means one immutable revision is active. Enabled, device
-  health, binding health, and run health remain separate.
+  hypothetical state/receipts; show a semantic diff excluding layout; save with
+  the expected file-content digest; and explicitly reload. Completion means the
+  validated workflow digest is present in the immutable in-memory snapshot.
+  Enabled, device health, binding health, and run health remain separate.
 - **Update or roll back:** Plan the exact release/digest change, trust and
   compatibility result, semantic config/grant diff, and only affected instances
-  and stores. Apply with expected desired/active revisions, preserve the last
-  active version on failure, and show pending versus active. Rollback revalidates
-  the retained predecessor and never claims to undo physical effects or state.
+  and stores. Apply deterministic files with expected content digests and show
+  authored versus loaded state. Source-control rollback revalidates and reloads
+  prior files and never claims to undo physical effects or state.
 - **Activity and run investigation:** Compose only data available through the
-  closed manifest: durable rule runs from `rules.runs.page@1`, operation cards
+  closed manifest: process-epoch rule runs from `rules.runs.page@1`, operation cards
   whose idempotency keys this browser session already holds using
   `operations.result.get@1`, and—only with `litehouse:diagnostics`—allowlisted
   events from `diagnostics.events.page@1`. Filters apply only to fields exposed
@@ -264,8 +264,8 @@ them into loading, success, or failure:
   disabled until authorization plus hydration complete;
 - **degraded/partial** — identify the unavailable facet/plugin/rule without
   treating the whole server as healthy or failed;
-- **desired pending versus active** — show unapplied config/plugin/rule revisions
-  and the last successfully active revision together;
+- **authored pending versus loaded** — show the current file content digest and
+  the last successfully loaded snapshot digest together;
 - **operation running** — retain correlation/idempotency identity and provide
   result lookup rather than a second dispatch;
 - **terminal known** — preserve typed receipt confidence and observed-state
@@ -349,9 +349,10 @@ node/field/port. Zoom and pan have labeled controls and never trap page zoom.
 Animation is nonessential and disabled under reduced motion.
 
 At narrow widths, the outline plus inspector is the primary editor and the canvas
-is an optional full-screen view. The same Rule JSON, compiler, undo/redo command
-history, draft revision, and diagnostics back both. No mobile-only rule format,
-React Flow object persistence, or silent semantic merge is allowed.
+is an optional full-screen view. The same Rule JSON file, compiler, undo/redo
+command history, expected content digest, and diagnostics back both. No mobile-
+only rule format, React Flow object persistence, or silent semantic merge is
+allowed.
 
 ### Structured API and MCP parity
 
@@ -364,21 +365,22 @@ R2, D1, Durable Objects, WebRTC frames, or ad hoc REST paths directly.
 - **System and health:** Server overview, connection banner, and schema/help
   details use `system.get@1`, `system.health.get@1`, and `schemas.get@1`, with
   safe bounded summaries only.
-- **Instances/devices:** Device list/detail, config draft, activation, disable,
-  and delete use exact `instances.*@1` operations. Schema validation is pure,
-  activation is real, cascade is explicit, and private/environment fields follow
-  their projections.
+- **Instances/devices:** Device list/detail and configuration mutations use exact
+  file-backed `instances.*@1` operations guarded by the expected `settings.json`
+  digest. Schema validation is pure, explicit reload performs real connector
+  work, cascade is explicit, and private/environment fields follow their
+  projections.
 - **Capabilities:** Facet rows and controls use `facets.*@1` snapshots/streams and
   one exact feature-gated capability operation. Generation, deadline,
   idempotency, receipt, and ambiguity are preserved.
 - **Rules:** Automation list/editor/simulation/runs use exact `rules.*@1`
-  operations. Immutable revisions, base conflicts, simulation non-dispatch,
-  activation, and run semantics remain visible.
+  operations. Authored file digests, stale-content conflicts, simulation
+  non-dispatch, explicit reload, and process-local run semantics remain visible.
 - **Registry/plugins:** Public browse stays separate from local
   `registry.*@1` and `plugins.*.plan/apply@1`, which own the verified cache and
   affected-store lifecycle.
 - **Results/activity:** A known operation card uses
-  `operations.result.get@1`; durable lists use `rules.runs.page@1`; privileged
+  `operations.result.get@1`; bounded process-epoch lists use `rules.runs.page@1`; privileged
   structured events use `diagnostics.events.page@1`. There is no general
   operation-results listing. Reconnect queries known results rather than
   replaying mutations.

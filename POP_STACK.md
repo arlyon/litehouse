@@ -31,7 +31,7 @@ Current committed foundation:
 | MCP Streamable HTTP | `20f4685` | Explicit-bind, bounded, intentionally unauthenticated `/mcp` transport |
 | Rule JSON planner | `f8c0bb0` | Closed schema, typed DAG compiler, immutable inputs, and pure effect planning |
 | ntfy | `0030efe` | Fixed-origin/topic notification sink with acceptance-only receipts |
-| T8.0 contract freeze | `267917e` | Restart-clean management V1, Fjall 3.1.7, JCS/CEL/time locks, and unchanged provider ABI |
+| T8.0 contract freeze | `267917e` | Restart-clean management V1 and pinned JCS/CEL/time locks; Fjall choice later superseded by file authority |
 | T8.1a Rule JSON V1 contract | `0c4e718` | Complete closed model, generated schema/fixtures/catalog, and private T7 planner lowering |
 | T8.1b Rule semantics | `102e007` | RFC 8785 identity, bounded CEL, exact quantities, and Jiff/tzdb schedules |
 | T8.1c pure planner | `37c4a27`–`1e19721` | Immutable sequential, schedule/admission, and deterministic fork/join microsteps |
@@ -175,11 +175,11 @@ runtime-only credential material left with the proof process.
 | T6f | Completed | ESPHome switches, binary sensors, numeric sensors, lights, fans, sirens, climates, covers, and buttons mapped conservatively |
 | T7 | Completed | Rule JSON schema, typed compiler, immutable input, and pure planner subset |
 | T13a | Completed | Network-reachable bounded Streamable HTTP with explicit no-auth warning |
-| T8.0 | Completed | Restart-clean management/dependency/observation contracts and Fjall 3.1.7 feasibility |
+| T8.0 | Completed | Restart-clean management/dependency/observation contracts; authored persistence now superseded by deterministic files |
 | T8.1a | Completed | Complete Rule JSON V1 model/schema/catalog/fixtures with planner compatibility lowering |
 | T8.1b | Completed | RFC 8785 semantic identity, bounded CEL, exact quantity compilation, and Jiff/tzdb schedules |
 | T8.1c | Completed | Pure deterministic parity for every trigger/node family, admission policy, receipt/timer continuation, and fork/join |
-| T8.2–T8.6 | Pending | Persistent canonical management core and restart-clean execution; adopt the proving handlers |
+| T8.2–T8.6 | In progress | Deterministic settings/workflow files, atomic management writes, and restart-clean execution |
 | T9 | Pending | Portable local server/container and thin Butane/Quadlet output |
 | T10 | Pending | Clean D1 identity, owner account, inventory, and pairing |
 | T11 | Pending | Signaling-only broker and direct WebRTC JSON-RPC |
@@ -219,4 +219,4 @@ After context compaction, reorient in this order:
 4. `git status --short` and `git log --oneline -8`
 5. The active combined T6a + MCP todo subtree
 
-The next implementation action is **persist authored management state in Fjall 3.1.7 (T8.2)**. Do not reopen T0–T7, T8.1a–c, T13a, the provider-WIT observation decision, or the proven three-tool adapter unless a demonstrated regression requires it.
+The next implementation action is **complete deterministic file authority and atomic settings/workflow writes (T8.2)**. Do not reopen T0–T7, T8.1a–c, T13a, the provider-WIT observation decision, or the proven three-tool adapter unless a demonstrated regression requires it.

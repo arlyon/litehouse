@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path, sync::Arc};
+use std::{collections::BTreeMap, path::Path, sync::Arc};
 
 use futures::{StreamExt, TryStreamExt};
 use litehouse_config::{Import, LitehouseConfig, PluginConfig};
@@ -23,7 +23,7 @@ pub async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value
     let linker = Arc::new(linker);
     let engine = Arc::new(engine);
 
-    let dirs: Result<HashMap<_, _>> = ReadDirStream::new(
+    let dirs: Result<BTreeMap<_, _>> = ReadDirStream::new(
         tokio::fs::read_dir(wasm_path)
             .await
             .into_diagnostic()

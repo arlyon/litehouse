@@ -141,22 +141,17 @@ impl Subcommand {
                     .into_diagnostic()
                     .wrap_err("unable to create wasm directory")?;
                 if std::fs::metadata("settings.json").is_ok() {
+                    let config = LitehouseConfig::load()?;
+                    std::fs::create_dir_all(&config.workflows)
+                        .into_diagnostic()
+                        .wrap_err("unable to create configured workflows directory")?;
                     return Ok(());
                 }
-                let default = LitehouseConfig::default();
-                let mut value = serde_json::to_value(default)
+                let mut config = LitehouseConfig::default();
+                std::fs::create_dir_all(&config.workflows)
                     .into_diagnostic()
-                    .wrap_err("unable to encode default settings")?;
-                value
-                    .as_object_mut()
-                    .ok_or_else(|| miette::miette!("default settings must encode as an object"))?
-                    .insert("$schema".to_string(), "schema.json".into());
-                let mut file = std::fs::File::create("settings.json")
-                    .into_diagnostic()
-                    .wrap_err("unable to create settings.json")?;
-                serde_json::to_writer_pretty(&mut file, &value)
-                    .into_diagnostic()
-                    .wrap_err("unable to write settings.json")?;
+                    .wrap_err("unable to create workflows directory")?;
+                config.save().wrap_err("unable to write settings.json")?;
 
                 Ok(())
             }

@@ -28,7 +28,7 @@ restart, DNS change, email, or household-device access.
 Later user-selected decisions supersede stale architecture-PRD language. The
 PRD's FR1/FR5/FR10/FR11/FR14/FR15 and representative acceptance/check text align
 to direct `wasm32-wasip2`, one physical device per instance, R2 plus one
-Rust/Wasm query core, durable rule/management behavior where T8 requires it, a
+Rust/Wasm query core, deterministic authored files plus restart-clean T8 behavior, a
 basic direct WebRTC JSON-RPC path, and a portable first-release container without
 cross-version restore machinery. Its old delivery phases are historical only;
 this issue is the implementation ordering authority.
@@ -390,41 +390,44 @@ quantity validation, deterministic planning, unknown/stale input, and proof the
 planner cannot call a provider or mutate state.
 
 **Rollback:** schema/evaluator versions are immutable/pinned; migration creates a
-new draft and never rewrites an active rule.
+new authored workflow file and never rewrites a file without its expected digest.
 
-### T8 — Persistent management core and restart-clean rule executor
+### T8 — Deterministic management core and restart-clean rule executor
 
 **Prerequisites:** T3 and T7.
 
-**Scope:** atomically persisted instance/rule drafts, immutable revisions,
-active/predecessor pointers, grants, and enabled state in Fjall 3.1.7; the
-complete bounded Rule JSON V1 language and process-local executor; typed source-
-push consumption plus bounded polling through the unchanged provider ABI;
-drafts/validate/plan/apply/activate/rollback; canonical operation handlers;
-optimistic revisions and bounded process-local idempotency; state/event/config/
-registry/rule/diagnostic projections; and fixed OAuth scope requirements. Use
-single-writer cross-keyspace `SyncAll` transactions in a fresh Fjall V3 database,
-RFC 8785 canonicalization via `serde_json_canonicalizer` 0.3.2, bounded CEL
-parsing via default-feature-free `cel` 0.14.0 with a Litehouse-owned checker and
-evaluator, and Jiff 0.2.32 with bundled tzdb 2026c.
+**Scope:** deterministic `settings.json` plus one complete Rule JSON document
+per JSON/YAML file in the configured `workflows/` directory; atomic optimistic-
+digest file writes; explicit all-or-nothing reload; the complete bounded Rule
+JSON V1 language and process-local executor; typed source-push consumption plus
+bounded polling through the unchanged provider ABI; validate/plan/apply/reload;
+canonical operation handlers; bounded process-local idempotency; state/event/
+config/registry/rule/diagnostic projections; and fixed OAuth scope requirements.
+Use stable JSON ordering, normalized lexical workflow discovery, sibling temp
+files plus sync and atomic rename, RFC 8785 canonicalization via
+`serde_json_canonicalizer` 0.3.2, bounded CEL parsing via default-feature-free
+`cel` 0.14.0 with a Litehouse-owned checker and evaluator, and Jiff 0.2.32 with
+bundled tzdb 2026c.
 
 **Not scope:** durable runs, microsteps, timers, trigger queues, effect outbox,
 receipt continuation, catch-up, replay, compensation, or idempotency tombstones;
 transport-specific behavior, UI, new MCP tools, external audit DB, or host escape.
 
-**Acceptance:** authored state is atomic across crash/reopen; a second database
-process is rejected; stale edits conflict; process-local duplicate requests
-deduplicate; restart discards every unfinished run/timer/queue/effect and stales
-old run IDs/cursors; each rule waits for its own hydration barrier before arming;
-time schedules continue only at the next future occurrence; ambiguous effects
-are never retried; disable/drain and predecessor rollback remain explicit;
-authorization, redaction, gaps, and projections are consistent across fake
-adapters. Native, `wasm32-wasip2`, and browser-Wasm rule dependencies compile,
-and observed physical state never changes merely because delivery was accepted.
+**Acceptance:** settings and individual workflows survive interrupted writes
+without truncation; stale content digests conflict; JSON/YAML equivalents compile
+to identical semantics; symlinks, path escapes, duplicate IDs, and invalid files
+fail closed; failed reload preserves the prior in-memory snapshot; process-local
+duplicate requests deduplicate; restart discards every unfinished run/timer/queue/
+effect and stales old run IDs/cursors; each rule waits for its own hydration
+barrier before arming; time schedules continue only at the next future occurrence;
+ambiguous effects are never retried; authorization, redaction, gaps, and
+projections are consistent across fake adapters. Native, `wasm32-wasip2`, and
+browser-Wasm rule dependencies compile, and observed physical state never changes
+merely because delivery was accepted.
 
-**Rollback:** active rule plus predecessor remain pinned; rollback revalidates and
-never rewinds external effects. Removing the executor leaves persisted authored
-state intact and no unfinished work is resumed.
+**Rollback:** source control owns authored history. Restoring prior files followed
+by explicit revalidation/reload never rewinds external effects. Removing the
+executor leaves authored files intact and no unfinished work is resumed.
 
 ### T9 — Portable local server and container
 

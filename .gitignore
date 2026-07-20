@@ -3,7 +3,7 @@
 *.wasm
 !wasi_snapshot_preview1.reactor.wasm
 schema.json
-settings.json
+.litehouse-authoring.lock
 
 # site and greenfield web
 /web/dist/
