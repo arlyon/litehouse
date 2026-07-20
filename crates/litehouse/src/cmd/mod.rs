@@ -369,6 +369,11 @@ impl Subcommand {
                 wasm_path,
                 no_cache,
             } => {
+                let typed = LitehouseConfig::load()?;
+                litehouse_management::WorkflowDirectory::load(&typed.workflows)
+                    .into_diagnostic()
+                    .wrap_err("could not validate authored workflows")?;
+
                 let schema = generate::generate(&wasm_path, !no_cache)
                     .await
                     .wrap_err("unable to generate schema")?;
@@ -436,7 +441,8 @@ impl Subcommand {
                             data2,
                         )
                     })
-                    .wrap_err("could not validate settings.json")
+                    .wrap_err("could not validate settings.json")?;
+                Ok(())
             }
             Subcommand::Publish {
                 package,

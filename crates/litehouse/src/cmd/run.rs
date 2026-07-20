@@ -167,6 +167,18 @@ pub async fn run(wasm_path: &Path, cache: bool, logs_rx: Receiver<LogMessage>) -
     tracing::info!("booting litehouse");
     let config = LitehouseConfig::load().wrap_err("unable to read settings")?;
     validate_runtime_configuration(&config)?;
+    let workflow_repository =
+        litehouse_management::WorkflowRepository::open_with_authoring_root(&config.workflows, ".")
+            .into_diagnostic()
+            .wrap_err("unable to load authored workflows")?;
+    tracing::info!(
+        workflow_count = workflow_repository
+            .snapshot()
+            .into_diagnostic()?
+            .workflows()
+            .len(),
+        "validated authored workflows"
+    );
 
     let server_fut = if let Some(broker) = config.broker {
         tracing::info!("running server");

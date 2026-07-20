@@ -1,4 +1,7 @@
-use litehouse_management::{WorkflowDirectory, WorkflowFileFormat, WorkflowFilesError};
+use litehouse_management::{
+    WorkflowDirectory, WorkflowFileFormat, WorkflowFilesError, WorkflowMutationError,
+    WorkflowRepository,
+};
 use litehouse_rule_json::{HARD_MAX_JSON_BYTES, RuleDocument};
 use std::{
     fs,
@@ -181,6 +184,148 @@ fn yaml_duplicate_keys_tags_non_string_keys_and_floats_fail_closed() {
             Err(WorkflowFilesError::UnsupportedYaml { .. })
         ));
     }
+}
+
+#[test]
+fn repository_reload_is_all_or_nothing() {
+    let directory = TestDirectory::new("repository-reload");
+    directory.write("rule.json", VALID_MINIMAL);
+    let repository = WorkflowRepository::open(directory.path()).unwrap();
+    let original = repository.snapshot().unwrap();
+    fs::write(directory.path().join("rule.json"), b"invalid").unwrap();
+
+    assert!(matches!(
+        repository.reload(),
+        Err(WorkflowMutationError::Files(_))
+    ));
+    assert_eq!(
+        repository.snapshot().unwrap().authored_sha256(),
+        original.authored_sha256()
+    );
+}
+
+#[test]
+fn repository_put_uses_content_digests_and_swaps_the_complete_snapshot() {
+    let directory = TestDirectory::new("repository-put");
+    directory.write("rule.json", VALID_MINIMAL);
+    fs::create_dir_all(directory.path().join("nested")).unwrap();
+    let repository = WorkflowRepository::open(directory.path()).unwrap();
+    let original = repository.snapshot().unwrap();
+    let original_workflow = original.workflows().values().next().unwrap();
+    let original_digest = original_workflow.source_sha256();
+
+    let mut updated: serde_json::Value = serde_json::from_str(VALID_MINIMAL).unwrap();
+    updated["revision"] = serde_json::json!(2);
+    let updated_bytes = serde_json::to_vec_pretty(&updated).unwrap();
+    let updated_snapshot = repository
+        .put("rule.json", Some(original_digest), &updated_bytes)
+        .unwrap();
+    assert_eq!(
+        updated_snapshot
+            .workflows()
+            .values()
+            .next()
+            .unwrap()
+            .compiled()
+            .revision(),
+        2
+    );
+    assert!(matches!(
+        repository.put("rule.json", Some(original_digest), &updated_bytes),
+        Err(WorkflowMutationError::Conflict)
+    ));
+
+    updated["rule_id"] = serde_json::json!("11111111111111111111111111111111");
+    let yaml: RuleDocument = serde_json::from_value(updated).unwrap();
+    let created = repository
+        .put(
+            "nested/second.yaml",
+            None,
+            yaml_serde::to_string(&yaml).unwrap().as_bytes(),
+        )
+        .unwrap();
+    assert_eq!(created.workflows().len(), 2);
+}
+
+#[test]
+fn repository_rejects_a_create_that_would_exceed_the_complete_tree_limit() {
+    let directory = TestDirectory::new("repository-capacity");
+    let workflows = directory.path().join("workflows");
+    fs::create_dir(&workflows).unwrap();
+    fs::write(workflows.join("rule.json"), VALID_MINIMAL).unwrap();
+    for index in 0..4_095 {
+        fs::write(workflows.join(format!("ignored-{index}.txt")), b"").unwrap();
+    }
+    let repository =
+        WorkflowRepository::open_with_authoring_root(&workflows, directory.path()).unwrap();
+
+    let result = repository.put("second.json", None, VALID_MINIMAL.as_bytes());
+    assert!(
+        matches!(
+            result,
+            Err(WorkflowMutationError::Files(
+                WorkflowFilesError::TooManyEntries { .. }
+            ))
+        ),
+        "unexpected result: {result:?}"
+    );
+    assert!(!workflows.join("second.json").exists());
+}
+
+#[test]
+fn repository_returns_busy_instead_of_waiting_on_another_mutation() {
+    let directory = TestDirectory::new("repository-busy");
+    directory.write("rule.json", VALID_MINIMAL);
+    let repository = WorkflowRepository::open(directory.path()).unwrap();
+    let lock = fs::OpenOptions::new()
+        .create(true)
+        .read(true)
+        .write(true)
+        .open(directory.path().join(".litehouse-authoring.lock"))
+        .unwrap();
+    lock.lock().unwrap();
+
+    assert!(matches!(
+        repository.put("second.json", None, VALID_MINIMAL.as_bytes()),
+        Err(WorkflowMutationError::Busy)
+    ));
+}
+
+#[test]
+fn repository_rejects_invalid_or_duplicate_writes_before_commit_and_removes_by_digest() {
+    let directory = TestDirectory::new("repository-remove");
+    directory.write("rule.json", VALID_MINIMAL);
+    fs::create_dir_all(directory.path().join("nested")).unwrap();
+    let repository = WorkflowRepository::open(directory.path()).unwrap();
+    for path in ["../escape.json", "nested//ambiguous.json", "/absolute.json"] {
+        assert!(matches!(
+            repository.put(path, None, VALID_MINIMAL.as_bytes()),
+            Err(WorkflowMutationError::InvalidPath { .. })
+        ));
+    }
+    assert!(
+        repository
+            .put("nested/invalid.json", None, b"invalid")
+            .is_err()
+    );
+    assert!(!directory.path().join("nested/invalid.json").exists());
+    assert!(matches!(
+        repository.put("nested/duplicate.json", None, VALID_MINIMAL.as_bytes()),
+        Err(WorkflowMutationError::DuplicateRuleId { .. })
+    ));
+    assert!(!directory.path().join("nested/duplicate.json").exists());
+
+    let snapshot = repository.snapshot().unwrap();
+    let workflow = snapshot.workflows().values().next().unwrap();
+    assert!(matches!(
+        repository.remove("rule.json", [0; 32]),
+        Err(WorkflowMutationError::Conflict)
+    ));
+    let empty = repository
+        .remove("rule.json", workflow.source_sha256())
+        .unwrap();
+    assert!(empty.workflows().is_empty());
+    assert!(!directory.path().join("rule.json").exists());
 }
 
 #[test]

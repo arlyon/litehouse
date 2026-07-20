@@ -4,7 +4,12 @@ This crate owns deterministic authored-workflow loading and the canonical handle
 used by the first connected-release proof. `WorkflowDirectory` recursively loads
 one strict Rule JSON document per JSON/YAML file through bounded capability-scoped
 handles, rejects symlinks and duplicate rule IDs, and returns one immutable
-compiled snapshot plus an authored-directory SHA-256 digest.
+compiled snapshot plus an authored-directory SHA-256 digest. `WorkflowRepository`
+retains the last valid snapshot, makes explicit reload all-or-nothing, and supports
+create/update/delete mutations guarded by expected source SHA-256 digests. Mutations
+serialize through the authored-directory advisory lock, validate the complete
+candidate set, replace through a synced sibling temporary file, and distinguish
+pre-commit conflicts from indeterminate or externally changed post-commit state.
 
 The existing proof handlers are:
 

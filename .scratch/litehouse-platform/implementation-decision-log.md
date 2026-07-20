@@ -764,3 +764,21 @@ configuration.
   disabled enablement, YAML exclusions, oversized files, and root/child symlinks.
   Rule schema/fixture generation is byte-reproducible, package suites pass, and a
   final adversarial risk review passed after the nonblocking-open hardening.
+
+### R-022 — Mutate and reload authored workflows without partial activation
+
+- **Resolution:** retain the last valid immutable workflow snapshot in a
+  `WorkflowRepository`. Explicit reload, create/update, and delete serialize in
+  process and through the configuration-root authoring lock. Mutations require
+  the expected exact-source SHA-256 (or absence for create), validate syntax,
+  compilation, duplicate identity, and whole-tree capacity before commit, then
+  use a synced sibling temporary file, atomic rename or unlink, and directory
+  sync. Pre-commit conflicts, lock contention, indeterminate durability, failed
+  post-commit reload, and post-commit external divergence remain distinct. The
+  runtime and `litehouse validate` load the complete workflow directory before
+  broker startup, provider schema generation, or plugin instantiation.
+- **Evidence:** tests cover all-or-nothing invalid reload, create/update/delete
+  digest guards, duplicate and malformed source rejection without mutation,
+  normalized paths, lock contention, and the exact complete-tree entry boundary.
+  The management/config suites, native Litehouse all-target check, diagnostics,
+  formatting, T0 baseline, and final adversarial correctness review pass.

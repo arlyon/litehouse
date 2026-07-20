@@ -3206,6 +3206,7 @@ dependencies = [
  "litehouse-auth",
  "litehouse-config",
  "litehouse-contracts",
+ "litehouse-management",
  "litehouse-plugin",
  "litehouse-registry",
  "lz4_flex",

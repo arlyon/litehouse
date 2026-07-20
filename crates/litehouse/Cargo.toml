@@ -31,6 +31,7 @@ jsonc-parser = { version = "0.23.0", features = ["serde", "serde_json"] }
 jsonschema = "0.17.1"
 litehouse-config = { version = "0.1.0", path = "../litehouse-config" }
 litehouse-contracts = { version = "0.1.0", path = "../litehouse-contracts" }
+litehouse-management = { version = "0.1.0", path = "../litehouse-management" }
 base64 = "0.22.1"
 lz4_flex = "0.11.2"
 miette = { version = "7.2.0", features = ["fancy"] }

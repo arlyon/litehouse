@@ -2,6 +2,7 @@ mod workflow_files;
 
 pub use workflow_files::{
     LoadedWorkflow, WorkflowDirectory, WorkflowFileFormat, WorkflowFilesError,
+    WorkflowMutationError, WorkflowRepository,
 };
 
 use litehouse_contracts::management::{OAuthScope, ScopePolicy, management_manifest};
