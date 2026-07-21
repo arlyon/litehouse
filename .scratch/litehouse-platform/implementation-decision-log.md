@@ -782,3 +782,31 @@ configuration.
   normalized paths, lock contention, and the exact complete-tree entry boundary.
   The management/config suites, native Litehouse all-target check, diagnostics,
   formatting, T0 baseline, and final adversarial correctness review pass.
+
+### R-023 — Replace the drifting downstream route with two release phases
+
+- **Resolution:** stop the former T8.3–T15 implementation sequence after the
+  completed T8.2 foundation. Phase 1 is a headless local product whose only
+  product interaction surface is four unauthenticated MCP tools: inventory,
+  query, a closed union over all 29 typed capability operations, and bounded
+  workflow source/diagnostic operations. It bundles exactly ESPHome, Tasmota
+  HTTP, ntfy, and Open-Meteo; runs restart-clean workflows automatically; applies
+  every authored settings/workflow change only after process restart; retains at
+  most 16 terminal outcomes per workflow and 256 server-wide; and ships CLI,
+  schemas, readiness, OCI images, and Compose without UI, identity, registry, or
+  live reload. Network reachability grants full Phase 1 use.
+- **Resolution:** Phase 2 adds one central owner identity path, server pairing,
+  minimal owner/server/pair-epoch/last-seen cloud data, transient signaling,
+  direct authenticated WebRTC JSON-RPC over the Phase 1 canonical domains, and a
+  remote UI. The cloud never stores local settings, workflows, observations,
+  device state, credentials, requests, or traces. The UI cannot edit settings or
+  restart the server. The broad management catalog, registry/install/update,
+  remote settings/restart, standalone identity, durable history, and wider
+  platform operations move to Phase 3.
+- **Evidence:** code audits found the four provider implementations, typed host,
+  pure Rule JSON planner, workflow file authority, and bounded MCP transport are
+  reusable, while the current run loop, three-tool single-provider adapter,
+  executor, readiness, provider bundle, multi-architecture image, central
+  identity, pairing, signaling, RPC, and remote UI remain incomplete. The fresh
+  Wayfinder map at `.scratch/litehouse-release/map.md` supersedes downstream
+  implementation planning in the original platform map.

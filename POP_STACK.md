@@ -180,24 +180,19 @@ runtime-only credential material left with the proof process.
 | T8.1a | Completed | Complete Rule JSON V1 model/schema/catalog/fixtures with planner compatibility lowering |
 | T8.1b | Completed | RFC 8785 semantic identity, bounded CEL, exact quantity compilation, and Jiff/tzdb schedules |
 | T8.1c | Completed | Pure deterministic parity for every trigger/node family, admission policy, receipt/timer continuation, and fork/join |
-| T8.2 | Complete | Deterministic settings/workflow files, atomic management writes, and all-or-nothing reload |
-| T8.3–T8.6 | In progress | Restart-clean observation ingestion, scheduling, execution, and receipts |
-| T9 | Pending | Portable local server/container and thin Butane/Quadlet output |
-| T10 | Pending | Clean D1 identity, owner account, inventory, and pairing |
-| T11 | Pending | Signaling-only broker and direct WebRTC JSON-RPC |
-| T12 / T12b | Pending | Connected greenfield web journeys, then legacy site retirement |
-| T13 | Pending | Promote the same three-tool adapter to authenticated stateful Streamable HTTP |
-| T14 | Pending | Local connected-release candidate proof; scope must acknowledge deferred T5 unless restored |
-| T15 | Deferred | Separately selected external signing, publication, cloud, DNS, staging, and deployment qualification |
+| T8.2 | Complete | Deterministic settings/workflow files, atomic management writes, and all-or-nothing reload foundation |
+| Phase 1 | Re-wayfinding | Headless local daemon: four bundled providers, four unauthenticated MCP tools, restart-clean rules, readiness, OCI/Compose |
+| Phase 2 | Re-wayfinding | Central owner identity/pairing, transient signaling, authenticated direct WebRTC JSON-RPC, remote UI |
+| Phase 3 | Deferred | Broad management catalog, registry/install/update, remote settings/restart, standalone identity, durable diagnostics, and platform expansion |
 
 ## Standing boundaries
 
-- Preserve existing runtime compiler/cache, event loop, store strategies, and legacy plugin behavior.
+- Preserve the proven compiler/cache and typed provider seams; Phase 1 replaces the legacy plugin daemon rather than running two worlds.
 - One configured provider instance represents one physical device.
 - Rule JSON remains authoritative; UI projections are not alternate state.
 - Open Design remains digest-locked static source.
 - Long-lived protected values are injected and never persisted by Litehouse.
-- The existing registry is not rewritten in the active slice.
+- Phase 1 bundles exactly ESPHome, Tasmota HTTP, ntfy, and Open-Meteo; registry/install/update work is Phase 3.
 - No live registry/cloud/DNS/signing/deployment mutation is authorized.
 - Current device authority is limited to the approved representative ESPHome node and supervised Relay 1 set-and-restore proof.
 - Never print or commit the encryption key, raw protected config, or unrestricted device identifiers.
@@ -206,7 +201,7 @@ runtime-only credential material left with the proof process.
 
 - Workspace-wide `cargo check --workspace --all-targets` remains blocked by the pre-existing registry test reference to unresolved `crate::registry` in `partitioned_store.rs`.
 - `cargo groups test bin` may remain unavailable because `cargo-groups`/`cargo-binstall` is not installed; run the documented clean-worktree package equivalents and report the limitation.
-- `/mcp` is network-reachable but intentionally unauthenticated in T13a: reachability grants use. Authenticated `/mcp` remains T13 work.
+- Phase 1 MCP is intentionally unauthenticated: network reachability grants full use of the four closed tools. Phase 2 authenticates the remote UI's direct WebRTC RPC, not MCP.
 - T8 deliberately does not resume or replay in-flight automation after restart; authored state persists, then rules restart only after their own dependencies rehydrate.
 - ESPHome's mapped API 1.14 entities are covered by deterministic typed feature-gate and command fixtures; unsupported entities remain bounded diagnostics.
 - Shared-store T3 failures still require process restart for reactivation; this provider uses the default per-instance strategy.
@@ -216,9 +211,9 @@ runtime-only credential material left with the proof process.
 After context compaction, reorient in this order:
 
 1. `POP_STACK.md`
-2. `.scratch/litehouse-platform/implementation-decision-log.md`
-3. `.scratch/litehouse-platform/issues/40-prepare-implementation-ready-handoff.md`
+2. `.scratch/litehouse-release/map.md`
+3. `.scratch/litehouse-platform/implementation-decision-log.md`
 4. `git status --short` and `git log --oneline -8`
-5. The active combined T6a + MCP todo subtree
+5. Todo roots `Deliver Phase 1 local MCP release` and `Deliver Phase 2 remote UI release`
 
-The next implementation action is **connect the immutable authored snapshot to restart-clean observation ingestion and execution (T8.3)**. Do not reopen T0–T7, T8.1a–c, T8.2, T13a, the provider-WIT observation decision, or the proven three-tool adapter unless a demonstrated regression requires it.
+The next action is **resolve the new two-phase Wayfinder frontier and prepare the Phase 1 implementation handoff**. The former T8.3–T15 route and 75-operation platform catalog are historical input, not current implementation authority. Do not reopen completed T0–T8.2 foundations without a demonstrated defect.

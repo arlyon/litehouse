@@ -1,8 +1,13 @@
 # Find the route to Litehouse's first connected release
 
 Label: wayfinder:map
-Status: active
+Status: superseded-after-t8.2
 Tracker: local-markdown
+
+> Downstream implementation planning after completed T8.2 is superseded by
+> [Ship Litehouse through local MCP and remote UI](../litehouse-release/map.md).
+> Resolved research and decisions here remain historical evidence; the former
+> T8.3–T15 route is no longer implementation authority.
 
 ## Destination
 
