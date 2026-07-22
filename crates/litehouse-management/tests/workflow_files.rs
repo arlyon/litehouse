@@ -205,7 +205,7 @@ fn repository_reload_is_all_or_nothing() {
 }
 
 #[test]
-fn repository_put_uses_content_digests_and_swaps_the_complete_snapshot() {
+fn repository_mutations_require_reload_before_the_loaded_snapshot_changes() {
     let directory = TestDirectory::new("repository-put");
     directory.write("rule.json", VALID_MINIMAL);
     fs::create_dir_all(directory.path().join("nested")).unwrap();
@@ -230,6 +230,11 @@ fn repository_put_uses_content_digests_and_swaps_the_complete_snapshot() {
             .revision(),
         2
     );
+    assert_eq!(
+        repository.snapshot().unwrap().authored_sha256(),
+        original.authored_sha256(),
+        "authored writes must not replace the process-loaded snapshot"
+    );
     assert!(matches!(
         repository.put("rule.json", Some(original_digest), &updated_bytes),
         Err(WorkflowMutationError::Conflict)
@@ -245,6 +250,11 @@ fn repository_put_uses_content_digests_and_swaps_the_complete_snapshot() {
         )
         .unwrap();
     assert_eq!(created.workflows().len(), 2);
+    assert_eq!(repository.snapshot().unwrap().workflows().len(), 1);
+
+    let reloaded = repository.reload().unwrap();
+    assert_eq!(reloaded.authored_sha256(), created.authored_sha256());
+    assert_eq!(repository.snapshot().unwrap().workflows().len(), 2);
 }
 
 #[test]
@@ -325,7 +335,13 @@ fn repository_rejects_invalid_or_duplicate_writes_before_commit_and_removes_by_d
         .remove("rule.json", workflow.source_sha256())
         .unwrap();
     assert!(empty.workflows().is_empty());
+    assert!(
+        !repository.snapshot().unwrap().workflows().is_empty(),
+        "deletion must not change the process-loaded snapshot"
+    );
     assert!(!directory.path().join("rule.json").exists());
+    repository.reload().unwrap();
+    assert!(repository.snapshot().unwrap().workflows().is_empty());
 }
 
 #[test]

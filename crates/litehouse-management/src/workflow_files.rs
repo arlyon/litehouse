@@ -166,6 +166,8 @@ impl WorkflowRepository {
         })
     }
 
+    /// Returns the immutable workflow set loaded for the current process epoch.
+    /// Authored file mutations do not change this snapshot.
     pub fn snapshot(&self) -> Result<Arc<WorkflowDirectory>, WorkflowMutationError> {
         self.current
             .read()
@@ -173,6 +175,8 @@ impl WorkflowRepository {
             .map_err(|_| WorkflowMutationError::StatePoisoned)
     }
 
+    /// Explicitly replaces the loaded snapshot after complete directory validation.
+    /// Phase 1 calls this only while constructing a process epoch, never from MCP.
     pub fn reload(&self) -> Result<Arc<WorkflowDirectory>, WorkflowMutationError> {
         let _mutation = self
             .mutation
@@ -189,6 +193,8 @@ impl WorkflowRepository {
         Ok(candidate)
     }
 
+    /// Atomically writes authored source and returns the validated authored set.
+    /// The process-loaded snapshot remains unchanged until an explicit reload or restart.
     pub fn put(
         &self,
         relative_path: &str,
@@ -249,9 +255,11 @@ impl WorkflowRepository {
         if written.relative_path() != relative_path || written.source_sha256() != source_sha256 {
             return Err(WorkflowMutationError::AuthoredChangedAfterCommit { path: relative });
         }
-        self.swap_snapshot(candidate)
+        Ok(candidate)
     }
 
+    /// Atomically removes authored source and returns the validated authored set.
+    /// The process-loaded snapshot remains unchanged until an explicit reload or restart.
     pub fn remove(
         &self,
         relative_path: &str,
@@ -290,18 +298,6 @@ impl WorkflowRepository {
         {
             return Err(WorkflowMutationError::AuthoredChangedAfterCommit { path: relative });
         }
-        self.swap_snapshot(candidate)
-    }
-
-    fn swap_snapshot(
-        &self,
-        candidate: Arc<WorkflowDirectory>,
-    ) -> Result<Arc<WorkflowDirectory>, WorkflowMutationError> {
-        let mut current = self
-            .current
-            .write()
-            .map_err(|_| WorkflowMutationError::StatePoisoned)?;
-        *current = candidate.clone();
         Ok(candidate)
     }
 }
