@@ -3209,6 +3209,7 @@ dependencies = [
  "litehouse-management",
  "litehouse-plugin",
  "litehouse-registry",
+ "litehouse-rule-json",
  "lz4_flex",
  "miette",
  "opendal",

@@ -6,7 +6,7 @@ mod packages;
 mod run;
 mod validate;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use auth::AuthCommand;
 use jsonc_parser::CollectOptions;
@@ -145,6 +145,7 @@ impl Subcommand {
                     std::fs::create_dir_all(&config.workflows)
                         .into_diagnostic()
                         .wrap_err("unable to create configured workflows directory")?;
+                    write_phase1_schemas()?;
                     return Ok(());
                 }
                 let mut config = LitehouseConfig::default();
@@ -152,6 +153,7 @@ impl Subcommand {
                     .into_diagnostic()
                     .wrap_err("unable to create workflows directory")?;
                 config.save().wrap_err("unable to write settings.json")?;
+                write_phase1_schemas()?;
 
                 Ok(())
             }
@@ -553,5 +555,57 @@ impl Subcommand {
             }
             Subcommand::Auth { auth_command } => auth::do_auth(auth_command).await,
         }
+    }
+}
+
+fn write_phase1_schemas() -> Result<()> {
+    write_schema_file(
+        Path::new("schema.json"),
+        &generated_settings_schema_bytes()?,
+    )?;
+    write_schema_file(
+        Path::new("rule.schema.json"),
+        &litehouse_rule_json::schema::generated_rule_schema_bytes(),
+    )
+}
+
+fn generated_settings_schema_bytes() -> Result<Vec<u8>> {
+    let schema = schemars::schema_for!(LitehouseConfig);
+    let mut bytes = serde_json::to_vec_pretty(&schema)
+        .into_diagnostic()
+        .wrap_err("unable to encode settings schema")?;
+    bytes.push(b'\n');
+    Ok(bytes)
+}
+
+fn write_schema_file(path: &Path, bytes: &[u8]) -> Result<()> {
+    std::fs::write(path, bytes)
+        .into_diagnostic()
+        .wrap_err_with(|| format!("unable to write {}", path.display()))
+}
+
+#[cfg(test)]
+mod phase1_tests {
+    use super::*;
+
+    #[test]
+    fn generated_settings_schema_is_deterministic_and_closed() {
+        let first = generated_settings_schema_bytes().unwrap();
+        let second = generated_settings_schema_bytes().unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.last(), Some(&b'\n'));
+
+        let schema: serde_json::Value = serde_json::from_slice(&first).unwrap();
+        assert_eq!(schema["additionalProperties"], false);
+        assert!(schema["properties"]["workflows"].is_object());
+        assert!(schema["properties"]["plugins"].is_object());
+    }
+
+    #[test]
+    fn generated_rule_schema_is_valid_json_with_a_trailing_newline() {
+        let bytes = litehouse_rule_json::schema::generated_rule_schema_bytes();
+        assert_eq!(bytes.last(), Some(&b'\n'));
+        let schema: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(schema["$id"], litehouse_rule_json::SCHEMA_URL);
     }
 }
