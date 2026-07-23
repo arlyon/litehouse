@@ -3,10 +3,12 @@
 mod auth;
 mod generate;
 mod packages;
-mod run;
 mod validate;
 
-use std::path::{Path, PathBuf};
+use std::{
+    net::SocketAddr,
+    path::{Path, PathBuf},
+};
 
 use auth::AuthCommand;
 use jsonc_parser::CollectOptions;
@@ -43,9 +45,18 @@ struct FeedbackMessage {
 pub enum Subcommand {
     /// Run the litehouse server
     Run {
-        /// The path to look for wasm files in.
-        #[clap(default_value = "./wasm", short, long)]
+        /// Directory containing the four bundled provider components.
+        #[clap(default_value = "./components", short, long)]
         wasm_path: PathBuf,
+        /// Address for the unauthenticated MCP listener.
+        #[clap(long, default_value = "127.0.0.1:8080")]
+        bind: SocketAddr,
+        /// Exact Host headers accepted by MCP.
+        #[clap(long = "allowed-host", default_value = "127.0.0.1")]
+        allowed_hosts: Vec<String>,
+        /// Exact HTTP(S) Origin headers accepted by MCP.
+        #[clap(long = "allowed-origin", default_value = "http://localhost")]
+        allowed_origins: Vec<String>,
         /// Whether to enable the wasm cache
         #[clap(long)]
         no_cache: bool,
@@ -132,14 +143,14 @@ pub enum Subcommand {
 }
 
 impl Subcommand {
-    pub async fn run(self, logs_rx: tokio::sync::broadcast::Receiver<LogMessage>) -> Result<()> {
+    pub async fn run(self, _logs_rx: tokio::sync::broadcast::Receiver<LogMessage>) -> Result<()> {
         let registry = Registry::build("default".to_string());
 
         match self {
             Subcommand::Init => {
-                std::fs::create_dir_all("wasm")
+                std::fs::create_dir_all("components")
                     .into_diagnostic()
-                    .wrap_err("unable to create wasm directory")?;
+                    .wrap_err("unable to create components directory")?;
                 if std::fs::metadata("settings.json").is_ok() {
                     let config = LitehouseConfig::load()?;
                     std::fs::create_dir_all(&config.workflows)
@@ -246,8 +257,11 @@ impl Subcommand {
             }
             Subcommand::Run {
                 wasm_path,
+                bind,
+                allowed_hosts,
+                allowed_origins,
                 no_cache,
-            } => run::run(&wasm_path, !no_cache, logs_rx)
+            } => crate::daemon::run(&wasm_path, !no_cache, bind, allowed_hosts, allowed_origins)
                 .await
                 .wrap_err("unable to start litehouse"),
             Subcommand::Inspect {

@@ -11,8 +11,8 @@ use tracing_subscriber::{EnvFilter, Layer, layer::SubscriberExt, util::Subscribe
 
 mod cache;
 mod cmd;
+mod daemon;
 mod runtime;
-mod server;
 mod store;
 mod util;
 
