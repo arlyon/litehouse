@@ -793,6 +793,9 @@ enum ActorRequest {
         context: CallContext,
         reply: oneshot::Sender<Result<MomentaryActionReceipt, ProviderHostError>>,
     },
+    Shutdown {
+        reply: oneshot::Sender<Result<(), ProviderHostError>>,
+    },
 }
 
 #[derive(Clone)]
@@ -813,6 +816,23 @@ impl ProviderHandle {
 
     pub fn is_running(&self) -> bool {
         !self.sender.is_closed()
+    }
+
+    pub async fn shutdown(&self, timeout: Duration) -> Result<(), ProviderHostError> {
+        if timeout.is_zero() {
+            return Err(ProviderHostError::InvalidConfiguration);
+        }
+        let deadline = tokio::time::Instant::now() + timeout;
+        let (reply, result) = oneshot::channel();
+        let permit = tokio::time::timeout_at(deadline, self.sender.reserve())
+            .await
+            .map_err(|_| deadline_error(deadline))?
+            .map_err(|_| ProviderHostError::ActorStopped)?;
+        permit.send(ActorRequest::Shutdown { reply });
+        tokio::time::timeout_at(deadline, result)
+            .await
+            .map_err(|_| deadline_error(deadline))?
+            .map_err(|_| ProviderHostError::ActorStopped)?
     }
 
     pub async fn query(
@@ -2111,6 +2131,21 @@ async fn run_actor(mut actor: ActorState, mut receiver: mpsc::Receiver<ActorRequ
                 let (r, f) = actor.invoke_momentary(endpoint, context).await;
                 let _ = reply.send(r);
                 f
+            }
+            ActorRequest::Shutdown { reply } => {
+                receiver.close();
+                let result = actor
+                    .fabric
+                    .lock()
+                    .map_err(|_| ProviderHostError::FabricUnavailable)
+                    .and_then(|mut fabric| {
+                        fabric
+                            .trap_provider(&actor.provider)
+                            .map_err(|_| ProviderHostError::FabricRejected)
+                    });
+                drop(actor);
+                let _ = reply.send(result);
+                return;
             }
         };
         if fatal {

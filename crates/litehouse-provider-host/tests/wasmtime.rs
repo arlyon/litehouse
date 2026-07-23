@@ -298,12 +298,13 @@ async fn typed_handles_stay_in_actor_while_host_routes_query_set_send_and_withdr
         })
     ));
 
-    drop(handle);
-    for _ in 0..20 {
-        if fabric.lock().unwrap().registry().is_empty() {
-            return;
-        }
-        tokio::time::sleep(Duration::from_millis(10)).await;
-    }
-    panic!("provider endpoints were not withdrawn after actor shutdown");
+    handle.shutdown(Duration::from_secs(1)).await.unwrap();
+    assert!(!handle.is_running());
+    assert!(fabric.lock().unwrap().registry().is_empty());
+    assert!(matches!(
+        handle
+            .query(&relay, generation, context("query-after-shutdown", None))
+            .await,
+        Err(ProviderHostError::ActorStopped)
+    ));
 }
