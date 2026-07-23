@@ -1,7 +1,38 @@
-version: "3"
+# Initialise once before starting:
+#   mkdir -p litehouse-config
+#   docker compose run --rm litehouse init
 services:
   litehouse:
+    build:
+      context: ..
+      target: litehouse
     image: ghcr.io/arlyon/litehouse:latest
+    user: "${UID:-1000}:${GID:-1000}"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "127.0.0.1:8080:8080"
     volumes:
-      # Contains settings.json, schema.json, wasm/, and workflows/.
-      - /path/to/litehouse:/config
+      - ./litehouse-config:/config
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=16m
+    command:
+      - run
+      - --wasm-path
+      - /opt/litehouse/components
+      - --bind
+      - 0.0.0.0:8080
+      - --allowed-host
+      - localhost
+      - --allowed-origin
+      - http://localhost:8080
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
