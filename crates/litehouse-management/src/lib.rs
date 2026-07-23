@@ -463,14 +463,100 @@ pub enum OutcomeConfidence {
     OutcomeUnknown,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum BundledProvider {
+    Esphome,
+    Tasmota,
+    Ntfy,
+    OpenMeteo,
+}
+
+impl BundledProvider {
+    pub const fn package(self) -> &'static str {
+        match self {
+            Self::Esphome => "esphome",
+            Self::Tasmota => "tasmota",
+            Self::Ntfy => "ntfy",
+            Self::OpenMeteo => "open-meteo",
+        }
+    }
+
+    pub const fn version(self) -> &'static str {
+        match self {
+            Self::Tasmota => "0.1.1",
+            Self::Esphome | Self::Ntfy | Self::OpenMeteo => "0.1.0",
+        }
+    }
+
+    pub const fn component_file_name(self) -> &'static str {
+        match self {
+            Self::Esphome => "esphome.wasm",
+            Self::Tasmota => "tasmota.wasm",
+            Self::Ntfy => "ntfy.wasm",
+            Self::OpenMeteo => "open_meteo.wasm",
+        }
+    }
+}
+
+pub const BUNDLED_PROVIDERS: [BundledProvider; 4] = [
+    BundledProvider::Esphome,
+    BundledProvider::Tasmota,
+    BundledProvider::Ntfy,
+    BundledProvider::OpenMeteo,
+];
+
+#[derive(Clone)]
+pub struct ManagedProvider {
+    kind: BundledProvider,
+    handle: ProviderHandle,
+}
+
+impl ManagedProvider {
+    pub fn new(kind: BundledProvider, handle: ProviderHandle) -> Self {
+        Self { kind, handle }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ManagementServiceBuildError {
+    #[error("provider instance {instance_id:?} appears more than once")]
+    DuplicateInstance { instance_id: String },
+}
+
 #[derive(Clone)]
 pub struct ManagementService {
-    provider: ProviderHandle,
+    providers: Arc<[ManagedProvider]>,
 }
 
 impl ManagementService {
+    pub fn from_bundled(
+        providers: impl IntoIterator<Item = ManagedProvider>,
+    ) -> Result<Self, ManagementServiceBuildError> {
+        let mut providers: Vec<_> = providers.into_iter().collect();
+        providers.sort_by(|left, right| {
+            left.handle
+                .provider()
+                .instance()
+                .as_str()
+                .cmp(right.handle.provider().instance().as_str())
+        });
+        for adjacent in providers.windows(2) {
+            let left = adjacent[0].handle.provider().instance().as_str();
+            let right = adjacent[1].handle.provider().instance().as_str();
+            if left == right {
+                return Err(ManagementServiceBuildError::DuplicateInstance {
+                    instance_id: left.to_owned(),
+                });
+            }
+        }
+        Ok(Self {
+            providers: providers.into(),
+        })
+    }
+
     pub fn for_esphome(provider: ProviderHandle) -> Self {
-        Self { provider }
+        Self::from_bundled([ManagedProvider::new(BundledProvider::Esphome, provider)])
+            .expect("one provider cannot contain a duplicate instance")
     }
 
     pub async fn inventory_snapshot(
@@ -481,51 +567,52 @@ impl ManagementService {
         self.authorize(principal, INVENTORY_OPERATION)?;
         operation_timeout(INVENTORY_OPERATION, request.timeout_ms)?;
 
-        let running = self.provider.is_running();
-        let descriptors = self.provider.descriptors();
-        let truncated = descriptors.len() > MAX_INVENTORY_FACETS;
-        let facets: Vec<InventoryFacet> = descriptors
+        let total_facets = self
+            .providers
             .iter()
-            .take(MAX_INVENTORY_FACETS)
-            .map(|descriptor| {
-                let endpoint = descriptor.endpoint();
-                let identity = endpoint.identity();
-                InventoryFacet {
-                    facet_id: identity.facet().as_str().to_owned(),
-                    generation: endpoint.generation().get(),
-                    contract: format!(
-                        "{}@{}",
-                        identity.contract().name(),
-                        identity.contract().major()
-                    ),
-                    label: descriptor
-                        .label()
-                        .unwrap_or_else(|| identity.facet().as_str())
-                        .to_owned(),
-                    available: running,
-                    features: endpoint
-                        .features()
-                        .iter()
-                        .map(|feature| feature.as_str().to_owned())
-                        .collect(),
-                    operations: canonical_operations(descriptor.kind()),
-                }
-            })
-            .collect();
-        let provider = self.provider.provider();
-        let instance_id = provider.instance().as_str().to_owned();
-        tracing::info!(
-            operation_id = INVENTORY_OPERATION,
-            principal = %principal.id(),
-            facet_count = facets.len(),
-            truncated,
-            "management operation completed"
-        );
-        Ok(InventorySnapshot {
-            instances: vec![InventoryInstance {
+            .map(|provider| provider.handle.descriptors().len())
+            .sum::<usize>();
+        let truncated = total_facets > MAX_INVENTORY_FACETS;
+        let mut remaining = MAX_INVENTORY_FACETS;
+        let mut instances = Vec::with_capacity(self.providers.len());
+        for managed in self.providers.iter() {
+            let running = managed.handle.is_running();
+            let descriptors = managed.handle.descriptors();
+            let facets = descriptors
+                .iter()
+                .take(remaining)
+                .map(|descriptor| {
+                    let endpoint = descriptor.endpoint();
+                    let identity = endpoint.identity();
+                    InventoryFacet {
+                        facet_id: identity.facet().as_str().to_owned(),
+                        generation: endpoint.generation().get(),
+                        contract: format!(
+                            "{}@{}",
+                            identity.contract().name(),
+                            identity.contract().major()
+                        ),
+                        label: descriptor
+                            .label()
+                            .unwrap_or_else(|| identity.facet().as_str())
+                            .to_owned(),
+                        available: running,
+                        features: endpoint
+                            .features()
+                            .iter()
+                            .map(|feature| feature.as_str().to_owned())
+                            .collect(),
+                        operations: canonical_operations(descriptor.kind()),
+                    }
+                })
+                .collect::<Vec<_>>();
+            remaining = remaining.saturating_sub(facets.len());
+            let provider = managed.handle.provider();
+            let instance_id = provider.instance().as_str().to_owned();
+            instances.push(InventoryInstance {
                 instance_id: instance_id.clone(),
-                package: "esphome".into(),
-                version: "0.1.0".into(),
+                package: managed.kind.package().to_owned(),
+                version: managed.kind.version().to_owned(),
                 display_name: instance_id,
                 status: if running {
                     InstanceStatus::Active
@@ -534,7 +621,18 @@ impl ManagementService {
                 },
                 generation: provider.generation().get(),
                 facets,
-            }],
+            });
+        }
+        tracing::info!(
+            operation_id = INVENTORY_OPERATION,
+            principal = %principal.id(),
+            instance_count = instances.len(),
+            facet_count = total_facets.min(MAX_INVENTORY_FACETS),
+            truncated,
+            "management operation completed"
+        );
+        Ok(InventorySnapshot {
+            instances,
             truncated,
         })
     }
@@ -547,11 +645,10 @@ impl ManagementService {
         self.authorize(principal, QUERY_OPERATION)?;
         validate_facet_input(QUERY_OPERATION, &request.facet_id, request.facet_generation)?;
         let timeout = operation_timeout(QUERY_OPERATION, request.timeout_ms)?;
-        let endpoint = self.resolve(QUERY_OPERATION, &request.facet_id)?;
+        let (provider, endpoint) = self.resolve(QUERY_OPERATION, &request.facet_id)?;
         let generation = generation(QUERY_OPERATION, request.facet_generation)?;
         let context = call_context(timeout, None);
-        let state = self
-            .provider
+        let state = provider
             .query(&endpoint, generation, context)
             .await
             .map_err(|error| provider_error(QUERY_OPERATION, error))?;
@@ -579,7 +676,7 @@ impl ManagementService {
             ));
         }
         let timeout = operation_timeout(SET_OPERATION, request.timeout_ms)?;
-        let endpoint = self.resolve(SET_OPERATION, &request.facet_id)?;
+        let (provider, endpoint) = self.resolve(SET_OPERATION, &request.facet_id)?;
         if endpoint.contract().name() != "on-off" {
             return Err(caller_error(
                 SET_OPERATION,
@@ -589,8 +686,7 @@ impl ManagementService {
         }
         let generation = generation(SET_OPERATION, request.facet_generation)?;
         let context = call_context(timeout, Some(request.idempotency_key));
-        let receipt = self
-            .provider
+        let receipt = provider
             .set_on_off(&endpoint, generation, request.on, context)
             .await
             .map_err(|error| provider_error(SET_OPERATION, error))?;
@@ -677,23 +773,43 @@ impl ManagementService {
         &self,
         operation_id: &'static str,
         facet_id: &str,
-    ) -> Result<fabric::EndpointIdentity, ManagementError> {
-        self.provider
-            .descriptors()
-            .iter()
-            .find(|descriptor| descriptor.endpoint().identity().facet().as_str() == facet_id)
-            .map(|descriptor| descriptor.endpoint().identity().clone())
-            .ok_or_else(|| {
-                management_error(
-                    operation_id,
-                    ErrorGroup::Binding,
-                    ErrorCode::NotFound,
-                    Some(ErrorOrigin::Caller),
-                    RetryKind::Never,
-                    "facet was not found",
-                    OutcomeConfidence::Definite,
-                )
-            })
+    ) -> Result<(ProviderHandle, fabric::EndpointIdentity), ManagementError> {
+        let mut matches = self.providers.iter().filter_map(|provider| {
+            provider
+                .handle
+                .descriptors()
+                .iter()
+                .find(|descriptor| descriptor.endpoint().identity().facet().as_str() == facet_id)
+                .map(|descriptor| {
+                    (
+                        provider.handle.clone(),
+                        descriptor.endpoint().identity().clone(),
+                    )
+                })
+        });
+        let Some(found) = matches.next() else {
+            return Err(management_error(
+                operation_id,
+                ErrorGroup::Binding,
+                ErrorCode::NotFound,
+                Some(ErrorOrigin::Caller),
+                RetryKind::Never,
+                "facet was not found",
+                OutcomeConfidence::Definite,
+            ));
+        };
+        if matches.next().is_some() {
+            return Err(management_error(
+                operation_id,
+                ErrorGroup::Binding,
+                ErrorCode::Ambiguous,
+                Some(ErrorOrigin::Caller),
+                RetryKind::Never,
+                "facet identity is ambiguous across provider instances",
+                OutcomeConfidence::Definite,
+            ));
+        }
+        Ok(found)
     }
 }
 
@@ -1311,6 +1427,39 @@ fn management_error(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn bundled_provider_catalog_is_exact_and_stable() {
+        assert_eq!(
+            BUNDLED_PROVIDERS.map(|provider| (
+                provider.package(),
+                provider.version(),
+                provider.component_file_name()
+            )),
+            [
+                ("esphome", "0.1.0", "esphome.wasm"),
+                ("tasmota", "0.1.1", "tasmota.wasm"),
+                ("ntfy", "0.1.0", "ntfy.wasm"),
+                ("open-meteo", "0.1.0", "open_meteo.wasm"),
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn empty_bundled_inventory_is_valid() {
+        let service = ManagementService::from_bundled([]).unwrap();
+        let principal = Principal::proving("phase1-test").unwrap();
+        assert_eq!(
+            service
+                .inventory_snapshot(&principal, InventoryRequest::default())
+                .await
+                .unwrap(),
+            InventorySnapshot {
+                instances: Vec::new(),
+                truncated: false,
+            }
+        );
+    }
 
     #[test]
     fn proving_principal_has_only_read_and_operate() {

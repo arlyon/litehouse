@@ -13,7 +13,10 @@ indeterminate or externally changed post-commit state. They never change the loa
 snapshot: Phase 1 activates authored settings and workflows only by starting a new
 process epoch.
 
-The existing proof handlers are:
+`ManagementService::from_bundled` aggregates a deterministic set of exactly the
+four Phase 1 provider kinds. Inventory is ordered by provider instance, bounded
+across the complete set, and facet lookup fails closed when an unqualified facet
+key is ambiguous across instances. The existing proof handlers are:
 
 - `inventory_snapshot`
 - `facet_query`
