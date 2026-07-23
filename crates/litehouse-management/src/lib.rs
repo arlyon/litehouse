@@ -1,19 +1,30 @@
+mod interaction;
 mod workflow_files;
 
+pub use interaction::{
+    ColorDirection, InteractionColor, InteractionColorSpace, InteractionCoveringAxis,
+    InteractionNotificationPriority, InteractionRequest, InteractionTarget,
+    InteractionThermostatMode, LevelDirection,
+};
 pub use workflow_files::{
     LoadedWorkflow, WorkflowDirectory, WorkflowFileFormat, WorkflowFilesError,
     WorkflowMutationError, WorkflowRepository, WorkflowValidation,
 };
 
-use litehouse_contracts::management::{OAuthScope, ScopePolicy, management_manifest};
+use litehouse_contracts::management::{
+    CAPABILITY_OPERATION_IDS, OAuthScope, ScopePolicy, management_manifest,
+};
 use litehouse_provider_host::{
-    Availability as HostAvailability, CallContext, ColorModel as HostColorModel,
-    ColorValue as HostColorValue, CoveringAxis as HostCoveringAxis,
+    Availability as HostAvailability, CallContext, ColorModel as HostColorModel, ColorMoveRequest,
+    ColorSetRequest, ColorStepRequest, ColorValue as HostColorValue, CoupledLevelMoveRequest,
+    CoupledLevelRequest, CoupledLevelStepRequest, CoveringAxis as HostCoveringAxis,
     CoveringMovement as HostCoveringMovement, FacetKind, FacetState as HostFacetState,
-    FacetValue as HostFacetValue, KnownThermostatMode as HostKnownThermostatMode, ProviderHandle,
-    ProviderHostError, Quality as HostQuality, ReceiptConfidence as HostReceiptConfidence,
-    ThermostatAction as HostThermostatAction, ThermostatMode as HostThermostatMode,
-    ThermostatTargets as HostThermostatTargets, UnavailabilityReason as HostUnavailabilityReason,
+    FacetValue as HostFacetValue, KnownThermostatMode as HostKnownThermostatMode, LevelMoveRequest,
+    LevelSetRequest, LevelStepRequest, ProviderHandle, ProviderHostError, Quality as HostQuality,
+    Quantity as HostQuantity, ReceiptConfidence as HostReceiptConfidence,
+    StepDirection as HostStepDirection, ThermostatAction as HostThermostatAction,
+    ThermostatMode as HostThermostatMode, ThermostatTargets as HostThermostatTargets,
+    Transition as HostTransition, UnavailabilityReason as HostUnavailabilityReason,
 };
 use litehouse_service_fabric as fabric;
 use rmcp::{
@@ -36,7 +47,6 @@ use std::{
 
 const INVENTORY_OPERATION: &str = "inventory.snapshot@1";
 const QUERY_OPERATION: &str = "facets.query@1";
-const SET_OPERATION: &str = "capability.on-off.set@1";
 const WORKFLOW_OPERATION: &str = "workflows.manage@1";
 const MAX_INVENTORY_FACETS: usize = 200;
 
@@ -401,7 +411,7 @@ pub struct MeasurementStateValue {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct OnOffSetResult {
+pub struct InteractionResult {
     pub facet_id: String,
     pub generation: u64,
     pub revision: u64,
@@ -409,6 +419,8 @@ pub struct OnOffSetResult {
     pub confidence: ReceiptConfidence,
     pub deduplicated: bool,
 }
+
+pub type OnOffSetResult = InteractionResult;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -600,6 +612,13 @@ pub struct ManagementService {
     providers: Arc<[ManagedProvider]>,
 }
 
+struct PreparedInteraction {
+    provider: ProviderHandle,
+    endpoint: fabric::EndpointIdentity,
+    generation: fabric::Generation,
+    context: CallContext,
+}
+
 impl ManagementService {
     pub fn from_bundled(
         providers: impl IntoIterator<Item = ManagedProvider>,
@@ -674,7 +693,7 @@ impl ManagementService {
                             .iter()
                             .map(|feature| feature.as_str().to_owned())
                             .collect(),
-                        operations: canonical_operations(descriptor.kind()),
+                        operations: canonical_operations(descriptor),
                     }
                 })
                 .collect::<Vec<_>>();
@@ -738,54 +757,805 @@ impl ManagementService {
         principal: &Principal,
         request: OnOffSetRequest,
     ) -> Result<OnOffSetResult, ManagementError> {
-        self.authorize(principal, SET_OPERATION)?;
-        validate_facet_input(SET_OPERATION, &request.facet_id, request.facet_generation)?;
-        if !valid_idempotency_key(&request.idempotency_key) {
+        self.interact(
+            principal,
+            InteractionRequest::OnOffSet {
+                target: InteractionTarget {
+                    facet_id: request.facet_id,
+                    facet_generation: request.facet_generation,
+                    timeout_ms: request.timeout_ms,
+                    idempotency_key: request.idempotency_key,
+                },
+                on: request.on,
+            },
+        )
+        .await
+    }
+
+    pub async fn interact(
+        &self,
+        principal: &Principal,
+        request: InteractionRequest,
+    ) -> Result<InteractionResult, ManagementError> {
+        let operation_id = request.operation_id();
+        let result = match request {
+            InteractionRequest::OnOffSet { target, on } => {
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::OnOff,
+                    "set",
+                    &[],
+                )?;
+                let receipt = call
+                    .provider
+                    .set_on_off(&call.endpoint, call.generation, on, call.context)
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::OnOffToggle { target } => {
+                let _ = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::OnOff,
+                    "query",
+                    &[],
+                )?;
+                return Err(unsupported_projection(
+                    operation_id,
+                    "provider component ABI does not expose On/Off toggle",
+                ));
+            }
+            InteractionRequest::LevelSet { target, level } => {
+                validate_decimal(operation_id, "level", &level)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::LevelControl,
+                    "set-level",
+                    &[],
+                )?;
+                let receipt = call
+                    .provider
+                    .set_level(
+                        &call.endpoint,
+                        call.generation,
+                        LevelSetRequest {
+                            level: ratio(level),
+                            transition: None,
+                        },
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::LevelStep { target, step } => {
+                let (direction, amount) = signed_level(operation_id, "step", step)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::LevelControl,
+                    "step",
+                    &["relative-step"],
+                )?;
+                let receipt = call
+                    .provider
+                    .step_level(
+                        &call.endpoint,
+                        call.generation,
+                        LevelStepRequest {
+                            direction,
+                            amount: ratio(amount),
+                            transition: None,
+                        },
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::LevelMove {
+                target,
+                direction,
+                rate_per_second,
+            } => {
+                validate_decimal(operation_id, "rate_per_second", &rate_per_second)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::LevelControl,
+                    "move",
+                    &["continuous-move"],
+                )?;
+                let receipt = call
+                    .provider
+                    .move_level(
+                        &call.endpoint,
+                        call.generation,
+                        LevelMoveRequest {
+                            direction: level_direction(direction),
+                            rate_per_second: ratio(rate_per_second),
+                        },
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::LevelStop { target } => {
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::LevelControl,
+                    "stop",
+                    &[],
+                )?;
+                let receipt = call
+                    .provider
+                    .stop_level(&call.endpoint, call.generation, call.context)
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::LevelTransition {
+                target,
+                level,
+                duration_ms,
+            } => {
+                validate_decimal(operation_id, "level", &level)?;
+                validate_duration(operation_id, duration_ms)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::LevelControl,
+                    "set-level",
+                    &["transition"],
+                )?;
+                let receipt = call
+                    .provider
+                    .set_level(
+                        &call.endpoint,
+                        call.generation,
+                        LevelSetRequest {
+                            level: ratio(level),
+                            transition: Some(transition(duration_ms)),
+                        },
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::LevelSetCoupled {
+                target,
+                level,
+                on_when_nonzero,
+            } => {
+                validate_decimal(operation_id, "level", &level)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::LevelControl,
+                    "set-level-with-on-off",
+                    &["coupled-on-off"],
+                )?;
+                let receipt = call
+                    .provider
+                    .set_level_with_on_off(
+                        &call.endpoint,
+                        call.generation,
+                        CoupledLevelRequest {
+                            level: ratio(level),
+                            on_when_nonzero,
+                            transition: None,
+                        },
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::LevelStepCoupled {
+                target,
+                step,
+                on_when_nonzero,
+            } => {
+                let (direction, amount) = signed_level(operation_id, "step", step)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::LevelControl,
+                    "step-with-on-off",
+                    &["relative-step", "coupled-on-off"],
+                )?;
+                let receipt = call
+                    .provider
+                    .step_level_with_on_off(
+                        &call.endpoint,
+                        call.generation,
+                        CoupledLevelStepRequest {
+                            direction,
+                            amount: ratio(amount),
+                            on_when_nonzero,
+                            transition: None,
+                        },
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::LevelMoveCoupled {
+                target,
+                direction,
+                rate_per_second,
+                on_when_nonzero,
+            } => {
+                validate_decimal(operation_id, "rate_per_second", &rate_per_second)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::LevelControl,
+                    "move-with-on-off",
+                    &["continuous-move", "coupled-on-off"],
+                )?;
+                let receipt = call
+                    .provider
+                    .move_level_with_on_off(
+                        &call.endpoint,
+                        call.generation,
+                        CoupledLevelMoveRequest {
+                            direction: level_direction(direction),
+                            rate_per_second: ratio(rate_per_second),
+                            on_when_nonzero,
+                        },
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::LevelTransitionCoupled {
+                target,
+                level,
+                duration_ms,
+                on_when_nonzero,
+            } => {
+                validate_decimal(operation_id, "level", &level)?;
+                validate_duration(operation_id, duration_ms)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::LevelControl,
+                    "set-level-with-on-off",
+                    &["transition", "coupled-on-off"],
+                )?;
+                let receipt = call
+                    .provider
+                    .set_level_with_on_off(
+                        &call.endpoint,
+                        call.generation,
+                        CoupledLevelRequest {
+                            level: ratio(level),
+                            on_when_nonzero,
+                            transition: Some(transition(duration_ms)),
+                        },
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::ColorSet { target, color } => {
+                let color = interaction_color(operation_id, color, None)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::ColorControl,
+                    "set-color",
+                    &[],
+                )?;
+                let receipt = call
+                    .provider
+                    .set_color(
+                        &call.endpoint,
+                        call.generation,
+                        ColorSetRequest {
+                            color,
+                            transition: None,
+                        },
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::ColorStep {
+                target,
+                color,
+                direction,
+            } => {
+                let color = interaction_color(operation_id, color, Some(direction))?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::ColorControl,
+                    "step-color",
+                    &[],
+                )?;
+                let receipt = call
+                    .provider
+                    .step_color(
+                        &call.endpoint,
+                        call.generation,
+                        ColorStepRequest {
+                            delta: color,
+                            transition: None,
+                        },
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::ColorMove {
+                target,
+                color,
+                direction,
+            } => {
+                let color = interaction_color(operation_id, color, Some(direction))?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::ColorControl,
+                    "move-color",
+                    &[],
+                )?;
+                let receipt = call
+                    .provider
+                    .move_color(
+                        &call.endpoint,
+                        call.generation,
+                        ColorMoveRequest {
+                            rate_per_second: color,
+                        },
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::ColorStop { target } => {
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::ColorControl,
+                    "stop",
+                    &[],
+                )?;
+                let receipt = call
+                    .provider
+                    .stop_color(&call.endpoint, call.generation, call.context)
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::ColorTransition {
+                target,
+                color,
+                duration_ms,
+            } => {
+                validate_duration(operation_id, duration_ms)?;
+                let color = interaction_color(operation_id, color, None)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::ColorControl,
+                    "set-color",
+                    &[],
+                )?;
+                let receipt = call
+                    .provider
+                    .set_color(
+                        &call.endpoint,
+                        call.generation,
+                        ColorSetRequest {
+                            color,
+                            transition: Some(transition(duration_ms)),
+                        },
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::ThermostatSetMode { target, mode } => {
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::Thermostat,
+                    "set-mode",
+                    &[],
+                )?;
+                let receipt = call
+                    .provider
+                    .set_thermostat_mode(
+                        &call.endpoint,
+                        call.generation,
+                        thermostat_set_mode(mode),
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::ThermostatSetSingleTarget {
+                target,
+                target_celsius,
+            } => {
+                validate_decimal(operation_id, "target_celsius", &target_celsius)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::Thermostat,
+                    "set-single-target",
+                    &[],
+                )?;
+                let receipt = call
+                    .provider
+                    .set_thermostat_single_target(
+                        &call.endpoint,
+                        call.generation,
+                        celsius(target_celsius),
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::ThermostatSetDualTarget {
+                target,
+                heat_target_celsius,
+                cool_target_celsius,
+            } => {
+                validate_decimal(operation_id, "heat_target_celsius", &heat_target_celsius)?;
+                validate_decimal(operation_id, "cool_target_celsius", &cool_target_celsius)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::Thermostat,
+                    "set-dual-target",
+                    &[],
+                )?;
+                let receipt = call
+                    .provider
+                    .set_thermostat_dual_target(
+                        &call.endpoint,
+                        call.generation,
+                        celsius(heat_target_celsius),
+                        celsius(cool_target_celsius),
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::ThermostatSetFan { target, fan_choice } => {
+                validate_choice(operation_id, "fan_choice", &fan_choice)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::Thermostat,
+                    "set-fan",
+                    &["fan-choice"],
+                )?;
+                let receipt = call
+                    .provider
+                    .set_thermostat_fan(&call.endpoint, call.generation, fan_choice, call.context)
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::ThermostatSetSwing {
+                target,
+                swing_choice,
+            } => {
+                validate_choice(operation_id, "swing_choice", &swing_choice)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::Thermostat,
+                    "set-swing",
+                    &["swing-choice"],
+                )?;
+                let receipt = call
+                    .provider
+                    .set_thermostat_swing(
+                        &call.endpoint,
+                        call.generation,
+                        swing_choice,
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::ThermostatSetPreset {
+                target,
+                preset_choice,
+            } => {
+                validate_choice(operation_id, "preset_choice", &preset_choice)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::Thermostat,
+                    "set-preset",
+                    &["preset-choice"],
+                )?;
+                let receipt = call
+                    .provider
+                    .set_thermostat_preset(
+                        &call.endpoint,
+                        call.generation,
+                        preset_choice,
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::CoveringOpen { target, axis } => {
+                let (axis, feature) = covering_axis(axis);
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::WindowCovering,
+                    "open",
+                    &[feature],
+                )?;
+                let receipt = call
+                    .provider
+                    .open_covering(&call.endpoint, call.generation, axis, call.context)
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::CoveringClose { target, axis } => {
+                let (axis, feature) = covering_axis(axis);
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::WindowCovering,
+                    "close",
+                    &[feature],
+                )?;
+                let receipt = call
+                    .provider
+                    .close_covering(&call.endpoint, call.generation, axis, call.context)
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::CoveringStop { target, axis } => {
+                let (axis, feature) = covering_axis(axis);
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::WindowCovering,
+                    "stop",
+                    &[feature, "stop"],
+                )?;
+                let receipt = call
+                    .provider
+                    .stop_covering(&call.endpoint, call.generation, axis, call.context)
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::CoveringSetLift { target, position } => {
+                validate_decimal(operation_id, "position", &position)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::WindowCovering,
+                    "set-position",
+                    &["lift", "target-position"],
+                )?;
+                let receipt = call
+                    .provider
+                    .set_covering_position(
+                        &call.endpoint,
+                        call.generation,
+                        HostCoveringAxis::Lift,
+                        ratio(position),
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::CoveringSetTilt { target, position } => {
+                validate_decimal(operation_id, "position", &position)?;
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::WindowCovering,
+                    "set-position",
+                    &["tilt", "target-position"],
+                )?;
+                let receipt = call
+                    .provider
+                    .set_covering_position(
+                        &call.endpoint,
+                        call.generation,
+                        HostCoveringAxis::Tilt,
+                        ratio(position),
+                        call.context,
+                    )
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::MomentaryInvoke { target } => {
+                let call = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::MomentaryAction,
+                    "invoke",
+                    &[],
+                )?;
+                let receipt = call
+                    .provider
+                    .invoke_momentary_action(&call.endpoint, call.generation, call.context)
+                    .await
+                    .map_err(|error| provider_error(operation_id, error))?
+                    .receipt;
+                interaction_result(target.facet_id, receipt)
+            }
+            InteractionRequest::NotificationSend {
+                target,
+                notification_template_id,
+                expires_in_ms,
+                ..
+            } => {
+                if !valid_public_id(&notification_template_id)
+                    || expires_in_ms.is_some_and(|value| value == 0 || value > 86_400_000)
+                {
+                    return Err(caller_error(
+                        operation_id,
+                        ErrorCode::ContractFailed,
+                        "notification template request is invalid",
+                    ));
+                }
+                let _ = self.prepare_interaction(
+                    principal,
+                    operation_id,
+                    &target,
+                    FacetKind::NotificationSink,
+                    "send",
+                    &[],
+                )?;
+                return Err(management_error(
+                    operation_id,
+                    ErrorGroup::Availability,
+                    ErrorCode::Unsupported,
+                    Some(ErrorOrigin::Host),
+                    RetryKind::Never,
+                    "notification template expansion is unavailable",
+                    OutcomeConfidence::Definite,
+                ));
+            }
+        };
+        tracing::info!(
+            operation_id,
+            principal = %principal.id(),
+            facet_id = %result.facet_id,
+            confidence = ?result.confidence,
+            deduplicated = result.deduplicated,
+            "management operation completed"
+        );
+        Ok(result)
+    }
+
+    fn prepare_interaction(
+        &self,
+        principal: &Principal,
+        operation_id: &'static str,
+        target: &InteractionTarget,
+        expected_kind: FacetKind,
+        provider_operation: &str,
+        required_features: &[&str],
+    ) -> Result<PreparedInteraction, ManagementError> {
+        self.authorize(principal, operation_id)?;
+        validate_facet_input(operation_id, &target.facet_id, target.facet_generation)?;
+        if !valid_idempotency_key(&target.idempotency_key) {
             return Err(caller_error(
-                SET_OPERATION,
+                operation_id,
                 ErrorCode::ContractFailed,
                 "idempotency_key must be 32 lowercase hexadecimal characters",
             ));
         }
-        let timeout = operation_timeout(SET_OPERATION, request.timeout_ms)?;
-        let (provider, endpoint) = self.resolve(SET_OPERATION, &request.facet_id)?;
-        if endpoint.contract().name() != "on-off" {
+        let timeout = operation_timeout(operation_id, target.timeout_ms)?;
+        let (provider, descriptor) = self.resolve_descriptor(operation_id, &target.facet_id)?;
+        let endpoint = descriptor.endpoint();
+        let supported = descriptor.kind() == expected_kind
+            && endpoint
+                .operations()
+                .iter()
+                .any(|operation| operation.as_str() == provider_operation)
+            && required_features.iter().all(|required| {
+                endpoint
+                    .features()
+                    .iter()
+                    .any(|feature| feature.as_str() == *required)
+            });
+        if !supported {
             return Err(caller_error(
-                SET_OPERATION,
+                operation_id,
                 ErrorCode::Unsupported,
-                "facet does not support absolute On/Off set",
+                "facet does not support the requested typed capability operation",
             ));
         }
-        let generation = generation(SET_OPERATION, request.facet_generation)?;
-        let context = call_context(timeout, Some(request.idempotency_key));
-        let receipt = provider
-            .set_on_off(&endpoint, generation, request.on, context)
-            .await
-            .map_err(|error| provider_error(SET_OPERATION, error))?;
-        tracing::info!(
-            operation_id = SET_OPERATION,
-            principal = %principal.id(),
-            facet_id = %request.facet_id,
-            confidence = ?receipt.confidence,
-            deduplicated = receipt.deduplicated,
-            "management operation completed"
-        );
-        Ok(OnOffSetResult {
-            facet_id: request.facet_id,
-            generation: receipt.provider_generation.get(),
-            revision: 0,
-            receipt_id: receipt.request_id,
-            confidence: match receipt.confidence {
-                HostReceiptConfidence::AcceptedForDelivery => {
-                    ReceiptConfidence::AcceptedForDelivery
-                }
-                HostReceiptConfidence::ProtocolOrTargetAcknowledged => {
-                    ReceiptConfidence::Acknowledged
-                }
-                HostReceiptConfidence::Completed => ReceiptConfidence::Completed,
-                HostReceiptConfidence::ObservedCompleted => ReceiptConfidence::ObservedCompleted,
-            },
-            deduplicated: receipt.deduplicated,
+        Ok(PreparedInteraction {
+            provider,
+            endpoint: endpoint.identity().clone(),
+            generation: generation(operation_id, target.facet_generation)?,
+            context: call_context(timeout, Some(target.idempotency_key.clone())),
         })
     }
 
@@ -846,18 +1616,23 @@ impl ManagementService {
         operation_id: &'static str,
         facet_id: &str,
     ) -> Result<(ProviderHandle, fabric::EndpointIdentity), ManagementError> {
+        self.resolve_descriptor(operation_id, facet_id)
+            .map(|(provider, descriptor)| (provider, descriptor.endpoint().identity().clone()))
+    }
+
+    fn resolve_descriptor(
+        &self,
+        operation_id: &'static str,
+        facet_id: &str,
+    ) -> Result<(ProviderHandle, litehouse_provider_host::HostFacetDescriptor), ManagementError>
+    {
         let mut matches = self.providers.iter().filter_map(|provider| {
             provider
                 .handle
                 .descriptors()
                 .iter()
                 .find(|descriptor| descriptor.endpoint().identity().facet().as_str() == facet_id)
-                .map(|descriptor| {
-                    (
-                        provider.handle.clone(),
-                        descriptor.endpoint().identity().clone(),
-                    )
-                })
+                .map(|descriptor| (provider.handle.clone(), descriptor.clone()))
         });
         let Some(found) = matches.next() else {
             return Err(management_error(
@@ -1031,12 +1806,15 @@ impl McpAdapter {
 
     #[tool(
         name = "litehouse_interact",
-        description = "Set one On/Off facet to an absolute state.",
-        input_schema = mcp_input_schema(SET_OPERATION),
-        output_schema = canonical_output_schema(SET_OPERATION)
+        description = "Invoke one of the 29 closed typed Litehouse capability operations.",
+        input_schema = interaction_input_schema(),
+        output_schema = canonical_output_schema(CAPABILITY_OPERATION_IDS[0])
     )]
-    async fn interact(&self, Parameters(request): Parameters<OnOffSetRequest>) -> CallToolResult {
-        tool_result(self.management.on_off_set(&self.principal, request).await)
+    async fn interact(
+        &self,
+        Parameters(request): Parameters<InteractionRequest>,
+    ) -> CallToolResult {
+        tool_result(self.management.interact(&self.principal, request).await)
     }
 
     #[tool(
@@ -1056,6 +1834,42 @@ impl ServerHandler for McpAdapter {
         ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
             .with_instructions("Use only the four closed Litehouse Phase 1 tools.")
     }
+}
+
+fn interaction_input_schema() -> Arc<Map<String, Value>> {
+    let manifest = management_manifest().expect("embedded management manifest is validated");
+    let variants = CAPABILITY_OPERATION_IDS
+        .iter()
+        .map(|operation_id| {
+            let operation = manifest
+                .operations
+                .iter()
+                .find(|operation| operation.id == *operation_id)
+                .expect("capability operation is present in the embedded manifest");
+            let mut schema = operation.schemas.mcp_projection.schema.clone();
+            let object = schema
+                .as_object_mut()
+                .expect("capability MCP projection is an object schema");
+            let properties = object
+                .get_mut("properties")
+                .and_then(Value::as_object_mut)
+                .expect("capability MCP projection has properties");
+            properties.insert(
+                "operation".to_owned(),
+                serde_json::json!({ "const": operation_id, "type": "string" }),
+            );
+            object
+                .get_mut("required")
+                .and_then(Value::as_array_mut)
+                .expect("capability MCP projection has required fields")
+                .push(Value::String("operation".to_owned()));
+            schema
+        })
+        .collect::<Vec<_>>();
+    Arc::new(Map::from_iter([
+        ("type".to_owned(), Value::String("object".to_owned())),
+        ("oneOf".to_owned(), Value::Array(variants)),
+    ]))
 }
 
 fn workflow_input_schema() -> Arc<Map<String, Value>> {
@@ -1232,46 +2046,341 @@ fn tool_result<T: Serialize>(result: Result<T, ManagementError>) -> CallToolResu
     }
 }
 
-fn canonical_operations(kind: FacetKind) -> Vec<String> {
-    match kind {
-        FacetKind::OnOff => vec![QUERY_OPERATION.into(), SET_OPERATION.into()],
-        FacetKind::BooleanState | FacetKind::Measurement => vec![QUERY_OPERATION.into()],
-        FacetKind::NotificationSink => vec!["capability.notification.send@1".into()],
-        FacetKind::LevelControl => vec![
-            QUERY_OPERATION.into(),
-            "capability.level.set@1".into(),
-            "capability.level.step@1".into(),
-            "capability.level.move@1".into(),
-            "capability.level.stop@1".into(),
-            "capability.level.set-coupled@1".into(),
-            "capability.level.step-coupled@1".into(),
-            "capability.level.move-coupled@1".into(),
+fn canonical_operations(descriptor: &litehouse_provider_host::HostFacetDescriptor) -> Vec<String> {
+    let endpoint = descriptor.endpoint();
+    let supports_operation = |name: &str| {
+        endpoint
+            .operations()
+            .iter()
+            .any(|operation| operation.as_str() == name)
+    };
+    let supports_features = |required: &[&str]| {
+        required.iter().all(|required| {
+            if *required == "lift-or-tilt" {
+                endpoint
+                    .features()
+                    .iter()
+                    .any(|feature| matches!(feature.as_str(), "lift" | "tilt"))
+            } else {
+                endpoint
+                    .features()
+                    .iter()
+                    .any(|feature| feature.as_str() == *required)
+            }
+        })
+    };
+    let mappings: &[(&str, &str, &[&str])] = match descriptor.kind() {
+        FacetKind::OnOff => &[
+            (QUERY_OPERATION, "query", &[]),
+            ("capability.on-off.set@1", "set", &[]),
+            ("capability.on-off.toggle@1", "toggle", &[]),
         ],
-        FacetKind::ColorControl => vec![
-            QUERY_OPERATION.into(),
-            "capability.color.set@1".into(),
-            "capability.color.step@1".into(),
-            "capability.color.move@1".into(),
-            "capability.color.stop@1".into(),
+        FacetKind::BooleanState | FacetKind::Measurement => &[(QUERY_OPERATION, "query", &[])],
+        FacetKind::NotificationSink => &[("capability.notification.send@1", "send", &[])],
+        FacetKind::LevelControl => &[
+            (QUERY_OPERATION, "query", &[]),
+            ("capability.level.set@1", "set-level", &[]),
+            ("capability.level.step@1", "step", &["relative-step"]),
+            ("capability.level.move@1", "move", &["continuous-move"]),
+            ("capability.level.stop@1", "stop", &[]),
+            (
+                "capability.level.transition@1",
+                "set-level",
+                &["transition"],
+            ),
+            (
+                "capability.level.set-coupled@1",
+                "set-level-with-on-off",
+                &["coupled-on-off"],
+            ),
+            (
+                "capability.level.step-coupled@1",
+                "step-with-on-off",
+                &["relative-step", "coupled-on-off"],
+            ),
+            (
+                "capability.level.move-coupled@1",
+                "move-with-on-off",
+                &["continuous-move", "coupled-on-off"],
+            ),
+            (
+                "capability.level.transition-coupled@1",
+                "set-level-with-on-off",
+                &["transition", "coupled-on-off"],
+            ),
         ],
-        FacetKind::Thermostat => vec![
-            QUERY_OPERATION.into(),
-            "capability.thermostat.set-mode@1".into(),
-            "capability.thermostat.set-single-target@1".into(),
-            "capability.thermostat.set-dual-target@1".into(),
-            "capability.thermostat.set-fan@1".into(),
-            "capability.thermostat.set-swing@1".into(),
-            "capability.thermostat.set-preset@1".into(),
+        FacetKind::ColorControl => &[
+            (QUERY_OPERATION, "query", &[]),
+            ("capability.color.set@1", "set-color", &[]),
+            ("capability.color.step@1", "step-color", &[]),
+            ("capability.color.move@1", "move-color", &[]),
+            ("capability.color.stop@1", "stop", &[]),
+            ("capability.color.transition@1", "set-color", &[]),
         ],
-        FacetKind::WindowCovering => vec![
-            QUERY_OPERATION.into(),
-            "capability.covering.open@1".into(),
-            "capability.covering.close@1".into(),
-            "capability.covering.stop@1".into(),
-            "capability.covering.set-lift@1".into(),
-            "capability.covering.set-tilt@1".into(),
+        FacetKind::Thermostat => &[
+            (QUERY_OPERATION, "query", &[]),
+            ("capability.thermostat.set-mode@1", "set-mode", &[]),
+            (
+                "capability.thermostat.set-single-target@1",
+                "set-single-target",
+                &[],
+            ),
+            (
+                "capability.thermostat.set-dual-target@1",
+                "set-dual-target",
+                &[],
+            ),
+            (
+                "capability.thermostat.set-fan@1",
+                "set-fan",
+                &["fan-choice"],
+            ),
+            (
+                "capability.thermostat.set-swing@1",
+                "set-swing",
+                &["swing-choice"],
+            ),
+            (
+                "capability.thermostat.set-preset@1",
+                "set-preset",
+                &["preset-choice"],
+            ),
         ],
-        FacetKind::MomentaryAction => vec!["capability.momentary.invoke@1".into()],
+        FacetKind::WindowCovering => &[
+            (QUERY_OPERATION, "query", &[]),
+            ("capability.covering.open@1", "open", &["lift-or-tilt"]),
+            ("capability.covering.close@1", "close", &["lift-or-tilt"]),
+            (
+                "capability.covering.stop@1",
+                "stop",
+                &["lift-or-tilt", "stop"],
+            ),
+            (
+                "capability.covering.set-lift@1",
+                "set-position",
+                &["lift", "target-position"],
+            ),
+            (
+                "capability.covering.set-tilt@1",
+                "set-position",
+                &["tilt", "target-position"],
+            ),
+        ],
+        FacetKind::MomentaryAction => &[("capability.momentary.invoke@1", "invoke", &[])],
+    };
+    mappings
+        .iter()
+        .filter(|(_, operation, features)| {
+            supports_operation(operation) && supports_features(features)
+        })
+        .map(|(canonical, _, _)| (*canonical).to_owned())
+        .collect()
+}
+
+fn interaction_result(
+    facet_id: String,
+    receipt: litehouse_provider_host::CommandReceipt,
+) -> InteractionResult {
+    InteractionResult {
+        facet_id,
+        generation: receipt.provider_generation.get(),
+        revision: 0,
+        receipt_id: receipt.request_id,
+        confidence: match receipt.confidence {
+            HostReceiptConfidence::AcceptedForDelivery => ReceiptConfidence::AcceptedForDelivery,
+            HostReceiptConfidence::ProtocolOrTargetAcknowledged => ReceiptConfidence::Acknowledged,
+            HostReceiptConfidence::Completed => ReceiptConfidence::Completed,
+            HostReceiptConfidence::ObservedCompleted => ReceiptConfidence::ObservedCompleted,
+        },
+        deduplicated: receipt.deduplicated,
+    }
+}
+
+fn ratio(magnitude: String) -> HostQuantity {
+    HostQuantity {
+        profile: "ratio".to_owned(),
+        magnitude,
+        unit: "1".to_owned(),
+    }
+}
+
+fn celsius(magnitude: String) -> HostQuantity {
+    HostQuantity {
+        profile: "temperature".to_owned(),
+        magnitude,
+        unit: "Cel".to_owned(),
+    }
+}
+
+fn transition(duration_ms: u32) -> HostTransition {
+    HostTransition {
+        duration_milliseconds: u64::from(duration_ms),
+    }
+}
+
+fn level_direction(direction: LevelDirection) -> HostStepDirection {
+    match direction {
+        LevelDirection::Up => HostStepDirection::Increase,
+        LevelDirection::Down => HostStepDirection::Decrease,
+    }
+}
+
+fn signed_level(
+    operation_id: &'static str,
+    field: &str,
+    value: String,
+) -> Result<(HostStepDirection, String), ManagementError> {
+    validate_decimal(operation_id, field, &value)?;
+    Ok(if let Some(unsigned) = value.strip_prefix('-') {
+        (HostStepDirection::Decrease, unsigned.to_owned())
+    } else {
+        (HostStepDirection::Increase, value)
+    })
+}
+
+fn validate_decimal(
+    operation_id: &'static str,
+    _field: &str,
+    value: &str,
+) -> Result<(), ManagementError> {
+    let valid = value.len() <= 32 && !value.is_empty() && {
+        let value = value.strip_prefix('-').unwrap_or(value);
+        let (integer, fraction) = value
+            .split_once('.')
+            .map_or((value, None), |(i, f)| (i, Some(f)));
+        !integer.is_empty()
+            && integer.bytes().all(|byte| byte.is_ascii_digit())
+            && (integer == "0" || !integer.starts_with('0'))
+            && fraction.is_none_or(|fraction| {
+                !fraction.is_empty() && fraction.bytes().all(|byte| byte.is_ascii_digit())
+            })
+    };
+    if valid {
+        Ok(())
+    } else {
+        Err(caller_error(
+            operation_id,
+            ErrorCode::ContractFailed,
+            "value must be a canonical bounded decimal",
+        ))
+    }
+}
+
+fn validate_duration(operation_id: &'static str, duration_ms: u32) -> Result<(), ManagementError> {
+    if (1..=30_000).contains(&duration_ms) {
+        Ok(())
+    } else {
+        Err(caller_error(
+            operation_id,
+            ErrorCode::ContractFailed,
+            "duration_ms must be between 1 and 30000",
+        ))
+    }
+}
+
+fn validate_choice(
+    operation_id: &'static str,
+    _field: &str,
+    value: &str,
+) -> Result<(), ManagementError> {
+    if !value.is_empty() && value.len() <= 64 && !value.bytes().any(|byte| byte.is_ascii_control())
+    {
+        Ok(())
+    } else {
+        Err(caller_error(
+            operation_id,
+            ErrorCode::ContractFailed,
+            "choice must be non-empty and bounded",
+        ))
+    }
+}
+
+fn signed_color_decimal(value: String, direction: ColorDirection) -> String {
+    match direction {
+        ColorDirection::Increase => value,
+        ColorDirection::Decrease => value
+            .strip_prefix('-')
+            .map_or_else(|| format!("-{value}"), ToOwned::to_owned),
+    }
+}
+
+fn interaction_color(
+    operation_id: &'static str,
+    color: InteractionColor,
+    direction: Option<ColorDirection>,
+) -> Result<HostColorValue, ManagementError> {
+    let project = |field: &str, value: String| -> Result<String, ManagementError> {
+        validate_decimal(operation_id, field, &value)?;
+        Ok(direction.map_or(value.clone(), |direction| {
+            signed_color_decimal(value, direction)
+        }))
+    };
+    Ok(match color {
+        InteractionColor::HueSaturation {
+            hue_degrees,
+            saturation,
+        } => HostColorValue::HueSaturation {
+            hue_degrees: project("hue_degrees", hue_degrees)?,
+            saturation_ratio: project("saturation", saturation)?,
+        },
+        InteractionColor::CieXy { x, y } => HostColorValue::CieXy {
+            x: project("x", x)?,
+            y: project("y", y)?,
+        },
+        InteractionColor::ColorTemperature { kelvin } => HostColorValue::ColorTemperature {
+            kelvin: project("kelvin", kelvin)?,
+        },
+        InteractionColor::CalibratedRgb {
+            red,
+            green,
+            blue,
+            color_space,
+        } => HostColorValue::CalibratedRgb {
+            red: project("red", red)?,
+            green: project("green", green)?,
+            blue: project("blue", blue)?,
+            color_space: match color_space {
+                InteractionColorSpace::Srgb => "srgb",
+                InteractionColorSpace::DisplayP3 => "display-p3",
+            }
+            .to_owned(),
+        },
+        InteractionColor::UncalibratedRgb { red, green, blue } => HostColorValue::UncalibratedRgb {
+            red: project("red", red)?,
+            green: project("green", green)?,
+            blue: project("blue", blue)?,
+        },
+        InteractionColor::NativeWhiteChannels {
+            white,
+            cold_white,
+            warm_white,
+        } => HostColorValue::NativeWhiteChannels {
+            white: Some(project("white", white)?),
+            cold_white: cold_white
+                .map(|value| project("cold_white", value))
+                .transpose()?,
+            warm_white: warm_white
+                .map(|value| project("warm_white", value))
+                .transpose()?,
+        },
+    })
+}
+
+fn thermostat_set_mode(mode: InteractionThermostatMode) -> HostThermostatMode {
+    HostThermostatMode::Known(match mode {
+        InteractionThermostatMode::Off => HostKnownThermostatMode::Off,
+        InteractionThermostatMode::Heat => HostKnownThermostatMode::Heat,
+        InteractionThermostatMode::Cool => HostKnownThermostatMode::Cool,
+        InteractionThermostatMode::Auto => HostKnownThermostatMode::Auto,
+        InteractionThermostatMode::Dry => HostKnownThermostatMode::Dry,
+        InteractionThermostatMode::FanOnly => HostKnownThermostatMode::FanOnly,
+    })
+}
+
+fn covering_axis(axis: InteractionCoveringAxis) -> (HostCoveringAxis, &'static str) {
+    match axis {
+        InteractionCoveringAxis::Lift => (HostCoveringAxis::Lift, "lift"),
+        InteractionCoveringAxis::Tilt => (HostCoveringAxis::Tilt, "tilt"),
     }
 }
 
@@ -1556,6 +2665,18 @@ fn caller_error(
         group,
         code,
         Some(ErrorOrigin::Caller),
+        RetryKind::Never,
+        message,
+        OutcomeConfidence::Definite,
+    )
+}
+
+fn unsupported_projection(operation_id: &'static str, message: &'static str) -> ManagementError {
+    management_error(
+        operation_id,
+        ErrorGroup::Availability,
+        ErrorCode::Unsupported,
+        Some(ErrorOrigin::Host),
         RetryKind::Never,
         message,
         OutcomeConfidence::Definite,
@@ -1899,7 +3020,7 @@ mod tests {
             Duration::from_secs(10)
         );
         assert_eq!(
-            operation_timeout(SET_OPERATION, None).unwrap(),
+            operation_timeout(CAPABILITY_OPERATION_IDS[0], None).unwrap(),
             Duration::from_secs(30)
         );
         assert!(operation_timeout(QUERY_OPERATION, Some(30_000)).is_ok());
@@ -1910,7 +3031,11 @@ mod tests {
     #[test]
     fn rmcp_metadata_uses_the_frozen_projection_and_output_schemas() {
         let manifest = management_manifest().unwrap();
-        for operation_id in [INVENTORY_OPERATION, QUERY_OPERATION, SET_OPERATION] {
+        for operation_id in [
+            INVENTORY_OPERATION,
+            QUERY_OPERATION,
+            CAPABILITY_OPERATION_IDS[0],
+        ] {
             let operation = manifest
                 .operations
                 .iter()
@@ -1925,6 +3050,88 @@ mod tests {
                 operation.schemas.output.schema.as_object().unwrap()
             );
         }
+    }
+
+    #[test]
+    fn interaction_schema_is_manifest_driven_and_exactly_29_variants() {
+        let schema = interaction_input_schema();
+        let variants = schema["oneOf"].as_array().unwrap();
+        let actual = variants
+            .iter()
+            .map(|variant| {
+                variant["properties"]["operation"]["const"]
+                    .as_str()
+                    .unwrap()
+            })
+            .collect::<BTreeSet<_>>();
+        assert_eq!(variants.len(), CAPABILITY_OPERATION_IDS.len());
+        assert_eq!(actual.len(), CAPABILITY_OPERATION_IDS.len());
+        assert_eq!(actual, CAPABILITY_OPERATION_IDS.into_iter().collect());
+        assert!(
+            serde_json::from_value::<InteractionRequest>(serde_json::json!({
+                "operation": "capability.generic.dispatch@1",
+                "facet_id": "relay-1",
+                "facet_generation": 1,
+                "timeout_ms": 1000,
+                "idempotency_key": "0123456789abcdef0123456789abcdef"
+            }))
+            .is_err()
+        );
+        assert!(
+            serde_json::from_value::<InteractionRequest>(serde_json::json!({
+                "operation": "capability.on-off.toggle@1",
+                "facet_id": "relay-1",
+                "facet_generation": 1,
+                "timeout_ms": 1000,
+                "idempotency_key": "0123456789abcdef0123456789abcdef",
+                "unexpected": true
+            }))
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn schemars_interaction_union_has_only_authoritative_operation_tags() {
+        fn collect_operation_consts<'a>(value: &'a Value, found: &mut BTreeSet<&'a str>) {
+            if let Some(operation) = value
+                .get("properties")
+                .and_then(|properties| properties.get("operation"))
+                .and_then(|operation| operation.get("const"))
+                .and_then(Value::as_str)
+            {
+                found.insert(operation);
+            }
+            match value {
+                Value::Array(values) => {
+                    for value in values {
+                        collect_operation_consts(value, found);
+                    }
+                }
+                Value::Object(values) => {
+                    for value in values.values() {
+                        collect_operation_consts(value, found);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        let generated = serde_json::to_value(schemars::schema_for!(InteractionRequest)).unwrap();
+        let mut actual = BTreeSet::new();
+        collect_operation_consts(&generated, &mut actual);
+        assert_eq!(actual, CAPABILITY_OPERATION_IDS.into_iter().collect());
+    }
+
+    #[test]
+    fn unsupported_host_projection_is_safe_and_never_retried() {
+        let error = unsupported_projection(
+            "capability.on-off.toggle@1",
+            "provider component ABI does not expose On/Off toggle",
+        );
+        assert_eq!(error.inner.code, ErrorCode::Unsupported);
+        assert_eq!(error.inner.origin, Some(ErrorOrigin::Host));
+        assert_eq!(error.retry.kind, RetryKind::Never);
+        assert_eq!(error.outcome.confidence, OutcomeConfidence::Definite);
     }
 
     #[test]

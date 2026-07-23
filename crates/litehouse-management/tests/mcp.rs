@@ -1,4 +1,4 @@
-use litehouse_contracts::management::management_manifest;
+use litehouse_contracts::management::{CAPABILITY_OPERATION_IDS, management_manifest};
 use litehouse_management::{
     ErrorCode, FacetQueryResult, FacetState, InventorySnapshot, ManagementService, McpAdapter,
     OnOffSetRequest, OnOffSetResult, Principal,
@@ -104,6 +104,21 @@ async fn four_rmcp_tools_use_closed_handlers_and_no_generic_dispatch() -> anyhow
     );
     let manifest = management_manifest()?;
     for tool in &tools {
+        if tool.name == "litehouse_interact" {
+            let variants = tool.input_schema["oneOf"].as_array().unwrap();
+            let operations = variants
+                .iter()
+                .map(|variant| {
+                    variant["properties"]["operation"]["const"]
+                        .as_str()
+                        .unwrap()
+                })
+                .collect::<BTreeSet<_>>();
+            assert_eq!(variants.len(), CAPABILITY_OPERATION_IDS.len());
+            assert_eq!(operations, CAPABILITY_OPERATION_IDS.into_iter().collect());
+            assert!(tool.output_schema.as_deref().unwrap()["properties"].is_object());
+            continue;
+        }
         if tool.name == "litehouse_workflows" {
             assert_eq!(tool.input_schema["type"], "object");
             assert!(tool.input_schema["oneOf"].is_array());
@@ -185,6 +200,7 @@ async fn four_rmcp_tools_use_closed_handlers_and_no_generic_dispatch() -> anyhow
     let set = client
         .call_tool(
             CallToolRequestParams::new("litehouse_interact").with_arguments(arguments(json!({
+                "operation": "capability.on-off.set@1",
                 "facet_id": relay.facet_id,
                 "facet_generation": relay.generation,
                 "on": true,
@@ -215,6 +231,7 @@ async fn four_rmcp_tools_use_closed_handlers_and_no_generic_dispatch() -> anyhow
     let repeated = client
         .call_tool(
             CallToolRequestParams::new("litehouse_interact").with_arguments(arguments(json!({
+                "operation": "capability.on-off.set@1",
                 "facet_id": relay.facet_id,
                 "facet_generation": relay.generation,
                 "on": true,
@@ -235,6 +252,186 @@ async fn four_rmcp_tools_use_closed_handlers_and_no_generic_dispatch() -> anyhow
     let after_repeat: FacetQueryResult =
         serde_json::from_value(after_repeat.structured_content.unwrap())?;
     assert_eq!(after_repeat.revision, after.revision);
+
+    let facet = |label: &str| {
+        inventory.instances[0]
+            .facets
+            .iter()
+            .find(|facet| facet.label == label)
+            .unwrap()
+    };
+    let routes = [
+        ("capability.on-off.toggle@1", "Relay 1", json!({}), false),
+        (
+            "capability.level.set@1",
+            "Dimmer 1",
+            json!({"level": "0.5"}),
+            true,
+        ),
+        (
+            "capability.level.step@1",
+            "Dimmer 1",
+            json!({"step": "0.1"}),
+            false,
+        ),
+        (
+            "capability.level.move@1",
+            "Dimmer 1",
+            json!({"direction": "up", "rate_per_second": "0.1"}),
+            false,
+        ),
+        ("capability.level.stop@1", "Dimmer 1", json!({}), true),
+        (
+            "capability.level.transition@1",
+            "Dimmer 1",
+            json!({"level": "0.5", "duration_ms": 100}),
+            false,
+        ),
+        (
+            "capability.level.set-coupled@1",
+            "Dimmer 1",
+            json!({"level": "0.5", "on_when_nonzero": true}),
+            true,
+        ),
+        (
+            "capability.level.step-coupled@1",
+            "Dimmer 1",
+            json!({"step": "0.1", "on_when_nonzero": true}),
+            false,
+        ),
+        (
+            "capability.level.move-coupled@1",
+            "Dimmer 1",
+            json!({"direction": "down", "rate_per_second": "0.1", "on_when_nonzero": true}),
+            false,
+        ),
+        (
+            "capability.level.transition-coupled@1",
+            "Dimmer 1",
+            json!({"level": "0.5", "duration_ms": 100, "on_when_nonzero": true}),
+            false,
+        ),
+        (
+            "capability.color.set@1",
+            "Color 1",
+            json!({"color": {"model": "hue-saturation", "hue_degrees": "120", "saturation": "0.5"}}),
+            true,
+        ),
+        (
+            "capability.color.step@1",
+            "Color 1",
+            json!({"color": {"model": "hue-saturation", "hue_degrees": "1", "saturation": "0.1"}, "direction": "increase"}),
+            true,
+        ),
+        (
+            "capability.color.move@1",
+            "Color 1",
+            json!({"color": {"model": "hue-saturation", "hue_degrees": "1", "saturation": "0.1"}, "direction": "decrease"}),
+            true,
+        ),
+        ("capability.color.stop@1", "Color 1", json!({}), true),
+        (
+            "capability.color.transition@1",
+            "Color 1",
+            json!({"color": {"model": "hue-saturation", "hue_degrees": "120", "saturation": "0.5"}, "duration_ms": 100}),
+            true,
+        ),
+        (
+            "capability.thermostat.set-mode@1",
+            "Thermostat 1",
+            json!({"mode": "heat"}),
+            true,
+        ),
+        (
+            "capability.thermostat.set-single-target@1",
+            "Thermostat 1",
+            json!({"target_celsius": "21"}),
+            true,
+        ),
+        (
+            "capability.thermostat.set-dual-target@1",
+            "Thermostat 1",
+            json!({"heat_target_celsius": "20", "cool_target_celsius": "24"}),
+            true,
+        ),
+        (
+            "capability.thermostat.set-fan@1",
+            "Thermostat 1",
+            json!({"fan_choice": "auto"}),
+            false,
+        ),
+        (
+            "capability.thermostat.set-swing@1",
+            "Thermostat 1",
+            json!({"swing_choice": "auto"}),
+            false,
+        ),
+        (
+            "capability.thermostat.set-preset@1",
+            "Thermostat 1",
+            json!({"preset_choice": "home"}),
+            false,
+        ),
+        (
+            "capability.covering.open@1",
+            "Covering 1",
+            json!({"axis": "lift"}),
+            true,
+        ),
+        (
+            "capability.covering.close@1",
+            "Covering 1",
+            json!({"axis": "lift"}),
+            true,
+        ),
+        (
+            "capability.covering.stop@1",
+            "Covering 1",
+            json!({"axis": "lift"}),
+            false,
+        ),
+        (
+            "capability.covering.set-lift@1",
+            "Covering 1",
+            json!({"position": "0.5"}),
+            false,
+        ),
+        (
+            "capability.covering.set-tilt@1",
+            "Covering 1",
+            json!({"position": "0.5"}),
+            false,
+        ),
+        ("capability.momentary.invoke@1", "Action 1", json!({}), true),
+        (
+            "capability.notification.send@1",
+            "Notification",
+            json!({"notification_template_id": "fixture", "priority": "normal"}),
+            false,
+        ),
+    ];
+    for (index, (operation, label, mut input, supported)) in routes.into_iter().enumerate() {
+        let target = facet(label);
+        let input = input.as_object_mut().unwrap();
+        input.insert("operation".into(), operation.into());
+        input.insert("facet_id".into(), target.facet_id.clone().into());
+        input.insert("facet_generation".into(), target.generation.into());
+        input.insert("timeout_ms".into(), 5_000.into());
+        input.insert("idempotency_key".into(), format!("{index:032x}").into());
+        let result = client
+            .call_tool(
+                CallToolRequestParams::new("litehouse_interact").with_arguments(input.clone()),
+            )
+            .await?;
+        assert_eq!(result.is_error, Some(!supported), "{operation}");
+        if !supported {
+            assert_eq!(
+                result.structured_content.unwrap()["inner"]["code"],
+                "unsupported",
+                "{operation}"
+            );
+        }
+    }
 
     assert!(
         client

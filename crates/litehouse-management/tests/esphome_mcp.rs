@@ -226,6 +226,7 @@ async fn interact(
     let result = client
         .call_tool(
             CallToolRequestParams::new("litehouse_interact").with_arguments(arguments(json!({
+                "operation": "capability.on-off.set@1",
                 "facet_id": facet_id,
                 "facet_generation": generation,
                 "on": on,
