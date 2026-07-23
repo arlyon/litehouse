@@ -1321,6 +1321,22 @@ impl PlannerState {
     pub fn queued_triggers(&self) -> &[TriggerInput] {
         &self.queued_triggers
     }
+
+    pub fn pending_timer_ids(&self) -> Vec<&str> {
+        let Some(run) = &self.active_run else {
+            return Vec::new();
+        };
+        run.frontier
+            .suspended
+            .iter()
+            .filter_map(|suspension| match suspension {
+                Suspension::Timer { timer_id, .. } | Suspension::Admission { timer_id, .. } => {
+                    Some(timer_id.as_str())
+                }
+                Suspension::Effect { .. } => None,
+            })
+            .collect()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

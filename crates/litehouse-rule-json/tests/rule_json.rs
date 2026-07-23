@@ -1874,6 +1874,11 @@ fn pure_schedule_triggers_validate_anchor_occurrence_and_dst_projection() {
     ];
     for (path, anchor, scheduled_for) in cases {
         let compiled = compile_value(&fixture(path)).unwrap();
+        assert_eq!(
+            litehouse_rule_json::next_schedule_occurrence(&compiled, anchor, anchor),
+            Some(scheduled_for),
+            "{path}",
+        );
         let occurrence_id =
             litehouse_rule_json::schedule_occurrence_id(&compiled, anchor, scheduled_for);
         let trigger = TriggerInput::time_schedule(occurrence_id, anchor, scheduled_for).unwrap();

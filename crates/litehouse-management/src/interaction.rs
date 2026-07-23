@@ -13,7 +13,7 @@ pub struct InteractionTarget {
     pub facet_generation: u64,
     #[schemars(range(min = 1, max = 30_000))]
     pub timeout_ms: Option<u32>,
-    #[schemars(regex(pattern = "^[0-9a-f]{32}$"))]
+    #[schemars(regex(pattern = "^[0-9a-f]{32}([0-9a-f]{32})?$"))]
     pub idempotency_key: String,
 }
 

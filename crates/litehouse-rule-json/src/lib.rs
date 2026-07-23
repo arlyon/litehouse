@@ -24,5 +24,7 @@ pub use compile::{
 };
 pub use condition::CheckedCelProgram;
 pub use model::*;
-pub use planner_engine::{TransitionError, plan_microstep, schedule_occurrence_id};
+pub use planner_engine::{
+    TransitionError, next_schedule_occurrence, plan_microstep, schedule_occurrence_id,
+};
 pub use planner_model::*;

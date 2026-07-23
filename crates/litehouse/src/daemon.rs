@@ -13,7 +13,7 @@ use litehouse_contracts::{
 };
 use litehouse_management::{
     BUNDLED_PROVIDERS, BundledProvider, ManagedProvider, ManagementService, McpAdapter, Principal,
-    WorkflowRepository, WorkflowRuntime,
+    WorkflowExecutor, WorkflowRepository, WorkflowRuntime,
 };
 use litehouse_mcp_server::{McpAdapterFactory, McpServerConfig};
 use litehouse_provider_host::{HttpOrigin, ProviderConfig, start_provider};
@@ -42,7 +42,7 @@ pub(crate) async fn run(
         WorkflowRepository::open_with_authoring_root(&config.workflows, ".")
             .map_err(|error| miette!("unable to load workflows: {error}"))?,
     );
-    let _loaded_workflows = workflows
+    let loaded_workflows = workflows
         .snapshot()
         .map_err(|error| miette!("unable to capture workflow snapshot: {error}"))?;
 
@@ -89,6 +89,14 @@ pub(crate) async fn run(
     let principal = Principal::proving("phase1-local-mcp")
         .map_err(|_| miette!("unable to create the Phase 1 MCP principal"))?;
     let workflow_runtime = Arc::new(WorkflowRuntime::new());
+    let mut workflow_executor = WorkflowExecutor::activate(
+        management.clone(),
+        principal.clone(),
+        loaded_workflows,
+        workflow_runtime.clone(),
+    )
+    .await
+    .map_err(|error| miette!("unable to activate workflows: {error}"))?;
     let adapter = McpAdapter::new(management, principal)
         .with_workflows(workflows)
         .with_workflow_runtime(workflow_runtime);
@@ -103,7 +111,12 @@ pub(crate) async fn run(
     server.set_ready(true);
     tracing::info!(address = %server.local_addr(), "Litehouse Phase 1 daemon is ready");
 
-    shutdown_signal().await?;
+    let run_result = tokio::select! {
+        result = shutdown_signal() => result,
+        result = workflow_executor.run() => {
+            result.map_err(|error| miette!("workflow executor stopped: {error}"))
+        }
+    };
     server.set_ready(false);
     server
         .shutdown()
@@ -115,7 +128,7 @@ pub(crate) async fn run(
             .await
             .map_err(|error| miette!("unable to stop provider: {error}"))?;
     }
-    Ok(())
+    run_result
 }
 
 fn validate_phase1_settings(config: &LitehouseConfig) -> Result<()> {

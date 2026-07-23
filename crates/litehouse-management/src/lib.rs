@@ -1,4 +1,5 @@
 mod interaction;
+mod workflow_executor;
 mod workflow_files;
 mod workflow_runtime;
 
@@ -7,6 +8,7 @@ pub use interaction::{
     InteractionNotificationPriority, InteractionRequest, InteractionTarget,
     InteractionThermostatMode, LevelDirection,
 };
+pub use workflow_executor::{WorkflowExecutor, WorkflowExecutorError};
 pub use workflow_files::{
     LoadedWorkflow, WorkflowDirectory, WorkflowFileFormat, WorkflowFilesError,
     WorkflowMutationError, WorkflowRepository, WorkflowValidation,
@@ -1538,7 +1540,7 @@ impl ManagementService {
             return Err(caller_error(
                 operation_id,
                 ErrorCode::ContractFailed,
-                "idempotency_key must be 32 lowercase hexadecimal characters",
+                "idempotency_key must be 32 or 64 lowercase hexadecimal characters",
             ));
         }
         let timeout = operation_timeout(operation_id, target.timeout_ms)?;
@@ -1722,7 +1724,7 @@ impl McpAdapter {
                 workflow_tool_result(repository, authored, None, None)
             }
             WorkflowRequest::Get { rule_id } => {
-                if !valid_idempotency_key(&rule_id) {
+                if !valid_rule_id(&rule_id) {
                     return Err(caller_error(
                         WORKFLOW_OPERATION,
                         ErrorCode::ContractFailed,
@@ -1795,7 +1797,7 @@ impl McpAdapter {
             WorkflowRequest::Outcomes { rule_id } => {
                 if rule_id
                     .as_deref()
-                    .is_some_and(|rule_id| !valid_idempotency_key(rule_id))
+                    .is_some_and(|rule_id| !valid_rule_id(rule_id))
                 {
                     return Err(caller_error(
                         WORKFLOW_OPERATION,
@@ -2640,8 +2642,16 @@ fn valid_public_id(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
 }
 
+fn valid_rule_id(value: &str) -> bool {
+    valid_lower_hex(value, 32)
+}
+
 fn valid_idempotency_key(value: &str) -> bool {
-    value.len() == 32
+    valid_lower_hex(value, 32) || valid_lower_hex(value, 64)
+}
+
+fn valid_lower_hex(value: &str, length: usize) -> bool {
+    value.len() == length
         && value
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
@@ -3112,7 +3122,11 @@ mod tests {
         assert!(!valid_public_id("switch/1"));
         assert!(!valid_public_id(""));
         assert!(valid_idempotency_key("0123456789abcdef0123456789abcdef"));
+        assert!(valid_idempotency_key(
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        ));
         assert!(!valid_idempotency_key("0123456789ABCDEF0123456789ABCDEF"));
+        assert!(!valid_idempotency_key("0123456789abcdef0123456789abcdef0"));
         assert_eq!(
             operation_timeout(QUERY_OPERATION, None).unwrap(),
             Duration::from_secs(10)

@@ -1430,6 +1430,93 @@ fn validate_trigger(
     }
 }
 
+/// Returns the next schedule occurrence strictly after `after` for the process-local
+/// activation anchor. Restarting intentionally chooses a new anchor.
+pub fn next_schedule_occurrence(
+    compiled: &CompiledRule,
+    activation_anchor: crate::Timestamp,
+    after: crate::Timestamp,
+) -> Option<crate::Timestamp> {
+    let schedule = compiled.schedule()?;
+    match schedule {
+        CompiledSchedule::OneShot { at } => {
+            let candidate =
+                crate::Timestamp::new(at.as_second(), at.subsec_nanosecond().try_into().ok()?)
+                    .ok()?;
+            (candidate > after).then_some(candidate)
+        }
+        CompiledSchedule::FixedInterval { interval } => {
+            let anchor = timestamp_nanoseconds(activation_anchor);
+            let after = timestamp_nanoseconds(after);
+            let step = interval.as_nanos();
+            let elapsed = after.checked_sub(anchor)?;
+            let multiples = elapsed.checked_div(step)?.checked_add(1)?;
+            timestamp_from_nanoseconds(anchor.checked_add(multiples.checked_mul(step)?)?)
+        }
+        CompiledSchedule::WeeklyCivil {
+            days,
+            time,
+            timezone,
+            nonexistent_time,
+            duplicate_time,
+        } => {
+            let zone = TimeZone::get(timezone).ok()?;
+            let instant =
+                JiffTimestamp::new(after.unix_seconds(), after.nanosecond() as i32).ok()?;
+            let mut date = instant.to_zoned(zone.clone()).date();
+            let mut next = None;
+            for _ in 0..=7 {
+                if days
+                    .iter()
+                    .any(|day| authored_weekday(*day) == date.weekday())
+                {
+                    let authored = CivilDateTime::from_parts(date, *time);
+                    let ambiguous = zone.to_ambiguous_timestamp(authored);
+                    let earlier = ambiguous.earlier().ok()?;
+                    let later = ambiguous.later().ok()?;
+                    let compatible = ambiguous.compatible().ok()?;
+                    let earlier_local = earlier.to_zoned(zone.clone()).datetime();
+                    let later_local = later.to_zoned(zone.clone()).datetime();
+                    let fold =
+                        earlier != later && earlier_local == authored && later_local == authored;
+                    let gap = earlier != later && !fold;
+                    let candidates: &[JiffTimestamp] = if gap {
+                        match nonexistent_time {
+                            crate::NonexistentTimePolicy::Skip => &[],
+                            crate::NonexistentTimePolicy::ShiftForward => {
+                                std::slice::from_ref(&compatible)
+                            }
+                        }
+                    } else if fold {
+                        match duplicate_time {
+                            crate::DuplicateTimePolicy::First => std::slice::from_ref(&earlier),
+                            crate::DuplicateTimePolicy::Second => std::slice::from_ref(&later),
+                            crate::DuplicateTimePolicy::Both => &[earlier, later],
+                        }
+                    } else {
+                        std::slice::from_ref(&compatible)
+                    };
+                    for candidate in candidates {
+                        let candidate = crate::Timestamp::new(
+                            candidate.as_second(),
+                            candidate.subsec_nanosecond().try_into().ok()?,
+                        )
+                        .ok()?;
+                        if candidate > after && next.is_none_or(|current| candidate < current) {
+                            next = Some(candidate);
+                        }
+                    }
+                    if next.is_some() {
+                        return next;
+                    }
+                }
+                date = date.tomorrow().ok()?;
+            }
+            None
+        }
+    }
+}
+
 pub fn schedule_occurrence_id(
     compiled: &CompiledRule,
     activation_anchor: crate::Timestamp,
@@ -1526,6 +1613,12 @@ fn authored_weekday(day: crate::Weekday) -> jiff::civil::Weekday {
 
 fn timestamp_nanoseconds(timestamp: crate::Timestamp) -> i128 {
     i128::from(timestamp.unix_seconds()) * 1_000_000_000 + i128::from(timestamp.nanosecond())
+}
+
+fn timestamp_from_nanoseconds(value: i128) -> Option<crate::Timestamp> {
+    let seconds = value.div_euclid(1_000_000_000).try_into().ok()?;
+    let nanosecond = value.rem_euclid(1_000_000_000).try_into().ok()?;
+    crate::Timestamp::new(seconds, nanosecond).ok()
 }
 
 fn required_next(
