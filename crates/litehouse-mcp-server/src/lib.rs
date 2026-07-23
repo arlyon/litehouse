@@ -11,6 +11,7 @@ use axum::{
     http::StatusCode,
     middleware::{self, Next},
     response::{IntoResponse, Response},
+    routing::get,
 };
 use litehouse_management::McpAdapter;
 use rmcp::{
@@ -21,7 +22,16 @@ use rmcp::{
         session::local::{LocalSessionManager, LocalSessionManagerError},
     },
 };
-use std::{collections::HashMap, io, net::SocketAddr, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    io,
+    net::SocketAddr,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Duration,
+};
 use thiserror::Error;
 use tokio::{
     net::TcpListener,
@@ -31,6 +41,8 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 pub const MCP_ROUTE: &str = "/mcp";
+pub const HEALTH_ROUTE: &str = "/healthz";
+pub const READINESS_ROUTE: &str = "/readyz";
 pub const MAX_MCP_REQUEST_BYTES: usize = 512 * 1024;
 
 /// Per-session adapter construction is the only extension seam in this transport crate.
@@ -169,6 +181,7 @@ pub struct McpServer {
     local_addr: SocketAddr,
     cancellation: CancellationToken,
     sessions: Arc<BoundedSessionManager>,
+    readiness: Arc<AtomicBool>,
     shutdown_grace: Duration,
     task: JoinHandle<io::Result<()>>,
 }
@@ -182,7 +195,16 @@ impl McpServer {
         self.sessions.active_count().await
     }
 
+    pub fn set_ready(&self, ready: bool) {
+        self.readiness.store(ready, Ordering::Release);
+    }
+
+    pub fn is_ready(&self) -> bool {
+        self.readiness.load(Ordering::Acquire)
+    }
+
     pub async fn shutdown(self) -> Result<ShutdownReport, ShutdownError> {
+        self.readiness.store(false, Ordering::Release);
         self.cancellation.cancel();
         let closed_sessions = self.sessions.close_all().await;
         let mut task = self.task;
@@ -229,6 +251,7 @@ where
     })?;
 
     let cancellation = CancellationToken::new();
+    let readiness = Arc::new(AtomicBool::new(false));
     let sessions = Arc::new(BoundedSessionManager::new(
         config.max_sessions,
         config.idle_timeout,
@@ -241,13 +264,15 @@ where
             .with_allowed_origins(config.allowed_origins.clone())
             .with_cancellation_token(cancellation.child_token()),
     );
-    let router =
-        Router::new()
-            .nest_service(MCP_ROUTE, service)
-            .layer(middleware::from_fn_with_state(
-                config.max_request_bytes,
-                limit_request_body,
-            ));
+    let router = Router::new()
+        .nest_service(MCP_ROUTE, service)
+        .route(HEALTH_ROUTE, get(health))
+        .route(READINESS_ROUTE, get(readiness_status))
+        .with_state(readiness.clone())
+        .layer(middleware::from_fn_with_state(
+            config.max_request_bytes,
+            limit_request_body,
+        ));
 
     tracing::warn!(
         target: "litehouse_mcp_server::security",
@@ -273,9 +298,22 @@ where
         local_addr,
         cancellation,
         sessions,
+        readiness,
         shutdown_grace: config.shutdown_grace,
         task,
     })
+}
+
+async fn health() -> StatusCode {
+    StatusCode::OK
+}
+
+async fn readiness_status(State(readiness): State<Arc<AtomicBool>>) -> StatusCode {
+    if readiness.load(Ordering::Acquire) {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    }
 }
 
 async fn limit_request_body(State(limit): State<usize>, request: Request, next: Next) -> Response {

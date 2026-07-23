@@ -363,6 +363,27 @@ async fn session_capacity_and_shutdown_are_bounded() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
+async fn health_is_live_and_readiness_is_explicit() -> anyhow::Result<()> {
+    let server = start_service(config(4), || Ok(ClosedTools::new())).await?;
+    let health_uri = format!("http://{}{}", server.local_addr(), HEALTH_ROUTE);
+    let ready_uri = format!("http://{}{}", server.local_addr(), READINESS_ROUTE);
+
+    let health = send(Request::get(&health_uri).body(Full::new(Bytes::new()))?).await?;
+    assert_eq!(health.status(), StatusCode::OK);
+    let not_ready = send(Request::get(&ready_uri).body(Full::new(Bytes::new()))?).await?;
+    assert_eq!(not_ready.status(), StatusCode::SERVICE_UNAVAILABLE);
+    assert!(!server.is_ready());
+
+    server.set_ready(true);
+    assert!(server.is_ready());
+    let ready = send(Request::get(&ready_uri).body(Full::new(Bytes::new()))?).await?;
+    assert_eq!(ready.status(), StatusCode::OK);
+
+    server.shutdown().await?;
+    Ok(())
+}
+
+#[tokio::test]
 async fn oversized_fixed_and_chunked_requests_are_rejected() -> anyhow::Result<()> {
     let mut bounded = config(4);
     bounded.max_request_bytes = 128;
