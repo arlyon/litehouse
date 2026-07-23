@@ -13,7 +13,7 @@ use litehouse_contracts::{
 };
 use litehouse_management::{
     BUNDLED_PROVIDERS, BundledProvider, ManagedProvider, ManagementService, McpAdapter, Principal,
-    WorkflowRepository,
+    WorkflowRepository, WorkflowRuntime,
 };
 use litehouse_mcp_server::{McpAdapterFactory, McpServerConfig};
 use litehouse_provider_host::{HttpOrigin, ProviderConfig, start_provider};
@@ -88,7 +88,10 @@ pub(crate) async fn run(
         .map_err(|error| miette!("unable to build management service: {error}"))?;
     let principal = Principal::proving("phase1-local-mcp")
         .map_err(|_| miette!("unable to create the Phase 1 MCP principal"))?;
-    let adapter = McpAdapter::new(management, principal).with_workflows(workflows);
+    let workflow_runtime = Arc::new(WorkflowRuntime::new());
+    let adapter = McpAdapter::new(management, principal)
+        .with_workflows(workflows)
+        .with_workflow_runtime(workflow_runtime);
     let factory: McpAdapterFactory = Arc::new(move || Ok(adapter.clone()));
     let mut server_config = McpServerConfig::new(bind_addr, allowed_origins);
     if !allowed_hosts.is_empty() {

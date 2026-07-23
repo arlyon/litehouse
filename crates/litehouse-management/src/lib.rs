@@ -1,5 +1,6 @@
 mod interaction;
 mod workflow_files;
+mod workflow_runtime;
 
 pub use interaction::{
     ColorDirection, InteractionColor, InteractionColorSpace, InteractionCoveringAxis,
@@ -9,6 +10,10 @@ pub use interaction::{
 pub use workflow_files::{
     LoadedWorkflow, WorkflowDirectory, WorkflowFileFormat, WorkflowFilesError,
     WorkflowMutationError, WorkflowRepository, WorkflowValidation,
+};
+pub use workflow_runtime::{
+    WorkflowOutcomeSnapshot, WorkflowRunOutcome, WorkflowRunStatus, WorkflowRuntime,
+    WorkflowRuntimeError,
 };
 
 use litehouse_contracts::management::{
@@ -141,6 +146,10 @@ pub enum WorkflowRequest {
         #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
         expected_sha256: String,
     },
+    Outcomes {
+        #[schemars(regex(pattern = "^[0-9a-f]{32}$"))]
+        rule_id: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -165,6 +174,8 @@ pub struct WorkflowToolResult {
     pub source: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub validation: Option<WorkflowValidationResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub outcomes: Option<WorkflowOutcomeSnapshot>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -1665,6 +1676,7 @@ pub struct McpAdapter {
     management: ManagementService,
     principal: Principal,
     workflows: Option<Arc<WorkflowRepository>>,
+    workflow_runtime: Option<Arc<WorkflowRuntime>>,
     tool_router: ToolRouter<Self>,
 }
 
@@ -1674,12 +1686,18 @@ impl McpAdapter {
             management,
             principal,
             workflows: None,
+            workflow_runtime: None,
             tool_router: Self::tool_router(),
         }
     }
 
     pub fn with_workflows(mut self, workflows: Arc<WorkflowRepository>) -> Self {
         self.workflows = Some(workflows);
+        self
+    }
+
+    pub fn with_workflow_runtime(mut self, runtime: Arc<WorkflowRuntime>) -> Self {
+        self.workflow_runtime = Some(runtime);
         self
     }
 
@@ -1773,6 +1791,44 @@ impl McpAdapter {
                     .remove(&relative_path, expected)
                     .map_err(workflow_error)?;
                 workflow_tool_result(repository, authored, None, None)
+            }
+            WorkflowRequest::Outcomes { rule_id } => {
+                if rule_id
+                    .as_deref()
+                    .is_some_and(|rule_id| !valid_idempotency_key(rule_id))
+                {
+                    return Err(caller_error(
+                        WORKFLOW_OPERATION,
+                        ErrorCode::ContractFailed,
+                        "rule_id must be 32 lowercase hexadecimal characters",
+                    ));
+                }
+                let runtime = self.workflow_runtime.as_ref().ok_or_else(|| {
+                    management_error(
+                        WORKFLOW_OPERATION,
+                        ErrorGroup::Availability,
+                        ErrorCode::Unsupported,
+                        Some(ErrorOrigin::Host),
+                        RetryKind::Never,
+                        "workflow outcomes are unavailable",
+                        OutcomeConfidence::Definite,
+                    )
+                })?;
+                let outcomes = runtime.outcomes(rule_id.as_deref()).map_err(|_| {
+                    management_error(
+                        WORKFLOW_OPERATION,
+                        ErrorGroup::Availability,
+                        ErrorCode::Unavailable,
+                        Some(ErrorOrigin::Host),
+                        RetryKind::Retry,
+                        "workflow outcomes are temporarily unavailable",
+                        OutcomeConfidence::Definite,
+                    )
+                })?;
+                let authored = repository.authored_snapshot().map_err(workflow_error)?;
+                let mut result = workflow_tool_result(repository, authored, None, None)?;
+                result.outcomes = Some(outcomes);
+                Ok(result)
             }
         }
     }
@@ -1900,6 +1956,7 @@ fn workflow_tool_result(
         workflows,
         source,
         validation,
+        outcomes: None,
     })
 }
 
@@ -2992,6 +3049,51 @@ mod tests {
 
         drop(adapter);
         drop(repository);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn workflow_tool_returns_bounded_process_local_outcomes() {
+        let root = std::env::temp_dir().join(format!(
+            "litehouse-workflow-outcomes-{}-{}",
+            std::process::id(),
+            REQUEST_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let repository = Arc::new(WorkflowRepository::open(&root).unwrap());
+        let runtime = Arc::new(WorkflowRuntime::new());
+        runtime
+            .begin(
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                10,
+            )
+            .unwrap();
+        runtime
+            .finish(
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                WorkflowRunStatus::Succeeded,
+                20,
+            )
+            .unwrap();
+        let adapter = McpAdapter::new(
+            ManagementService::from_bundled([]).unwrap(),
+            Principal::proving("phase1-workflow-outcomes").unwrap(),
+        )
+        .with_workflows(repository)
+        .with_workflow_runtime(runtime);
+
+        let result = adapter
+            .workflow_operation(WorkflowRequest::Outcomes {
+                rule_id: Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned()),
+            })
+            .unwrap();
+        let outcomes = result.outcomes.unwrap();
+        assert!(outcomes.active.is_empty());
+        assert_eq!(outcomes.terminal.len(), 1);
+        assert_eq!(outcomes.terminal[0].status, WorkflowRunStatus::Succeeded);
+
         std::fs::remove_dir_all(root).unwrap();
     }
 
