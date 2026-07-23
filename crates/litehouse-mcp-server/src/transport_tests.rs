@@ -363,6 +363,32 @@ async fn session_capacity_and_shutdown_are_bounded() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
+async fn oversized_fixed_and_chunked_requests_are_rejected() -> anyhow::Result<()> {
+    let mut bounded = config(4);
+    bounded.max_request_bytes = 128;
+    let server = start_service(bounded, || Ok(ClosedTools::new())).await?;
+    let uri = format!("http://{}{MCP_ROUTE}", server.local_addr());
+
+    for chunked in [false, true] {
+        let mut builder = Request::builder()
+            .method(Method::POST)
+            .uri(&uri)
+            .header(http::header::HOST, server.local_addr().to_string())
+            .header(http::header::ORIGIN, ALLOWED_ORIGIN)
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .header(http::header::ACCEPT, "application/json, text/event-stream");
+        if chunked {
+            builder = builder.header(http::header::TRANSFER_ENCODING, "chunked");
+        }
+        let response = send(builder.body(Full::new(Bytes::from(vec![b'x'; 129])))?).await?;
+        assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    }
+
+    server.shutdown().await?;
+    Ok(())
+}
+
+#[tokio::test]
 async fn disallowed_origin_cannot_initialize() -> anyhow::Result<()> {
     let server = start_service(config(1), || Ok(ClosedTools::new())).await?;
     let attempt = ClientInfo::default()

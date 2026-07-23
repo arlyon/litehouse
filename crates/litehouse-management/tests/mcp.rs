@@ -33,7 +33,7 @@ fn arguments(value: Value) -> Map<String, Value> {
 
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "requires LITEHOUSE_PROVIDER_FIXTURE_WASM built for wasm32-wasip2"]
-async fn three_rmcp_tools_use_canonical_handlers_and_no_generic_dispatch() -> anyhow::Result<()> {
+async fn four_rmcp_tools_use_closed_handlers_and_no_generic_dispatch() -> anyhow::Result<()> {
     let engine = engine();
     let epoch_engine = engine.clone();
     tokio::spawn(async move {
@@ -98,11 +98,18 @@ async fn three_rmcp_tools_use_canonical_handlers_and_no_generic_dispatch() -> an
         BTreeSet::from([
             "litehouse_interact",
             "litehouse_inventory",
-            "litehouse_query"
+            "litehouse_query",
+            "litehouse_workflows",
         ])
     );
     let manifest = management_manifest()?;
     for tool in &tools {
+        if tool.name == "litehouse_workflows" {
+            assert_eq!(tool.input_schema["type"], "object");
+            assert!(tool.input_schema["oneOf"].is_array());
+            assert!(tool.output_schema.as_deref().unwrap()["properties"].is_object());
+            continue;
+        }
         let operation = manifest
             .operations
             .iter()

@@ -2,7 +2,7 @@ mod workflow_files;
 
 pub use workflow_files::{
     LoadedWorkflow, WorkflowDirectory, WorkflowFileFormat, WorkflowFilesError,
-    WorkflowMutationError, WorkflowRepository,
+    WorkflowMutationError, WorkflowRepository, WorkflowValidation,
 };
 
 use litehouse_contracts::management::{OAuthScope, ScopePolicy, management_manifest};
@@ -22,6 +22,7 @@ use rmcp::{
     model::{CallToolResult, ServerCapabilities, ServerInfo},
     tool, tool_handler, tool_router,
 };
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::{
@@ -36,6 +37,7 @@ use std::{
 const INVENTORY_OPERATION: &str = "inventory.snapshot@1";
 const QUERY_OPERATION: &str = "facets.query@1";
 const SET_OPERATION: &str = "capability.on-off.set@1";
+const WORKFLOW_OPERATION: &str = "workflows.manage@1";
 const MAX_INVENTORY_FACETS: usize = 200;
 
 static REQUEST_SEQUENCE: AtomicU64 = AtomicU64::new(1);
@@ -92,6 +94,76 @@ pub struct OnOffSetRequest {
     pub on: bool,
     pub timeout_ms: Option<u32>,
     pub idempotency_key: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "action", rename_all = "kebab-case", deny_unknown_fields)]
+pub enum WorkflowRequest {
+    List,
+    Get {
+        #[schemars(regex(pattern = "^[0-9a-f]{32}$"))]
+        rule_id: String,
+    },
+    Validate {
+        #[schemars(length(min = 1, max = 512))]
+        relative_path: String,
+        #[schemars(length(max = 131_072))]
+        source: String,
+    },
+    Put {
+        #[schemars(length(min = 1, max = 512))]
+        relative_path: String,
+        #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+        expected_sha256: Option<String>,
+        #[schemars(length(max = 131_072))]
+        source: String,
+    },
+    SetEnabled {
+        #[schemars(length(min = 1, max = 512))]
+        relative_path: String,
+        #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+        expected_sha256: String,
+        enabled: bool,
+    },
+    Delete {
+        #[schemars(length(min = 1, max = 512))]
+        relative_path: String,
+        #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+        expected_sha256: String,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct WorkflowSummary {
+    pub rule_id: String,
+    pub relative_path: String,
+    pub revision: u64,
+    pub enabled: bool,
+    pub source_sha256: String,
+    pub semantic_sha256: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct WorkflowToolResult {
+    pub authored_sha256: String,
+    pub loaded_sha256: String,
+    pub restart_required: bool,
+    pub workflows: Vec<WorkflowSummary>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub validation: Option<WorkflowValidationResult>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct WorkflowValidationResult {
+    pub rule_id: String,
+    pub revision: u64,
+    pub enabled: bool,
+    pub semantic_sha256: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -817,6 +889,7 @@ impl ManagementService {
 pub struct McpAdapter {
     management: ManagementService,
     principal: Principal,
+    workflows: Option<Arc<WorkflowRepository>>,
     tool_router: ToolRouter<Self>,
 }
 
@@ -825,7 +898,107 @@ impl McpAdapter {
         Self {
             management,
             principal,
+            workflows: None,
             tool_router: Self::tool_router(),
+        }
+    }
+
+    pub fn with_workflows(mut self, workflows: Arc<WorkflowRepository>) -> Self {
+        self.workflows = Some(workflows);
+        self
+    }
+
+    fn workflow_operation(
+        &self,
+        request: WorkflowRequest,
+    ) -> Result<WorkflowToolResult, ManagementError> {
+        let repository = self.workflows.as_ref().ok_or_else(|| {
+            management_error(
+                WORKFLOW_OPERATION,
+                ErrorGroup::Availability,
+                ErrorCode::Unsupported,
+                Some(ErrorOrigin::Host),
+                RetryKind::Never,
+                "workflow authoring is unavailable",
+                OutcomeConfidence::Definite,
+            )
+        })?;
+        match request {
+            WorkflowRequest::List => {
+                let authored = repository.authored_snapshot().map_err(workflow_error)?;
+                workflow_tool_result(repository, authored, None, None)
+            }
+            WorkflowRequest::Get { rule_id } => {
+                if !valid_idempotency_key(&rule_id) {
+                    return Err(caller_error(
+                        WORKFLOW_OPERATION,
+                        ErrorCode::ContractFailed,
+                        "rule_id must be 32 lowercase hexadecimal characters",
+                    ));
+                }
+                let (authored, source) = repository
+                    .authored_workflow_source(&rule_id)
+                    .map_err(workflow_error)?;
+                let source = String::from_utf8(source).map_err(|_| {
+                    caller_error(
+                        WORKFLOW_OPERATION,
+                        ErrorCode::ContractFailed,
+                        "workflow source is not UTF-8",
+                    )
+                })?;
+                let mut result = workflow_tool_result(repository, authored, Some(source), None)?;
+                result
+                    .workflows
+                    .retain(|workflow| workflow.rule_id == rule_id);
+                Ok(result)
+            }
+            WorkflowRequest::Validate {
+                relative_path,
+                source,
+            } => {
+                let validation =
+                    WorkflowRepository::validate_source(&relative_path, source.as_bytes())
+                        .map_err(workflow_error)?;
+                let authored = repository.authored_snapshot().map_err(workflow_error)?;
+                workflow_tool_result(
+                    repository,
+                    authored,
+                    None,
+                    Some(workflow_validation_result(validation)),
+                )
+            }
+            WorkflowRequest::Put {
+                relative_path,
+                expected_sha256,
+                source,
+            } => {
+                let expected = expected_sha256.as_deref().map(parse_sha256).transpose()?;
+                let authored = repository
+                    .put(&relative_path, expected, source.as_bytes())
+                    .map_err(workflow_error)?;
+                workflow_tool_result(repository, authored, None, None)
+            }
+            WorkflowRequest::SetEnabled {
+                relative_path,
+                expected_sha256,
+                enabled,
+            } => {
+                let expected = parse_sha256(&expected_sha256)?;
+                let authored = repository
+                    .set_enabled(&relative_path, expected, enabled)
+                    .map_err(workflow_error)?;
+                workflow_tool_result(repository, authored, None, None)
+            }
+            WorkflowRequest::Delete {
+                relative_path,
+                expected_sha256,
+            } => {
+                let expected = parse_sha256(&expected_sha256)?;
+                let authored = repository
+                    .remove(&relative_path, expected)
+                    .map_err(workflow_error)?;
+                workflow_tool_result(repository, authored, None, None)
+            }
         }
     }
 }
@@ -865,13 +1038,160 @@ impl McpAdapter {
     async fn interact(&self, Parameters(request): Parameters<OnOffSetRequest>) -> CallToolResult {
         tool_result(self.management.on_off_set(&self.principal, request).await)
     }
+
+    #[tool(
+        name = "litehouse_workflows",
+        description = "Inspect, validate, and atomically author Rule JSON workflows. Authored changes require a Litehouse restart.",
+        input_schema = workflow_input_schema(),
+        output_schema = rmcp::handler::server::tool::schema_for_type::<WorkflowToolResult>()
+    )]
+    async fn workflows(&self, Parameters(request): Parameters<WorkflowRequest>) -> CallToolResult {
+        tool_result(self.workflow_operation(request))
+    }
 }
 
 #[tool_handler(router = self.tool_router)]
 impl ServerHandler for McpAdapter {
     fn get_info(&self) -> ServerInfo {
         ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
-            .with_instructions("Use only the three closed Litehouse proving tools.")
+            .with_instructions("Use only the four closed Litehouse Phase 1 tools.")
+    }
+}
+
+fn workflow_input_schema() -> Arc<Map<String, Value>> {
+    let generated = rmcp::handler::server::tool::schema_for_type::<WorkflowRequest>();
+    let mut schema = generated.as_ref().clone();
+    schema.insert("type".to_owned(), Value::String("object".to_owned()));
+    Arc::new(schema)
+}
+
+fn workflow_tool_result(
+    repository: &WorkflowRepository,
+    authored: Arc<WorkflowDirectory>,
+    source: Option<String>,
+    validation: Option<WorkflowValidationResult>,
+) -> Result<WorkflowToolResult, ManagementError> {
+    let loaded = repository.snapshot().map_err(workflow_error)?;
+    let authored_sha256 = hex_sha256(authored.authored_sha256());
+    let loaded_sha256 = hex_sha256(loaded.authored_sha256());
+    let workflows = authored
+        .workflows()
+        .values()
+        .map(workflow_summary)
+        .collect();
+    Ok(WorkflowToolResult {
+        restart_required: authored_sha256 != loaded_sha256,
+        authored_sha256,
+        loaded_sha256,
+        workflows,
+        source,
+        validation,
+    })
+}
+
+fn workflow_summary(workflow: &LoadedWorkflow) -> WorkflowSummary {
+    WorkflowSummary {
+        rule_id: workflow.compiled().rule_id().to_owned(),
+        relative_path: workflow.relative_path().to_owned(),
+        revision: workflow.compiled().revision(),
+        enabled: workflow.compiled().enabled(),
+        source_sha256: hex_sha256(workflow.source_sha256()),
+        semantic_sha256: workflow.compiled().semantic_sha256().to_owned(),
+    }
+}
+
+fn workflow_validation_result(validation: WorkflowValidation) -> WorkflowValidationResult {
+    WorkflowValidationResult {
+        rule_id: validation.rule_id,
+        revision: validation.revision,
+        enabled: validation.enabled,
+        semantic_sha256: validation.semantic_sha256,
+    }
+}
+
+fn parse_sha256(value: &str) -> Result<[u8; 32], ManagementError> {
+    if value.len() != 64
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(caller_error(
+            WORKFLOW_OPERATION,
+            ErrorCode::ContractFailed,
+            "expected_sha256 must be 64 lowercase hexadecimal characters",
+        ));
+    }
+    let mut digest = [0_u8; 32];
+    for (index, pair) in value.as_bytes().chunks_exact(2).enumerate() {
+        let text = std::str::from_utf8(pair).expect("validated hexadecimal is UTF-8");
+        digest[index] = u8::from_str_radix(text, 16).expect("validated hexadecimal decodes");
+    }
+    Ok(digest)
+}
+
+fn hex_sha256(value: [u8; 32]) -> String {
+    value.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+fn workflow_error(error: WorkflowMutationError) -> ManagementError {
+    match error {
+        WorkflowMutationError::Conflict => management_error(
+            WORKFLOW_OPERATION,
+            ErrorGroup::Contract,
+            ErrorCode::StaleHandle,
+            Some(ErrorOrigin::Caller),
+            RetryKind::Never,
+            "workflow source changed since it was read",
+            OutcomeConfidence::Definite,
+        ),
+        WorkflowMutationError::Busy => management_error(
+            WORKFLOW_OPERATION,
+            ErrorGroup::Capacity,
+            ErrorCode::Overloaded,
+            Some(ErrorOrigin::Host),
+            RetryKind::Retry,
+            "another authored-file mutation is in progress",
+            OutcomeConfidence::Definite,
+        ),
+        WorkflowMutationError::CommitIndeterminate(_)
+        | WorkflowMutationError::AuthoredButNotLoaded { .. }
+        | WorkflowMutationError::AuthoredChangedAfterCommit { .. } => management_error(
+            WORKFLOW_OPERATION,
+            ErrorGroup::OutcomeUnknown,
+            ErrorCode::OutcomeUnknown,
+            Some(ErrorOrigin::Host),
+            RetryKind::Never,
+            "workflow mutation outcome requires a fresh authored read",
+            OutcomeConfidence::OutcomeUnknown,
+        ),
+        WorkflowMutationError::StatePoisoned | WorkflowMutationError::Io { .. } => {
+            management_error(
+                WORKFLOW_OPERATION,
+                ErrorGroup::Execution,
+                ErrorCode::ProviderFailed,
+                Some(ErrorOrigin::Host),
+                RetryKind::Never,
+                "workflow authoring failed",
+                OutcomeConfidence::Definite,
+            )
+        }
+        WorkflowMutationError::WorkflowNotFound { .. } => management_error(
+            WORKFLOW_OPERATION,
+            ErrorGroup::Binding,
+            ErrorCode::NotFound,
+            Some(ErrorOrigin::Caller),
+            RetryKind::Never,
+            "workflow was not found",
+            OutcomeConfidence::Definite,
+        ),
+        WorkflowMutationError::Files(_)
+        | WorkflowMutationError::InvalidPath { .. }
+        | WorkflowMutationError::UnsupportedExtension { .. }
+        | WorkflowMutationError::DuplicateRuleId { .. } => caller_error(
+            WORKFLOW_OPERATION,
+            ErrorCode::ContractFailed,
+            "workflow source failed validation",
+        ),
     }
 }
 
@@ -1459,6 +1779,99 @@ mod tests {
                 truncated: false,
             }
         );
+    }
+
+    #[test]
+    fn phase1_mcp_surface_has_exactly_four_tools() {
+        let tools = McpAdapter::tool_router().list_all();
+        let names = tools
+            .iter()
+            .map(|tool| tool.name.to_string())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            names,
+            BTreeSet::from([
+                "litehouse_interact".to_owned(),
+                "litehouse_inventory".to_owned(),
+                "litehouse_query".to_owned(),
+                "litehouse_workflows".to_owned(),
+            ])
+        );
+        let workflow = tools
+            .iter()
+            .find(|tool| tool.name == "litehouse_workflows")
+            .unwrap();
+        let schema = serde_json::to_string(&workflow.input_schema).unwrap();
+        assert!(schema.contains("\"maxLength\":131072"));
+        assert!(schema.contains("\"maxLength\":512"));
+        assert!(schema.contains("^[0-9a-f]{64}$"));
+    }
+
+    #[test]
+    fn workflow_tool_authors_without_replacing_the_loaded_snapshot() {
+        let root = std::env::temp_dir().join(format!(
+            "litehouse-workflow-tool-{}-{}",
+            std::process::id(),
+            REQUEST_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let source = include_str!("../../litehouse-rule-json/fixtures/valid-minimal.json");
+        std::fs::write(root.join("rule.json"), source).unwrap();
+        let repository = Arc::new(WorkflowRepository::open(&root).unwrap());
+        let loaded = repository.snapshot().unwrap();
+        let workflow = loaded.workflows().values().next().unwrap();
+        let expected_sha256 = hex_sha256(workflow.source_sha256());
+        let mut updated: serde_json::Value = serde_json::from_str(source).unwrap();
+        updated["revision"] = serde_json::json!(2);
+        let updated = serde_json::to_string_pretty(&updated).unwrap();
+        let adapter = McpAdapter::new(
+            ManagementService::from_bundled([]).unwrap(),
+            Principal::proving("phase1-workflow-test").unwrap(),
+        )
+        .with_workflows(repository.clone());
+
+        let result = adapter
+            .workflow_operation(WorkflowRequest::Put {
+                relative_path: "rule.json".to_owned(),
+                expected_sha256: Some(expected_sha256),
+                source: updated,
+            })
+            .unwrap();
+        assert!(result.restart_required);
+        assert_eq!(result.workflows[0].revision, 2);
+        assert_eq!(
+            repository
+                .snapshot()
+                .unwrap()
+                .workflows()
+                .values()
+                .next()
+                .unwrap()
+                .compiled()
+                .revision(),
+            1
+        );
+        let disabled = adapter
+            .workflow_operation(WorkflowRequest::SetEnabled {
+                relative_path: "rule.json".to_owned(),
+                expected_sha256: result.workflows[0].source_sha256.clone(),
+                enabled: false,
+            })
+            .unwrap();
+        assert!(!disabled.workflows[0].enabled);
+        assert!(disabled.restart_required);
+        let get = adapter
+            .workflow_operation(WorkflowRequest::Get {
+                rule_id: result.workflows[0].rule_id.clone(),
+            })
+            .unwrap();
+        let source = get.source.unwrap();
+        assert!(source.contains("\"revision\": 2"));
+        assert!(source.contains("\"enabled\": false"));
+
+        drop(adapter);
+        drop(repository);
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

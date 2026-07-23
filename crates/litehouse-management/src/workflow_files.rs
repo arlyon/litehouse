@@ -26,6 +26,7 @@ const MAX_WORKFLOW_FILES: usize = 256;
 const MAX_WORKFLOW_DIRECTORIES: usize = 512;
 const MAX_WORKFLOW_ENTRIES: usize = 4_096;
 const MAX_WORKFLOW_DIRECTORY_DEPTH: usize = 16;
+const MAX_WORKFLOW_RELATIVE_PATH_BYTES: usize = 512;
 const MAX_YAML_EVENTS: usize = 8_192;
 const DIRECTORY_DIGEST_DOMAIN: &[u8] = b"litehouse-workflow-directory-v1\0";
 static WORKFLOW_TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
@@ -136,6 +137,14 @@ impl WorkflowDirectory {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkflowValidation {
+    pub rule_id: String,
+    pub revision: u64,
+    pub enabled: bool,
+    pub semantic_sha256: String,
+}
+
 #[derive(Debug)]
 pub struct WorkflowRepository {
     root: PathBuf,
@@ -175,6 +184,87 @@ impl WorkflowRepository {
             .map_err(|_| WorkflowMutationError::StatePoisoned)
     }
 
+    /// Reads and validates the current authored directory without changing the loaded snapshot.
+    pub fn authored_snapshot(&self) -> Result<Arc<WorkflowDirectory>, WorkflowMutationError> {
+        let _mutation = self
+            .mutation
+            .lock()
+            .map_err(|_| WorkflowMutationError::StatePoisoned)?;
+        let authoring_root = open_root_directory(&self.authoring_root)?;
+        let _lock = acquire_authoring_lock(&authoring_root)?;
+        Ok(Arc::new(WorkflowDirectory::load(&self.root)?))
+    }
+
+    /// Reads exact authored source through the same confined, bounded path as discovery.
+    pub fn read_source(&self, relative_path: &str) -> Result<Vec<u8>, WorkflowMutationError> {
+        let relative = validate_mutation_path(relative_path)?;
+        workflow_format(&relative).ok_or_else(|| WorkflowMutationError::UnsupportedExtension {
+            path: relative.clone(),
+        })?;
+        let _mutation = self
+            .mutation
+            .lock()
+            .map_err(|_| WorkflowMutationError::StatePoisoned)?;
+        let root = open_root_directory(&self.root)?;
+        let authoring_root = open_root_directory(&self.authoring_root)?;
+        let _lock = acquire_authoring_lock(&authoring_root)?;
+        read_source_locked(&root, &relative)
+    }
+
+    /// Returns one authored workflow snapshot and its exact coherent source.
+    pub fn authored_workflow_source(
+        &self,
+        rule_id: &str,
+    ) -> Result<(Arc<WorkflowDirectory>, Vec<u8>), WorkflowMutationError> {
+        let _mutation = self
+            .mutation
+            .lock()
+            .map_err(|_| WorkflowMutationError::StatePoisoned)?;
+        let root = open_root_directory(&self.root)?;
+        let authoring_root = open_root_directory(&self.authoring_root)?;
+        let _lock = acquire_authoring_lock(&authoring_root)?;
+        let authored = Arc::new(WorkflowDirectory::load(&self.root)?);
+        let workflow = authored.workflows().get(rule_id).ok_or_else(|| {
+            WorkflowMutationError::WorkflowNotFound {
+                rule_id: rule_id.to_owned(),
+            }
+        })?;
+        let relative = PathBuf::from(workflow.relative_path());
+        let source = read_source_locked(&root, &relative)?;
+        if <[u8; 32]>::from(Sha256::digest(&source)) != workflow.source_sha256() {
+            return Err(WorkflowMutationError::Conflict);
+        }
+        Ok((authored, source))
+    }
+
+    /// Validates and compiles one candidate source without reading or mutating the directory.
+    pub fn validate_source(
+        relative_path: &str,
+        source: &[u8],
+    ) -> Result<WorkflowValidation, WorkflowMutationError> {
+        if source.len() > HARD_MAX_JSON_BYTES {
+            return Err(WorkflowFilesError::FileTooLarge {
+                path: PathBuf::from(relative_path),
+                actual: source.len(),
+                maximum: HARD_MAX_JSON_BYTES,
+            }
+            .into());
+        }
+        let relative = validate_mutation_path(relative_path)?;
+        let format = workflow_format(&relative).ok_or_else(|| {
+            WorkflowMutationError::UnsupportedExtension {
+                path: relative.clone(),
+            }
+        })?;
+        let compiled = compile_workflow(relative_path, format, source)?;
+        Ok(WorkflowValidation {
+            rule_id: compiled.rule_id().to_owned(),
+            revision: compiled.revision(),
+            enabled: compiled.enabled(),
+            semantic_sha256: compiled.semantic_sha256().to_owned(),
+        })
+    }
+
     /// Explicitly replaces the loaded snapshot after complete directory validation.
     /// Phase 1 calls this only while constructing a process epoch, never from MCP.
     pub fn reload(&self) -> Result<Arc<WorkflowDirectory>, WorkflowMutationError> {
@@ -201,25 +291,12 @@ impl WorkflowRepository {
         expected_sha256: Option<[u8; 32]>,
         source: &[u8],
     ) -> Result<Arc<WorkflowDirectory>, WorkflowMutationError> {
-        if source.len() > HARD_MAX_JSON_BYTES {
-            return Err(WorkflowFilesError::FileTooLarge {
-                path: PathBuf::from(relative_path),
-                actual: source.len(),
-                maximum: HARD_MAX_JSON_BYTES,
-            }
-            .into());
-        }
+        let validation = Self::validate_source(relative_path, source)?;
         let relative = validate_mutation_path(relative_path)?;
         let _mutation = self
             .mutation
             .lock()
             .map_err(|_| WorkflowMutationError::StatePoisoned)?;
-        let format = workflow_format(&relative).ok_or_else(|| {
-            WorkflowMutationError::UnsupportedExtension {
-                path: relative.clone(),
-            }
-        })?;
-        let compiled = compile_workflow(relative_path, format, source)?;
         let source_sha256: [u8; 32] = Sha256::digest(source).into();
 
         let root_directory = open_root_directory(&self.root)?;
@@ -230,11 +307,11 @@ impl WorkflowRepository {
         if expected_sha256.is_none() {
             check_create_capacity(current.workflows().len(), current.entry_count)?;
         }
-        if let Some(existing) = current.workflows().get(compiled.rule_id())
+        if let Some(existing) = current.workflows().get(&validation.rule_id)
             && existing.relative_path() != relative_path
         {
             return Err(WorkflowMutationError::DuplicateRuleId {
-                rule_id: compiled.rule_id().to_owned(),
+                rule_id: validation.rule_id.clone(),
                 existing_path: existing.relative_path().to_owned(),
             });
         }
@@ -248,11 +325,78 @@ impl WorkflowRepository {
         );
         let written = candidate
             .workflows()
-            .get(compiled.rule_id())
+            .get(&validation.rule_id)
             .ok_or_else(|| WorkflowMutationError::AuthoredChangedAfterCommit {
                 path: relative.clone(),
             })?;
         if written.relative_path() != relative_path || written.source_sha256() != source_sha256 {
+            return Err(WorkflowMutationError::AuthoredChangedAfterCommit { path: relative });
+        }
+        Ok(candidate)
+    }
+
+    /// Changes only the authored enablement flag using deterministic serialization.
+    /// The process-loaded snapshot remains unchanged until restart.
+    pub fn set_enabled(
+        &self,
+        relative_path: &str,
+        expected_sha256: [u8; 32],
+        enabled: bool,
+    ) -> Result<Arc<WorkflowDirectory>, WorkflowMutationError> {
+        let relative = validate_mutation_path(relative_path)?;
+        let format = workflow_format(&relative).ok_or_else(|| {
+            WorkflowMutationError::UnsupportedExtension {
+                path: relative.clone(),
+            }
+        })?;
+        let _mutation = self
+            .mutation
+            .lock()
+            .map_err(|_| WorkflowMutationError::StatePoisoned)?;
+        let root = open_root_directory(&self.root)?;
+        let authoring_root = open_root_directory(&self.authoring_root)?;
+        let _lock = acquire_authoring_lock(&authoring_root)?;
+        let current = WorkflowDirectory::load(&self.root)?;
+        check_snapshot_digest(&current, relative_path, Some(expected_sha256))?;
+        let source = match read_source_locked(&root, &relative) {
+            Err(WorkflowMutationError::Io { source, .. })
+                if source.kind() == std::io::ErrorKind::NotFound =>
+            {
+                return Err(WorkflowMutationError::Conflict);
+            }
+            result => result?,
+        };
+        if <[u8; 32]>::from(Sha256::digest(&source)) != expected_sha256 {
+            return Err(WorkflowMutationError::Conflict);
+        }
+        let validation = Self::validate_source(relative_path, &source)?;
+        let mut document = decoded_document_after_validation(relative_path, format, &source)?;
+        document.enabled = enabled;
+        let encoded = match format {
+            WorkflowFileFormat::Json => {
+                let mut bytes = serde_json::to_vec_pretty(&document)
+                    .expect("validated RuleDocument always serializes as JSON");
+                bytes.push(b'\n');
+                bytes
+            }
+            WorkflowFileFormat::Yaml => yaml_serde::to_string(&document)
+                .expect("validated RuleDocument always serializes as YAML")
+                .into_bytes(),
+        };
+        let encoded_sha256: [u8; 32] = Sha256::digest(&encoded).into();
+        let (parent, file_name) = open_parent_directory(&root, &relative)?;
+        replace_file(&parent, &file_name, &encoded, Some(expected_sha256))?;
+        let candidate = Arc::new(
+            WorkflowDirectory::load(&self.root)
+                .map_err(|source| WorkflowMutationError::AuthoredButNotLoaded { source })?,
+        );
+        let written = candidate
+            .workflows()
+            .get(&validation.rule_id)
+            .ok_or_else(|| WorkflowMutationError::AuthoredChangedAfterCommit {
+                path: relative.clone(),
+            })?;
+        if written.relative_path() != relative_path || written.source_sha256() != encoded_sha256 {
             return Err(WorkflowMutationError::AuthoredChangedAfterCommit { path: relative });
         }
         Ok(candidate)
@@ -312,6 +456,8 @@ pub enum WorkflowMutationError {
     UnsupportedExtension { path: PathBuf },
     #[error("workflow source changed since it was read")]
     Conflict,
+    #[error("workflow rule ID {rule_id:?} was not found")]
+    WorkflowNotFound { rule_id: String },
     #[error("another authored-file mutation is in progress")]
     Busy,
     #[error("workflow rule ID {rule_id} already exists at {existing_path:?}")]
@@ -639,6 +785,27 @@ fn read_bounded_file(file: cap_std::fs::File, path: &Path) -> Result<Vec<u8>, Wo
     Ok(bytes)
 }
 
+fn decoded_document_after_validation(
+    relative_path: &str,
+    format: WorkflowFileFormat,
+    bytes: &[u8],
+) -> Result<RuleDocument, WorkflowFilesError> {
+    match format {
+        WorkflowFileFormat::Json => {
+            serde_json::from_slice(bytes).map_err(|error| WorkflowFilesError::InvalidRule {
+                path: relative_path.to_owned(),
+                source: RuleJsonError::InvalidJson(error.to_string()),
+            })
+        }
+        WorkflowFileFormat::Yaml => {
+            yaml_serde::from_slice(bytes).map_err(|error| WorkflowFilesError::InvalidYaml {
+                path: relative_path.to_owned(),
+                reason: error.to_string(),
+            })
+        }
+    }
+}
+
 fn compile_workflow(
     relative_path: &str,
     format: WorkflowFileFormat,
@@ -836,6 +1003,7 @@ fn validate_yaml_value(
 fn validate_mutation_path(path: &str) -> Result<PathBuf, WorkflowMutationError> {
     let candidate = PathBuf::from(path);
     let structurally_valid = !candidate.as_os_str().is_empty()
+        && path.len() <= MAX_WORKFLOW_RELATIVE_PATH_BYTES
         && !candidate.is_absolute()
         && !path.contains('\\')
         && candidate
@@ -960,6 +1128,22 @@ fn open_parent_directory(
         }
     }
     Ok((directory, file_name))
+}
+
+fn read_source_locked(root: &Dir, relative: &Path) -> Result<Vec<u8>, WorkflowMutationError> {
+    let (parent, file_name) = open_parent_directory(root, relative)?;
+    let mut options = OpenOptions::new();
+    options.read(true).follow(FollowSymlinks::No);
+    #[cfg(unix)]
+    options.custom_flags(libc::O_NONBLOCK);
+    let file =
+        parent
+            .open_with(&file_name, &options)
+            .map_err(|source| WorkflowMutationError::Io {
+                path: relative.to_path_buf(),
+                source,
+            })?;
+    read_bounded_file(file, relative).map_err(Into::into)
 }
 
 fn check_opened_target_digest(

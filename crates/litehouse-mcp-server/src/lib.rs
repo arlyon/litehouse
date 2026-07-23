@@ -1,10 +1,17 @@
 //! Bounded Streamable HTTP transport for the closed Litehouse MCP adapter.
 //!
 //! This crate intentionally provides no authentication. Any client that can reach the
-//! configured socket can use the three tools exposed by [`McpAdapter`]. The adapter factory is
+//! configured socket can use the closed tools exposed by [`McpAdapter`]. The adapter factory is
 //! the single seam reserved for later authentication middleware and principal injection.
 
-use axum::Router;
+use axum::{
+    Router,
+    body::{Body, to_bytes},
+    extract::{Request, State},
+    http::StatusCode,
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
+};
 use litehouse_management::McpAdapter;
 use rmcp::{
     RoleServer,
@@ -24,6 +31,7 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 pub const MCP_ROUTE: &str = "/mcp";
+pub const MAX_MCP_REQUEST_BYTES: usize = 512 * 1024;
 
 /// Per-session adapter construction is the only extension seam in this transport crate.
 ///
@@ -38,6 +46,7 @@ pub struct McpServerConfig {
     pub allowed_hosts: Vec<String>,
     pub allowed_origins: Vec<String>,
     pub max_sessions: usize,
+    pub max_request_bytes: usize,
     pub idle_timeout: Duration,
     pub shutdown_grace: Duration,
 }
@@ -52,6 +61,7 @@ impl McpServerConfig {
             allowed_hosts: vec![bind_addr.ip().to_string()],
             allowed_origins: allowed_origins.into_iter().map(Into::into).collect(),
             max_sessions: 32,
+            max_request_bytes: MAX_MCP_REQUEST_BYTES,
             idle_timeout: Duration::from_secs(5 * 60),
             shutdown_grace: Duration::from_secs(10),
         }
@@ -60,6 +70,9 @@ impl McpServerConfig {
     fn validate(&self) -> Result<(), ConfigError> {
         if self.max_sessions == 0 {
             return Err(ConfigError::ZeroMaxSessions);
+        }
+        if self.max_request_bytes == 0 {
+            return Err(ConfigError::ZeroMaxRequestBytes);
         }
         if self.idle_timeout.is_zero() {
             return Err(ConfigError::ZeroIdleTimeout);
@@ -107,6 +120,8 @@ fn validate_origin(origin: &str) -> Result<(), ConfigError> {
 pub enum ConfigError {
     #[error("max_sessions must be greater than zero")]
     ZeroMaxSessions,
+    #[error("max_request_bytes must be greater than zero")]
+    ZeroMaxRequestBytes,
     #[error("idle_timeout must be greater than zero")]
     ZeroIdleTimeout,
     #[error("shutdown_grace must be greater than zero")]
@@ -226,7 +241,13 @@ where
             .with_allowed_origins(config.allowed_origins.clone())
             .with_cancellation_token(cancellation.child_token()),
     );
-    let router = Router::new().nest_service(MCP_ROUTE, service);
+    let router =
+        Router::new()
+            .nest_service(MCP_ROUTE, service)
+            .layer(middleware::from_fn_with_state(
+                config.max_request_bytes,
+                limit_request_body,
+            ));
 
     tracing::warn!(
         target: "litehouse_mcp_server::security",
@@ -235,6 +256,7 @@ where
         authentication = "none",
         access_model = "if_reachable_usable",
         max_sessions = config.max_sessions,
+        max_request_bytes = config.max_request_bytes,
         idle_timeout_ms = config.idle_timeout.as_millis(),
         allowed_origins = ?config.allowed_origins,
         "SECURITY WARNING: starting unauthenticated Litehouse MCP endpoint; every reachable client can use its configured principal"
@@ -254,6 +276,17 @@ where
         shutdown_grace: config.shutdown_grace,
         task,
     })
+}
+
+async fn limit_request_body(State(limit): State<usize>, request: Request, next: Next) -> Response {
+    let (parts, body) = request.into_parts();
+    match to_bytes(body, limit).await {
+        Ok(bytes) => {
+            next.run(Request::from_parts(parts, Body::from(bytes)))
+                .await
+        }
+        Err(_) => StatusCode::PAYLOAD_TOO_LARGE.into_response(),
+    }
 }
 
 #[derive(Debug, Error)]

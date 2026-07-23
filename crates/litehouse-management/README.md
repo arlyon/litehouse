@@ -22,7 +22,7 @@ key is ambiguous across instances. The existing proof handlers are:
 - `facet_query`
 - `on_off_set`
 
-`McpAdapter` is an in-process `rmcp` projection over those handlers. It exposes exactly `litehouse_inventory`, `litehouse_query`, and `litehouse_interact`; tool schemas come from the checked management manifest. The adapter does not dispatch arbitrary operations, call Wasmtime directly, or define separate authorization policy.
+`McpAdapter` is an in-process `rmcp` projection over those handlers. Phase 1 exposes exactly `litehouse_inventory`, `litehouse_query`, `litehouse_interact`, and `litehouse_workflows`. The first three retain checked management-manifest schemas; the workflow tool uses a closed tagged action schema and writes authored files without activating them. The adapter does not dispatch arbitrary operation IDs, call Wasmtime directly, or define separate authorization policy.
 
 The proving principal is limited to `litehouse:read` and `litehouse:operate`. Canonical handlers authorize before resource lookup, enforce manifest deadlines and bounded input, emit structured operation logs, and return closed safe error envelopes. A bounded provider-generation-local host cache supplies the contract-required idempotency for On/Off set. Writes remain absolute and accepted-for-delivery until an independent query observes state.
 

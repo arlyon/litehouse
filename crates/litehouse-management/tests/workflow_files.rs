@@ -258,6 +258,46 @@ fn repository_mutations_require_reload_before_the_loaded_snapshot_changes() {
 }
 
 #[test]
+fn repository_sets_yaml_enablement_without_live_activation() {
+    let directory = TestDirectory::new("repository-yaml-enabled");
+    let document: RuleDocument = serde_json::from_str(VALID_MINIMAL).unwrap();
+    directory.write("rule.yaml", yaml_serde::to_string(&document).unwrap());
+    let repository = WorkflowRepository::open(directory.path()).unwrap();
+    let loaded = repository.snapshot().unwrap();
+    let workflow = loaded.workflows().values().next().unwrap();
+    assert!(workflow.compiled().enabled());
+
+    let authored = repository
+        .set_enabled("rule.yaml", workflow.source_sha256(), false)
+        .unwrap();
+    assert!(
+        !authored
+            .workflows()
+            .values()
+            .next()
+            .unwrap()
+            .compiled()
+            .enabled()
+    );
+    assert!(
+        repository
+            .snapshot()
+            .unwrap()
+            .workflows()
+            .values()
+            .next()
+            .unwrap()
+            .compiled()
+            .enabled()
+    );
+    assert!(
+        String::from_utf8(repository.read_source("rule.yaml").unwrap())
+            .unwrap()
+            .contains("enabled: false")
+    );
+}
+
+#[test]
 fn repository_rejects_a_create_that_would_exceed_the_complete_tree_limit() {
     let directory = TestDirectory::new("repository-capacity");
     let workflows = directory.path().join("workflows");
@@ -340,6 +380,10 @@ fn repository_rejects_invalid_or_duplicate_writes_before_commit_and_removes_by_d
         "deletion must not change the process-loaded snapshot"
     );
     assert!(!directory.path().join("rule.json").exists());
+    assert!(matches!(
+        repository.set_enabled("rule.json", workflow.source_sha256(), false),
+        Err(WorkflowMutationError::Conflict)
+    ));
     repository.reload().unwrap();
     assert!(repository.snapshot().unwrap().workflows().is_empty());
 }
