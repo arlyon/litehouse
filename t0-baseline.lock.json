@@ -224,5 +224,5 @@
       "workflow": ".github/workflows/rust.yml"
     }
   ],
-  "workflow_tree_sha256": "d03bce71ebe25009bd75b44fe306d87fa3413d5ed66cf9522347c6d97700b36e"
+  "workflow_tree_sha256": "29f46a16ba734a1fd71cba1bafd5bfbecfdb53d364a7b8a0b7707870321bdfb5"
 }

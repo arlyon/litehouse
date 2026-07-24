@@ -53,7 +53,7 @@ async fn typed_handles_stay_in_actor_while_host_routes_query_set_send_and_withdr
         &engine,
         &component,
         ProviderConfig {
-            instance: fabric::InstanceId::new("fixture-node").unwrap(),
+            instance: fabric::InstanceId::new("f1111111111111111111111111111111").unwrap(),
             generation,
             config_json: "fixture".into(),
             allowed_tcp_addresses: BTreeSet::new(),

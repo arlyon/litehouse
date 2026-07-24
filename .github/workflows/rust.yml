@@ -101,6 +101,8 @@ jobs:
           fi
           cargo run -p litehouse-quantity-parity -- \
             target/wasm32-wasip2/debug/litehouse_quantity_component.wasm
+      - name: Run provider workflow integration tests
+        run: bash scripts/test-provider-workflows.sh
       - name: Run binary tests
         run: cargo groups test bin
 

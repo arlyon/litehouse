@@ -50,7 +50,7 @@ async fn four_rmcp_tools_use_closed_handlers_and_no_generic_dispatch() -> anyhow
         &engine,
         &component,
         ProviderConfig {
-            instance: fabric::InstanceId::new("fixture-node")?,
+            instance: fabric::InstanceId::new("f1111111111111111111111111111111")?,
             generation,
             config_json: "fixture".into(),
             allowed_tcp_addresses: BTreeSet::new(),

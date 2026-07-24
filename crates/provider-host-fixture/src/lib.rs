@@ -46,6 +46,7 @@ struct OnOffFacet {
     label: &'static str,
     current: Arc<AtomicBool>,
     revision: AtomicU64,
+    fail_set: bool,
 }
 
 struct BooleanFacet {
@@ -69,7 +70,7 @@ fn common(
     operations: &[&str],
 ) -> descriptor::FacetDescriptor {
     descriptor::FacetDescriptor {
-        provider_instance_id: "fixture-node".into(),
+        provider_instance_id: "f1111111111111111111111111111111".into(),
         facet_key: key.into(),
         incarnation,
         generation: 0,
@@ -82,7 +83,7 @@ fn common(
                 patch: 0,
             },
         },
-        primary_group_key: "fixture-node".into(),
+        primary_group_key: "f1111111111111111111111111111111".into(),
         direction: descriptor::FacetDirection::Provided,
         label: Some(label.into()),
         semantic_role: "fixture".into(),
@@ -290,6 +291,15 @@ impl provider::GuestOnOffFacet for OnOffFacet {
         context: receipt::RequestContext,
         request: on_off::SetRequest,
     ) -> Result<on_off::OperationReceipt, on_off::Error> {
+        if self.fail_set {
+            return Err(on_off::Error {
+                inner: errors::CoreError::Availability(errors::AvailabilityError::Unavailable),
+                detail: None,
+                retry: errors::RetryAdvice::Never,
+                message: None,
+                error_id: "fixture-relay-unavailable".to_owned(),
+            });
+        }
         self.current.store(request.value, Ordering::Relaxed);
         self.revision.fetch_add(1, Ordering::Relaxed);
         Ok(on_off::OperationReceipt {
@@ -823,12 +833,14 @@ impl provider::GuestRunner for Runner {
                 label: "Relay 1",
                 current: Arc::new(AtomicBool::new(false)),
                 revision: AtomicU64::new(1),
+                fail_set: false,
             }),
             provider::OnOffFacet::new(OnOffFacet {
                 key: "relay-2",
                 label: "Relay 2",
                 current: Arc::new(AtomicBool::new(true)),
                 revision: AtomicU64::new(1),
+                fail_set: true,
             }),
         ])
     }
@@ -918,7 +930,7 @@ impl provider::Guest for Provider {
         instance_id: String,
         config: String,
     ) -> Result<provider::Runner, provider::Error> {
-        if instance_id != "fixture-node" || config != "fixture" {
+        if instance_id != "f1111111111111111111111111111111" || config != "fixture" {
             return Err(provider::Error {
                 inner: errors::CoreError::ContractError,
                 retry: never_error(),
