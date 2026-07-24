@@ -3,7 +3,7 @@
   "contract_package_json_sha256": "c2ac2bf11cece64d8671dfd85020201c1e03be6595961be9ff81e67db4e6d337",
   "contract_source_tree_sha256": "0b417b5407712b95d0b48f6605e7101e0d23d2de8dfdab2abc3970756a0e8e07",
   "contract_wit_tree_sha256": "50e8b90396cad98c47f70da17232f8468d6b5cda21191fe4a845a9f1f50142bd",
-  "flatc_installer_sha256": "3789da5cb54ae04737a847519e1d2e4727c6a7fca87ef51badd5b349cd533a51",
+  "flatc_installer_sha256": "03544823c15299fdc1068532391aadd118cdf71f25505b66d139a6f897649154",
   "flatc_version": "25.12.19",
   "management_operations_sha256": "dde0e6e363f894f6f967d18328ff501c09e728786915cb78b4feb01e035eb7c4",
   "quantity_engine_tree_sha256": "264a782ba8f0164a43c24417e1337cdb4dfb961a2e957c6a79a8a0d3524e3eb0",
@@ -209,5 +209,5 @@
       "workflow": ".github/workflows/rust.yml"
     }
   ],
-  "workflow_tree_sha256": "ce6c5c60e6619307389790e72476d5c594e8e6086ed9adb3a3adacbf134f28b8"
+  "workflow_tree_sha256": "e583db0b6b06bcd87cf56f65f0198ae2885d91a9fa8ada664967abc113e4002b"
 }

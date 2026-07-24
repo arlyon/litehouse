@@ -15,6 +15,9 @@ download() {
 		--tlsv1.2 \
 		--fail \
 		--location \
+		--retry 3 \
+		--retry-delay 2 \
+		--retry-all-errors \
 		--silent \
 		--show-error \
 		"${download_url}" \

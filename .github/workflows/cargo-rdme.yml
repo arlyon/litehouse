@@ -28,5 +28,5 @@ jobs:
           test "${#readmes[@]}" -gt 0
           for readme in "${readmes[@]}"; do
             echo "checking $readme"
-            (cd "$(dirname "$readme")" && cargo rdme --check)
+            (cd "$(dirname "$readme")" && cargo rdme --check --readme-path "$(basename "$readme")")
           done
