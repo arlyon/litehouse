@@ -700,14 +700,33 @@ impl Ord for FacetKind {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BooleanOccurrence {
+    pub endpoint: fabric::EndpointIdentity,
+    pub sequence: u64,
+    pub event_id: String,
+    pub source_id: String,
+    pub generation: fabric::Generation,
+    pub received_at_unix_milliseconds: u64,
+    pub value: Option<bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BooleanOccurrenceBatch {
+    pub events: Vec<BooleanOccurrence>,
+    pub dropped: u64,
+}
+
 struct ActorState {
     store: Store<ProviderStore>,
     component: bindings::Component,
-    _runner: ResourceAny,
+    runner: ResourceAny,
     handles: BTreeMap<HandleKey, ResourceAny>,
     provider: fabric::InstanceGeneration,
     fabric: Arc<Mutex<fabric::ServiceFabric>>,
     idempotency: IdempotencyCache,
+    boolean_occurrence_facets: BTreeSet<String>,
+    last_boolean_occurrence_sequence: Option<u64>,
 }
 
 const MAX_IDEMPOTENCY_ENTRIES: usize = 1_024;
@@ -793,6 +812,11 @@ enum ActorRequest {
         context: CallContext,
         reply: oneshot::Sender<Result<MomentaryActionReceipt, ProviderHostError>>,
     },
+    DrainBooleanOccurrences {
+        maximum: u16,
+        deadline: tokio::time::Instant,
+        reply: oneshot::Sender<Result<BooleanOccurrenceBatch, ProviderHostError>>,
+    },
     Shutdown {
         reply: oneshot::Sender<Result<(), ProviderHostError>>,
     },
@@ -829,6 +853,31 @@ impl ProviderHandle {
             .map_err(|_| deadline_error(deadline))?
             .map_err(|_| ProviderHostError::ActorStopped)?;
         permit.send(ActorRequest::Shutdown { reply });
+        tokio::time::timeout_at(deadline, result)
+            .await
+            .map_err(|_| deadline_error(deadline))?
+            .map_err(|_| ProviderHostError::ActorStopped)?
+    }
+
+    pub async fn drain_boolean_occurrences(
+        &self,
+        maximum: u16,
+        timeout: Duration,
+    ) -> Result<BooleanOccurrenceBatch, ProviderHostError> {
+        if maximum == 0 || maximum > 64 || timeout.is_zero() {
+            return Err(ProviderHostError::InvalidConfiguration);
+        }
+        let deadline = tokio::time::Instant::now() + timeout;
+        let (reply, result) = oneshot::channel();
+        let permit = tokio::time::timeout_at(deadline, self.sender.reserve())
+            .await
+            .map_err(|_| deadline_error(deadline))?
+            .map_err(|_| ProviderHostError::ActorStopped)?;
+        permit.send(ActorRequest::DrainBooleanOccurrences {
+            maximum,
+            deadline,
+            reply,
+        });
         tokio::time::timeout_at(deadline, result)
             .await
             .map_err(|_| deadline_error(deadline))?
@@ -1733,6 +1782,18 @@ pub async fn start_provider(
         )?;
     }
     descriptors.sort_by(|left, right| left.endpoint().identity().cmp(right.endpoint().identity()));
+    let boolean_occurrence_facets = descriptors
+        .iter()
+        .filter(|descriptor| descriptor.kind == FacetKind::BooleanState)
+        .filter(|descriptor| {
+            descriptor
+                .endpoint()
+                .features()
+                .iter()
+                .any(|feature| feature.as_str() == "occurrence")
+        })
+        .map(|descriptor| descriptor.endpoint().identity().facet().as_str().to_owned())
+        .collect();
 
     let provider = fabric::InstanceGeneration::new(config.instance, config.generation);
     publish_provider(&fabric, &provider, &descriptors)?;
@@ -1740,11 +1801,13 @@ pub async fn start_provider(
     let actor = ActorState {
         store,
         component: bound,
-        _runner: runner,
+        runner,
         handles,
         provider: provider.clone(),
         fabric,
         idempotency: IdempotencyCache::default(),
+        boolean_occurrence_facets,
+        last_boolean_occurrence_sequence: None,
     };
     tokio::spawn(run_actor(actor, receiver));
     Ok(ProviderHandle {
@@ -2132,6 +2195,15 @@ async fn run_actor(mut actor: ActorState, mut receiver: mpsc::Receiver<ActorRequ
                 let _ = reply.send(r);
                 f
             }
+            ActorRequest::DrainBooleanOccurrences {
+                maximum,
+                deadline,
+                reply,
+            } => {
+                let (result, fatal) = actor.drain_boolean_occurrences(maximum, deadline).await;
+                let _ = reply.send(result);
+                fatal
+            }
             ActorRequest::Shutdown { reply } => {
                 receiver.close();
                 let result = actor
@@ -2157,7 +2229,130 @@ async fn run_actor(mut actor: ActorState, mut receiver: mpsc::Receiver<ActorRequ
     }
 }
 
+fn validate_boolean_occurrence_sequences(
+    previous: Option<u64>,
+    dropped: u64,
+    sequences: &[u64],
+) -> Result<Option<u64>, ProviderHostError> {
+    let Some(&first) = sequences.first() else {
+        return if dropped == 0 {
+            Ok(previous)
+        } else {
+            Err(ProviderHostError::InvalidDescriptor)
+        };
+    };
+    let expected = previous
+        .map_or(Some(1), |sequence| sequence.checked_add(1))
+        .and_then(|sequence| sequence.checked_add(dropped))
+        .ok_or(ProviderHostError::InvalidDescriptor)?;
+    if first != expected
+        || sequences
+            .windows(2)
+            .any(|pair| pair[0].checked_add(1) != Some(pair[1]))
+    {
+        return Err(ProviderHostError::InvalidDescriptor);
+    }
+    Ok(sequences.last().copied())
+}
+
 impl ActorState {
+    async fn drain_boolean_occurrences(
+        &mut self,
+        maximum: u16,
+        deadline: tokio::time::Instant,
+    ) -> (Result<BooleanOccurrenceBatch, ProviderHostError>, bool) {
+        if let Err(error) = set_store_deadline(&mut self.store, deadline) {
+            return (Err(error), false);
+        }
+        let guest = self.component.litehouse_provider_provider();
+        let runner = self.runner;
+        let call = tokio::time::timeout_at(
+            deadline,
+            self.store.run_concurrent(async |accessor| {
+                guest
+                    .runner()
+                    .call_drain_boolean_occurrences(accessor, runner, maximum)
+                    .await
+            }),
+        )
+        .await;
+        let batch = match call {
+            Err(_) => return (Err(deadline_error(deadline)), false),
+            Ok(Err(_)) | Ok(Ok(Err(_))) => {
+                return (Err(ProviderHostError::ActorStopped), true);
+            }
+            Ok(Ok(Ok(Err(error)))) => return (Err(provider_error(error)), false),
+            Ok(Ok(Ok(Ok(batch)))) => batch,
+        };
+        if batch.events.len() > usize::from(maximum) {
+            return (Err(ProviderHostError::InvalidDescriptor), false);
+        }
+        let sequences = batch
+            .events
+            .iter()
+            .map(|event| event.sequence)
+            .collect::<Vec<_>>();
+        let last_sequence = match validate_boolean_occurrence_sequences(
+            self.last_boolean_occurrence_sequence,
+            batch.dropped,
+            &sequences,
+        ) {
+            Ok(sequence) => sequence,
+            Err(error) => return (Err(error), false),
+        };
+        let mut seen = BTreeSet::new();
+        let mut events = Vec::with_capacity(batch.events.len());
+        for event in batch.events {
+            if !valid_event_token(&event.occurrence.event_id)
+                || !valid_event_token(&event.occurrence.source_id)
+                || event.occurrence.generation == 0
+                || event.occurrence.received_at_unix_milliseconds == 0
+                || !seen.insert(event.occurrence.event_id.clone())
+            {
+                return (Err(ProviderHostError::InvalidDescriptor), false);
+            }
+            let Some(descriptor) = self.descriptors_for_boolean(&event.facet_key) else {
+                return (Err(ProviderHostError::InvalidDescriptor), false);
+            };
+            events.push(BooleanOccurrence {
+                endpoint: descriptor,
+                sequence: event.sequence,
+                event_id: event.occurrence.event_id,
+                source_id: event.occurrence.source_id,
+                generation: self.provider.generation(),
+                received_at_unix_milliseconds: event.occurrence.received_at_unix_milliseconds,
+                value: event.occurrence.value,
+            });
+        }
+        self.last_boolean_occurrence_sequence = last_sequence;
+        (
+            Ok(BooleanOccurrenceBatch {
+                events,
+                dropped: batch.dropped,
+            }),
+            false,
+        )
+    }
+
+    fn descriptors_for_boolean(&self, facet_key: &str) -> Option<fabric::EndpointIdentity> {
+        self.boolean_occurrence_facets
+            .contains(facet_key)
+            .then_some(())
+            .filter(|()| {
+                self.handles.contains_key(&HandleKey {
+                    kind: FacetKind::BooleanState,
+                    facet: facet_key.to_owned(),
+                })
+            })
+            .and_then(|()| {
+                Some(fabric::EndpointIdentity::new(
+                    self.provider.instance().clone(),
+                    fabric::FacetKey::new(facet_key).ok()?,
+                    fabric::ContractId::new("litehouse", "boolean-state", 1).ok()?,
+                ))
+            })
+    }
+
     async fn query(
         &mut self,
         endpoint: fabric::EndpointIdentity,
@@ -3216,6 +3411,7 @@ fn host_boolean_descriptor(
         fabric::ContractId::new("litehouse", "boolean-state", 1)
             .map_err(|_| ProviderHostError::InvalidDescriptor)?,
     );
+    let features = boolean_event_features(&descriptor.common.events, &descriptor.events)?;
     let endpoint = fabric::EndpointDescriptor::new(
         identity,
         Version {
@@ -3226,7 +3422,7 @@ fn host_boolean_descriptor(
         generation,
         incarnation,
         [operation("query")?],
-        [],
+        features,
     )
     .map_err(|_| ProviderHostError::InvalidDescriptor)?;
     Ok(HostFacetDescriptor {
@@ -3580,6 +3776,33 @@ fn host_tags(
                 name: tag.name,
                 value: tag.value,
             })
+        })
+        .collect()
+}
+
+fn boolean_event_features(
+    common_events: &[String],
+    events: &[wire_boolean::EventKind],
+) -> Result<Vec<fabric::FeatureId>, ProviderHostError> {
+    let event_names = events
+        .iter()
+        .map(|event| match event {
+            wire_boolean::EventKind::StateObservation => "state-observation",
+            wire_boolean::EventKind::Occurrence => "occurrence",
+        })
+        .collect::<BTreeSet<_>>();
+    if event_names.len() != events.len()
+        || common_events.len() != event_names.len()
+        || !common_events
+            .iter()
+            .all(|event| event_names.contains(event.as_str()))
+    {
+        return Err(ProviderHostError::InvalidDescriptor);
+    }
+    event_names
+        .into_iter()
+        .map(|event| {
+            fabric::FeatureId::new(event).map_err(|_| ProviderHostError::InvalidDescriptor)
         })
         .collect()
 }
@@ -4742,6 +4965,17 @@ fn outcome_unknown(
     )
 }
 
+fn valid_event_token(value: &str) -> bool {
+    value.len() <= 128
+        && value
+            .bytes()
+            .next()
+            .is_some_and(|byte| byte.is_ascii_alphanumeric())
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
+}
+
 fn service_error(inner: fabric::CoreError, retry: fabric::RetryAdvice) -> ProviderHostError {
     ProviderHostError::Service(fabric::ServiceError {
         inner,
@@ -4756,7 +4990,10 @@ fn service_error(inner: fabric::CoreError, retry: fabric::RetryAdvice) -> Provid
 
 #[cfg(test)]
 mod tests {
-    use super::{HttpOrigin, tcp_address_allowed};
+    use super::{
+        HttpOrigin, boolean_event_features, tcp_address_allowed,
+        validate_boolean_occurrence_sequences, wire_boolean,
+    };
     use std::{collections::BTreeSet, net::SocketAddr};
     use wasmtime_wasi::sockets::SocketAddrUse;
 
@@ -4769,6 +5006,49 @@ mod tests {
         assert!(!origin.permits("https", &"other.example.com".parse().unwrap()));
         assert!(!origin.permits("https", &"api.example.com:444".parse().unwrap()));
         assert!(HttpOrigin::new("https", "bad.example/path", 443).is_err());
+    }
+
+    #[test]
+    fn boolean_occurrence_capability_must_match_both_descriptor_views() {
+        let common = vec!["state-observation".to_owned(), "occurrence".to_owned()];
+        let features = boolean_event_features(
+            &common,
+            &[
+                wire_boolean::EventKind::StateObservation,
+                wire_boolean::EventKind::Occurrence,
+            ],
+        )
+        .unwrap();
+        assert!(
+            features
+                .iter()
+                .any(|feature| feature.as_str() == "occurrence")
+        );
+        assert!(
+            boolean_event_features(
+                &["state-observation".to_owned()],
+                &[
+                    wire_boolean::EventKind::StateObservation,
+                    wire_boolean::EventKind::Occurrence,
+                ],
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn boolean_occurrence_sequences_make_overflow_and_gaps_explicit() {
+        assert_eq!(
+            validate_boolean_occurrence_sequences(None, 4, &[5, 6, 7]).unwrap(),
+            Some(7)
+        );
+        assert_eq!(
+            validate_boolean_occurrence_sequences(Some(7), 0, &[8, 9]).unwrap(),
+            Some(9)
+        );
+        assert!(validate_boolean_occurrence_sequences(Some(9), 1, &[]).is_err());
+        assert!(validate_boolean_occurrence_sequences(Some(9), 0, &[11]).is_err());
+        assert!(validate_boolean_occurrence_sequences(Some(9), 1, &[11, 13]).is_err());
     }
 
     #[test]

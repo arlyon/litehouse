@@ -9,12 +9,13 @@ use std::{
 
 use litehouse_contracts::quantity::Quantity;
 use litehouse_rule_json::{
-    CapabilityOperation, CapabilitySnapshot, ColorModel as RuntimeColorModel,
-    ColorValue as RuleColor, CompiledNode, CompiledRule, CompiledTrigger,
-    CoveringAxis as RuleCoveringAxis, CoveringMovement as RuntimeCoveringMovement,
-    DeduplicationGuarantee, EffectBinding, EffectReceipt, EvaluationErrorCode, EvaluationEvent,
-    EvaluationIdentity, Freshness, InitialObservationPolicy, MissingReason, ObservationDelivery,
-    ObservationMode, OperationKind, PlannerEvaluationInput, PlannerState,
+    BooleanOccurrence as RuntimeBooleanOccurrence, BooleanStateEventKind, CapabilityOperation,
+    CapabilitySnapshot, ColorModel as RuntimeColorModel, ColorValue as RuleColor, CompiledNode,
+    CompiledRule, CompiledTrigger, ContractEventRef, CoveringAxis as RuleCoveringAxis,
+    CoveringMovement as RuntimeCoveringMovement, DeduplicationGuarantee, EffectBinding,
+    EffectReceipt, EvaluationErrorCode, EvaluationEvent, EvaluationIdentity, EventPayload,
+    Freshness, InitialObservationPolicy, MissingReason, ObservationDelivery, ObservationMode,
+    OperationKind, PlannerEvaluationInput, PlannerState,
     ReceiptConfidence as PlannerReceiptConfidence, ReceiptOutcome, RuntimeColorValue, RuntimeValue,
     Selector, SelectorCardinality, SnapshotField, StateFieldRef,
     ThermostatAction as RuntimeThermostatAction, ThermostatMode as RuleThermostatMode,
@@ -36,6 +37,9 @@ use crate::{
 
 const POLL_INTERVAL: Duration = Duration::from_secs(1);
 const LOOP_INTERVAL: Duration = Duration::from_millis(100);
+const EVENT_DRAIN_TIMEOUT: Duration = Duration::from_secs(1);
+const MAX_DRAIN_EVENTS: u16 = 64;
+const MAX_SEEN_EVENT_IDS: usize = 4_096;
 const QUERY_TIMEOUT_MS: u32 = 5_000;
 const MAX_EVENTS_PER_WORKFLOW_TICK: usize = 32;
 const MAX_PENDING_EVENTS: usize = 256;
@@ -56,6 +60,7 @@ struct ResolvedFacet {
     selector: Selector,
     facet_id: String,
     generation: u64,
+    features: BTreeSet<String>,
 }
 
 struct ScheduledTimer {
@@ -78,6 +83,8 @@ struct ActiveWorkflow {
     next_poll: tokio::time::Instant,
     poll_failures: u8,
     failed: bool,
+    seen_event_ids: BTreeSet<String>,
+    seen_event_order: VecDeque<String>,
 }
 
 pub struct WorkflowExecutor {
@@ -103,10 +110,17 @@ impl WorkflowExecutor {
             if !compiled.enabled() {
                 continue;
             }
-            if matches!(compiled.trigger(), CompiledTrigger::DiscreteEvent { .. }) {
+            if let CompiledTrigger::DiscreteEvent { event, .. } = compiled.trigger()
+                && !matches!(
+                    event,
+                    ContractEventRef::BooleanState {
+                        event: BooleanStateEventKind::Occurrence
+                    }
+                )
+            {
                 return Err(activation_error(
                     compiled,
-                    "discrete-event workflows require the provider event-drain seam",
+                    "Phase 1 event draining currently supports Boolean occurrences only",
                 ));
             }
             workflows.push(
@@ -131,6 +145,7 @@ impl WorkflowExecutor {
 
     pub async fn run(&mut self) -> Result<(), WorkflowExecutorError> {
         loop {
+            self.drain_boolean_occurrences().await;
             let now = now_timestamp();
             let instant = tokio::time::Instant::now();
             for workflow in &mut self.workflows {
@@ -179,6 +194,184 @@ impl WorkflowExecutor {
             tokio::time::sleep(LOOP_INTERVAL).await;
         }
     }
+
+    async fn drain_boolean_occurrences(&mut self) {
+        let providers = self
+            .management
+            .providers
+            .iter()
+            .map(|provider| {
+                (
+                    provider.handle.provider().instance().as_str().to_owned(),
+                    provider.handle.clone(),
+                )
+            })
+            .collect::<Vec<_>>();
+        let mut drains = tokio::task::JoinSet::new();
+        for (provider_id, handle) in providers {
+            drains.spawn(async move {
+                let result = handle
+                    .drain_boolean_occurrences(MAX_DRAIN_EVENTS, EVENT_DRAIN_TIMEOUT)
+                    .await;
+                (provider_id, result)
+            });
+        }
+        while let Some(result) = drains.join_next().await {
+            let Ok((provider_id, result)) = result else {
+                tracing::error!("provider Boolean occurrence drain task stopped unexpectedly");
+                continue;
+            };
+            match result {
+                Ok(batch) => {
+                    if batch.dropped > 0 {
+                        fail_discrete_workflows_for_gap(
+                            &self.runtime,
+                            &mut self.workflows,
+                            &provider_id,
+                            batch.dropped,
+                        );
+                    }
+                    for occurrence in batch.events {
+                        route_boolean_occurrence(&self.runtime, &mut self.workflows, occurrence);
+                    }
+                }
+                Err(error) => {
+                    fail_discrete_workflows_for_drain_error(
+                        &self.runtime,
+                        &mut self.workflows,
+                        &provider_id,
+                    );
+                    tracing::error!(
+                        provider_id,
+                        error = %error,
+                        "workflow stopped because provider Boolean occurrence drain failed"
+                    );
+                }
+            }
+        }
+    }
+}
+
+fn fail_discrete_workflows_for_gap(
+    runtime: &WorkflowRuntime,
+    workflows: &mut [ActiveWorkflow],
+    provider_id: &str,
+    dropped: u64,
+) {
+    for workflow in workflows {
+        let CompiledTrigger::DiscreteEvent { selector, .. } = workflow.compiled.trigger() else {
+            continue;
+        };
+        if selector.provider_instance_id != provider_id || workflow.failed {
+            continue;
+        }
+        fail_workflow(runtime, workflow);
+        tracing::error!(
+            rule_id = workflow.compiled.rule_id(),
+            provider_id,
+            dropped,
+            "workflow stopped because provider occurrence events were dropped"
+        );
+    }
+}
+
+fn fail_discrete_workflows_for_drain_error(
+    runtime: &WorkflowRuntime,
+    workflows: &mut [ActiveWorkflow],
+    provider_id: &str,
+) {
+    for workflow in workflows {
+        let CompiledTrigger::DiscreteEvent { selector, .. } = workflow.compiled.trigger() else {
+            continue;
+        };
+        if selector.provider_instance_id == provider_id && !workflow.failed {
+            fail_workflow(runtime, workflow);
+        }
+    }
+}
+
+fn fail_workflow(runtime: &WorkflowRuntime, workflow: &mut ActiveWorkflow) {
+    if let Some(cursor) = workflow.state.active_cursor() {
+        let _ = runtime.finish(
+            workflow.compiled.rule_id(),
+            &cursor.run_id,
+            WorkflowRunStatus::Failed,
+            now_unix_milliseconds(),
+        );
+    }
+    workflow.failed = true;
+}
+
+fn route_boolean_occurrence(
+    runtime: &WorkflowRuntime,
+    workflows: &mut [ActiveWorkflow],
+    occurrence: litehouse_provider_host::BooleanOccurrence,
+) {
+    for workflow in workflows {
+        let CompiledTrigger::DiscreteEvent {
+            selector, event, ..
+        } = workflow.compiled.trigger()
+        else {
+            continue;
+        };
+        if workflow.failed
+            || occurrence.endpoint.provider().as_str() != selector.provider_instance_id
+            || occurrence.endpoint.facet().as_str() != selector.facet_key
+            || !matches!(
+                event,
+                ContractEventRef::BooleanState {
+                    event: BooleanStateEventKind::Occurrence
+                }
+            )
+            || workflow.seen_event_ids.contains(&occurrence.event_id)
+        {
+            continue;
+        }
+        if workflow.seen_event_ids.len() == MAX_SEEN_EVENT_IDS
+            && let Some(oldest) = workflow.seen_event_order.pop_front()
+        {
+            workflow.seen_event_ids.remove(&oldest);
+        }
+        workflow.seen_event_ids.insert(occurrence.event_id.clone());
+        workflow
+            .seen_event_order
+            .push_back(occurrence.event_id.clone());
+        let observed_at = timestamp_from_milliseconds(occurrence.received_at_unix_milliseconds);
+        let payload = RuntimeBooleanOccurrence::new(
+            occurrence.event_id.clone(),
+            occurrence.source_id.clone(),
+            occurrence.generation.get(),
+            observed_at,
+            occurrence.value,
+        )
+        .and_then(|occurrence| {
+            TriggerInput::discrete_event(
+                selector.clone(),
+                event.clone(),
+                EventPayload::BooleanOccurrence { occurrence },
+                observed_at,
+            )
+        });
+        match payload {
+            Ok(trigger) => {
+                if !enqueue_trigger_event(workflow, EvaluationEvent::initial(trigger)) {
+                    fail_workflow(runtime, workflow);
+                    tracing::error!(
+                        rule_id = workflow.compiled.rule_id(),
+                        "workflow stopped because its Boolean occurrence queue is full"
+                    );
+                }
+            }
+            Err(error) => {
+                fail_workflow(runtime, workflow);
+                tracing::error!(
+                    rule_id = workflow.compiled.rule_id(),
+                    error = %error,
+                    "workflow stopped because a provider occurrence was invalid"
+                );
+            }
+        }
+    }
 }
 
 async fn activate_workflow(
@@ -223,6 +416,18 @@ async fn activate_workflow(
             key,
             resolve_selector(management, compiled, selector.clone())?,
         );
+    }
+
+    if let CompiledTrigger::DiscreteEvent { selector, .. } = compiled.trigger() {
+        let trigger_facet = facets
+            .get(&selector_key(selector))
+            .expect("trigger selector was resolved");
+        if !trigger_facet.features.contains("occurrence") {
+            return Err(activation_error(
+                compiled,
+                "Boolean facet does not advertise occurrence events",
+            ));
+        }
     }
 
     let mut effect_bindings = Vec::new();
@@ -326,6 +531,8 @@ async fn activate_workflow(
         next_poll: tokio::time::Instant::now() + POLL_INTERVAL,
         poll_failures: 0,
         failed: false,
+        seen_event_ids: BTreeSet::new(),
+        seen_event_order: VecDeque::new(),
     })
 }
 
@@ -362,7 +569,14 @@ fn resolve_selector(
                 && identity.contract().major() == u32::from(selector.contract.major)
                 && provider.handle.is_running()
             {
-                matches.push(endpoint.generation().get());
+                matches.push((
+                    endpoint.generation().get(),
+                    endpoint
+                        .features()
+                        .iter()
+                        .map(|feature| feature.as_str().to_owned())
+                        .collect::<BTreeSet<_>>(),
+                ));
             }
         }
     }
@@ -378,7 +592,8 @@ fn resolve_selector(
     Ok(ResolvedFacet {
         facet_id: selector.facet_key.clone(),
         selector,
-        generation: matches[0],
+        generation: matches[0].0,
+        features: matches[0].1.clone(),
     })
 }
 
@@ -492,14 +707,16 @@ fn enqueue_due_events(workflow: &mut ActiveWorkflow, now: Timestamp) {
     }
 }
 
-fn enqueue_trigger_event(workflow: &mut ActiveWorkflow, event: EvaluationEvent) {
+fn enqueue_trigger_event(workflow: &mut ActiveWorkflow, event: EvaluationEvent) -> bool {
     if workflow.events.len() < MAX_PENDING_EVENTS {
         workflow.events.push_back(event);
+        true
     } else {
         tracing::warn!(
             rule_id = workflow.compiled.rule_id(),
             "workflow trigger dropped because its process-local queue is full"
         );
+        false
     }
 }
 
@@ -1515,6 +1732,74 @@ mod tests {
             projected.len(),
             litehouse_rule_json::CapabilityOperationKind::ALL.len()
         );
+    }
+
+    #[test]
+    fn boolean_occurrences_deduplicate_and_fail_explicitly_at_queue_bound() {
+        let compiled = compile_rule_json(include_bytes!(
+            "../../litehouse-rule-json/fixtures/valid-all-operations.json"
+        ))
+        .unwrap();
+        let anchor = Timestamp::new(1_700_000_000, 0).unwrap();
+        let mut workflow = ActiveWorkflow {
+            compiled,
+            facets: BTreeMap::new(),
+            snapshot_fields: BTreeMap::new(),
+            effect_bindings: Vec::new(),
+            state: PlannerState::initial(1, "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", Vec::new())
+                .unwrap(),
+            activation_anchor: anchor,
+            next_schedule: None,
+            timers: Vec::new(),
+            events: VecDeque::new(),
+            trigger_observation: None,
+            next_poll: tokio::time::Instant::now(),
+            poll_failures: 0,
+            failed: false,
+            seen_event_ids: BTreeSet::new(),
+            seen_event_order: VecDeque::new(),
+        };
+        let occurrence = litehouse_provider_host::BooleanOccurrence {
+            endpoint: litehouse_service_fabric::EndpointIdentity::new(
+                litehouse_service_fabric::InstanceId::new("33333333333333333333333333333333")
+                    .unwrap(),
+                litehouse_service_fabric::FacetKey::new("occupancy").unwrap(),
+                litehouse_service_fabric::ContractId::new("litehouse", "boolean-state", 1).unwrap(),
+            ),
+            sequence: 1,
+            event_id: "event-1".to_owned(),
+            source_id: "occupancy".to_owned(),
+            generation: litehouse_service_fabric::Generation::new(1).unwrap(),
+            received_at_unix_milliseconds: 1_700_000_000_100,
+            value: Some(true),
+        };
+        let runtime = WorkflowRuntime::new();
+        route_boolean_occurrence(
+            &runtime,
+            std::slice::from_mut(&mut workflow),
+            occurrence.clone(),
+        );
+        route_boolean_occurrence(
+            &runtime,
+            std::slice::from_mut(&mut workflow),
+            occurrence.clone(),
+        );
+        assert_eq!(workflow.events.len(), 1);
+        assert!(matches!(
+            workflow.events.front(),
+            Some(EvaluationEvent::Initial { .. })
+        ));
+
+        let queued = workflow.events.front().unwrap().clone();
+        while workflow.events.len() < MAX_PENDING_EVENTS {
+            workflow.events.push_back(queued.clone());
+        }
+        let mut overflow = occurrence;
+        overflow.sequence = 2;
+        overflow.event_id = "event-2".to_owned();
+        route_boolean_occurrence(&runtime, std::slice::from_mut(&mut workflow), overflow);
+        assert!(workflow.failed);
+        assert_eq!(workflow.events.len(), MAX_PENDING_EVENTS);
     }
 
     #[test]

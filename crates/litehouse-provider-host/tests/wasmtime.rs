@@ -67,6 +67,22 @@ async fn typed_handles_stay_in_actor_while_host_routes_query_set_send_and_withdr
 
     assert_eq!(handle.descriptors().len(), 10);
     assert_eq!(fabric.lock().unwrap().registry().len(), 10);
+    let occurrences = handle
+        .drain_boolean_occurrences(64, Duration::from_secs(1))
+        .await
+        .unwrap();
+    assert_eq!(occurrences.dropped, 0);
+    assert_eq!(occurrences.events.len(), 1);
+    assert_eq!(occurrences.events[0].event_id, "fixture-occurrence-1");
+    assert_eq!(occurrences.events[0].endpoint.facet().as_str(), "button-1");
+    assert!(
+        handle
+            .drain_boolean_occurrences(64, Duration::from_secs(1))
+            .await
+            .unwrap()
+            .events
+            .is_empty()
+    );
     let relay = handle
         .descriptors()
         .iter()

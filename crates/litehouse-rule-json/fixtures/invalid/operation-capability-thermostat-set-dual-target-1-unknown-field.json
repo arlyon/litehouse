@@ -21,7 +21,7 @@
   "revision": 1,
   "rule_id": "00000000000000000000000000000012",
   "schema": {
-    "profile_sha256": "ed5272b961610e73e123c630822a8a2df0b505d2d1759510cac3e8550cc36ff5",
+    "profile_sha256": "b4e58b0d2d70adc4af0ada28158965e3b429e41e4208c095c6c913b76a1912a2",
     "sha256": "6e7b95bf72706e757355077a5289043abecae844478f5610f5871f32667c6755",
     "url": "https://schemas.litehouse.dev/rule-ir/v1.0.0/schema.json",
     "version": "1.0.0"
@@ -96,7 +96,7 @@
       },
       "contract_catalog": {
         "id": "litehouse:contract-catalog@1",
-        "sha256": "83dba0a132708b7c30ccf5db5f82fc4389a89985e432e711669b3a3bc565c983"
+        "sha256": "ef1d9d07810b24f8bbf51a604c423179efedc9049e57413cb0b046b02da4bc64"
       },
       "management_operations": {
         "id": "litehouse:management-operations@1",

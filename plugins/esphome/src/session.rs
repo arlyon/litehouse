@@ -13,7 +13,7 @@ use esphome_client::{
 };
 use serde::Deserialize;
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, VecDeque},
     net::SocketAddr,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -29,6 +29,7 @@ const MAX_CHOICES: usize = 64;
 const MAX_CHOICE_BYTES: usize = 128;
 const MAX_MAPPED_ENTITIES: usize = 512;
 const MAX_DIAGNOSTICS: usize = 128;
+const MAX_BOOLEAN_OCCURRENCES: usize = 256;
 
 pub(crate) const PROFILE_TEMPERATURE: &str = "litehouse:quantity/temperature-absolute@1";
 pub(crate) const PROFILE_RATIO: &str = "litehouse:quantity/ratio@1";
@@ -424,6 +425,15 @@ pub(crate) enum CoverWrite {
     PositionTilt(f32),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct PendingBooleanOccurrence {
+    pub(crate) facet_key: String,
+    pub(crate) sequence: u64,
+    pub(crate) generation: u64,
+    pub(crate) received_at_unix_milliseconds: u64,
+    pub(crate) value: bool,
+}
+
 pub(crate) struct NodeSession {
     address: String,
     noise_key: Zeroizing<String>,
@@ -443,6 +453,10 @@ pub(crate) struct NodeSession {
     discovered_once: bool,
     connected: bool,
     disconnected_at_unix_milliseconds: Option<u64>,
+    boolean_occurrence_continuity_lost: bool,
+    boolean_occurrences: VecDeque<PendingBooleanOccurrence>,
+    boolean_occurrence_sequence: u64,
+    dropped_boolean_occurrences: u64,
 }
 
 impl NodeSession {
@@ -483,6 +497,10 @@ impl NodeSession {
             discovered_once: false,
             connected: false,
             disconnected_at_unix_milliseconds: None,
+            boolean_occurrence_continuity_lost: false,
+            boolean_occurrences: VecDeque::new(),
+            boolean_occurrence_sequence: 0,
+            dropped_boolean_occurrences: 0,
         })
     }
 
@@ -508,6 +526,35 @@ impl NodeSession {
     )]
     pub(crate) fn diagnostics(&self) -> &[UnsupportedDiagnostic] {
         &self.diagnostics
+    }
+
+    pub(crate) fn drain_boolean_occurrences(
+        &mut self,
+        maximum: usize,
+    ) -> (Vec<PendingBooleanOccurrence>, u64) {
+        let count = maximum
+            .min(MAX_BOOLEAN_OCCURRENCES)
+            .min(self.boolean_occurrences.len());
+        let events = self.boolean_occurrences.drain(..count).collect();
+        let dropped = std::mem::take(&mut self.dropped_boolean_occurrences);
+        (events, dropped)
+    }
+
+    fn record_boolean_occurrence(&mut self, locator: &Locator, value: bool) {
+        self.boolean_occurrence_sequence =
+            self.boolean_occurrence_sequence.saturating_add(1).max(1);
+        if self.boolean_occurrences.len() == MAX_BOOLEAN_OCCURRENCES {
+            self.boolean_occurrences.pop_front();
+            self.dropped_boolean_occurrences = self.dropped_boolean_occurrences.saturating_add(1);
+        }
+        self.boolean_occurrences
+            .push_back(PendingBooleanOccurrence {
+                facet_key: locator.facet_key(),
+                sequence: self.boolean_occurrence_sequence,
+                generation: self.generation,
+                received_at_unix_milliseconds: now_unix_milliseconds(),
+                value,
+            });
     }
 
     pub(crate) fn on_off_seeds(&self) -> Vec<FacetSeed> {
@@ -659,6 +706,33 @@ impl NodeSession {
         self.buttons
             .get(locator)
             .filter(|entity| entity.common.incarnation == incarnation)
+    }
+
+    pub(crate) async fn refresh_occurrences(&mut self) -> Result<(), SessionError> {
+        if self.boolean_occurrence_continuity_lost || self.client.is_none() {
+            return Err(SessionError::ConnectionFailed);
+        }
+        let deadline = tokio::time::Instant::now() + REFRESH_WINDOW;
+        loop {
+            let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+            if remaining.is_zero() {
+                break;
+            }
+            let read = {
+                let client = self.client.as_mut().ok_or(SessionError::ConnectionFailed)?;
+                tokio::time::timeout(remaining, client.try_read()).await
+            };
+            match read {
+                Err(_) => break,
+                Ok(Ok(message)) => self.apply_message(message),
+                Ok(Err(_)) => {
+                    self.client = None;
+                    self.mark_disconnected();
+                    return Err(SessionError::ConnectionFailed);
+                }
+            }
+        }
+        Ok(())
     }
 
     pub(crate) async fn refresh(&mut self) {
@@ -1157,12 +1231,19 @@ impl NodeSession {
             }
             EspHomeMessage::BinarySensorStateResponse(state) => {
                 let locator = Locator::new(EntityKind::BinarySensor, state.device_id, state.key);
-                if let Some(entity) = self.binary_sensors.get_mut(&locator) {
+                let occurrence = if let Some(entity) = self.binary_sensors.get_mut(&locator) {
                     if state.missing_state {
                         entity.observation.gap();
+                        None
                     } else {
                         entity.observation.observe(state.state);
+                        Some(state.state)
                     }
+                } else {
+                    None
+                };
+                if let Some(value) = occurrence {
+                    self.record_boolean_occurrence(&locator, value);
                 }
             }
             EspHomeMessage::SensorStateResponse(state) => {
@@ -1219,6 +1300,7 @@ impl NodeSession {
 
     fn mark_disconnected(&mut self) {
         self.connected = false;
+        self.boolean_occurrence_continuity_lost = true;
         self.disconnected_at_unix_milliseconds
             .get_or_insert_with(now_unix_milliseconds);
     }
@@ -2373,8 +2455,8 @@ pub(crate) fn now_unix_milliseconds() -> u64 {
 mod tests {
     use super::*;
     use esphome_client::types::{
-        ClimateStateResponse, ColorMode, CoverStateResponse, LightStateResponse,
-        ListEntitiesTextSensorResponse, SwitchStateResponse,
+        BinarySensorStateResponse, ClimateStateResponse, ColorMode, CoverStateResponse,
+        LightStateResponse, ListEntitiesTextSensorResponse, SwitchStateResponse,
     };
 
     const VALID_KEY: &str = "AAECAwQFBgcICRAREhMUFRYXGBkgISIjJCUmJygpMDE=";
@@ -2402,6 +2484,58 @@ mod tests {
     fn source_locators_are_stable_and_group_all_light_facets() {
         let locator = Locator::new(EntityKind::Light, 7, 42);
         assert_eq!(locator.facet_key(), "light-7-42");
+    }
+
+    #[test]
+    fn boolean_occurrence_queue_is_bounded_and_reports_overflow() {
+        let mut config = format!(r#"{{"address":"192.0.2.10:6053","noise_key":"{VALID_KEY}"}}"#);
+        let mut session = NodeSession::from_json(&mut config).unwrap();
+        let locator = Locator::new(EntityKind::BinarySensor, 7, 42);
+        session.binary_sensors.insert(
+            locator.clone(),
+            BinaryEntity {
+                common: EntityCommon {
+                    locator: locator.clone(),
+                    label: "Motion".to_owned(),
+                    incarnation: 1,
+                },
+                profile: BooleanProfile::Occupancy,
+                observation: Observation::empty(),
+            },
+        );
+        for index in 0..260 {
+            session.apply_message(EspHomeMessage::BinarySensorStateResponse(
+                BinarySensorStateResponse {
+                    key: 42,
+                    state: index % 2 == 0,
+                    missing_state: false,
+                    device_id: 7,
+                },
+            ));
+        }
+
+        let (first, dropped) = session.drain_boolean_occurrences(64);
+        assert_eq!(first.len(), 64);
+        assert_eq!(dropped, 4);
+        assert_eq!(first[0].sequence, 5);
+        let (remaining, dropped) = session.drain_boolean_occurrences(256);
+        assert_eq!(remaining.len(), 192);
+        assert_eq!(dropped, 0);
+    }
+
+    #[test]
+    fn occurrence_refresh_reports_lost_transport_continuity() {
+        let mut config = format!(r#"{{"address":"192.0.2.10:6053","noise_key":"{VALID_KEY}"}}"#);
+        let mut session = NodeSession::from_json(&mut config).unwrap();
+        session.mark_disconnected();
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        assert_eq!(
+            runtime.block_on(session.refresh_occurrences()),
+            Err(SessionError::ConnectionFailed)
+        );
     }
 
     #[test]

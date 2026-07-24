@@ -37,7 +37,9 @@ use std::sync::{
 };
 
 struct Provider;
-struct Runner;
+struct Runner {
+    occurrence_pending: AtomicBool,
+}
 
 struct OnOffFacet {
     key: &'static str,
@@ -318,11 +320,16 @@ impl provider::GuestBooleanFacet for BooleanFacet {
         &self,
         _context: receipt::RequestContext,
     ) -> Result<boolean::BooleanDescriptor, boolean::Error> {
+        let mut common = common("button-1", "Button 1", 1, "boolean-state", &["query"]);
+        common.events = vec!["state-observation".into(), "occurrence".into()];
         Ok(boolean::BooleanDescriptor {
-            common: common("button-1", "Button 1", 1, "boolean-state", &["query"]),
+            common,
             profile: boolean::BooleanProfile::Generic,
             state_fields: vec![boolean::StateField::Current],
-            events: vec![boolean::EventKind::StateObservation],
+            events: vec![
+                boolean::EventKind::StateObservation,
+                boolean::EventKind::Occurrence,
+            ],
         })
     }
 
@@ -871,6 +878,28 @@ impl provider::GuestRunner for Runner {
             MomentaryActionFacet,
         )])
     }
+
+    async fn drain_boolean_occurrences(
+        &self,
+        max_items: u16,
+    ) -> Result<provider::BooleanOccurrenceBatch, provider::Error> {
+        let events = if max_items > 0 && self.occurrence_pending.swap(false, Ordering::SeqCst) {
+            vec![provider::BooleanOccurrenceEvent {
+                sequence: 1,
+                facet_key: "button-1".to_owned(),
+                occurrence: boolean::Occurrence {
+                    event_id: "fixture-occurrence-1".to_owned(),
+                    source_id: "button-1".to_owned(),
+                    generation: 1,
+                    received_at_unix_milliseconds: 1_700_000_000_500,
+                    value: Some(true),
+                },
+            }]
+        } else {
+            Vec::new()
+        };
+        Ok(provider::BooleanOccurrenceBatch { events, dropped: 0 })
+    }
 }
 
 impl provider::Guest for Provider {
@@ -897,7 +926,9 @@ impl provider::Guest for Provider {
                 error_id: "fixture-config".into(),
             });
         }
-        Ok(provider::Runner::new(Runner))
+        Ok(provider::Runner::new(Runner {
+            occurrence_pending: AtomicBool::new(true),
+        }))
     }
 }
 

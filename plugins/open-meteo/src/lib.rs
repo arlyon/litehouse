@@ -189,6 +189,16 @@ impl provider::GuestRunner for Runner {
     ) -> Result<Vec<provider::MomentaryActionFacet>, provider::Error> {
         Ok(vec![])
     }
+
+    async fn drain_boolean_occurrences(
+        &self,
+        _max_items: u16,
+    ) -> Result<provider::BooleanOccurrenceBatch, provider::Error> {
+        Ok(provider::BooleanOccurrenceBatch {
+            events: Vec::new(),
+            dropped: 0,
+        })
+    }
 }
 
 impl provider::GuestLevelControlFacet for NeverLevelControlFacet {

@@ -266,6 +266,34 @@ impl provider::GuestRunner for Runner {
             })
             .collect())
     }
+
+    async fn drain_boolean_occurrences(
+        &self,
+        max_items: u16,
+    ) -> Result<provider::BooleanOccurrenceBatch, provider::Error> {
+        let mut session = self.runtime.block_on(self.session.lock());
+        self.runtime
+            .block_on(session.refresh_occurrences())
+            .map_err(provider_error)?;
+        let (events, dropped) = session.drain_boolean_occurrences(usize::from(max_items));
+        Ok(provider::BooleanOccurrenceBatch {
+            events: events
+                .into_iter()
+                .map(|event| provider::BooleanOccurrenceEvent {
+                    sequence: event.sequence,
+                    facet_key: event.facet_key.clone(),
+                    occurrence: boolean::Occurrence {
+                        event_id: format!("{}-{:016x}", self.instance_id, event.sequence),
+                        source_id: event.facet_key,
+                        generation: event.generation,
+                        received_at_unix_milliseconds: event.received_at_unix_milliseconds,
+                        value: Some(event.value),
+                    },
+                })
+                .collect(),
+            dropped,
+        })
+    }
 }
 
 impl provider::GuestNotificationSinkFacet for NeverNotificationSinkFacet {
@@ -406,11 +434,14 @@ impl provider::GuestBooleanFacet for BooleanFacet {
                 semantic_role: "binary-sensor",
                 semantic_profile: Some(boolean_profile_name(profile)),
                 operations: &["query"],
-                events: &["state-observation"],
+                events: &["state-observation", "occurrence"],
             }),
             profile,
             state_fields: vec![boolean::StateField::Current],
-            events: vec![boolean::EventKind::StateObservation],
+            events: vec![
+                boolean::EventKind::StateObservation,
+                boolean::EventKind::Occurrence,
+            ],
         })
     }
     async fn query(

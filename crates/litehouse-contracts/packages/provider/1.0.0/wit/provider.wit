@@ -1,7 +1,7 @@
 package litehouse:provider@1.0.0;
 
 interface provider {
-  use litehouse:boolean-state/types@1.0.0.{boolean-descriptor, error as boolean-error, state as boolean-state};
+  use litehouse:boolean-state/types@1.0.0.{boolean-descriptor, error as boolean-error, occurrence, state as boolean-state};
   use litehouse:color-control/types@1.0.0.{color-descriptor, error as color-error, move-request as color-move-request, operation-receipt as color-operation-receipt, set-request as color-set-request, state as color-state, step-request as color-step-request};
   use litehouse:errors/types@1.0.0.{core-error, retry-advice};
   use litehouse:level-control/types@1.0.0.{coupled-move-request, coupled-request, coupled-step-request, error as level-error, level-descriptor, move-request as level-move-request, operation-receipt as level-operation-receipt, set-request as level-set-request, state as level-state, step-request as level-step-request};
@@ -14,6 +14,17 @@ interface provider {
   use litehouse:window-covering/types@1.0.0.{axis-request, covering-descriptor, error as covering-error, operation-receipt as covering-operation-receipt, position-request, state as covering-state};
 
   record error { inner: core-error, retry: retry-advice, message: option<string>, error-id: string }
+
+  record boolean-occurrence-event {
+    sequence: u64,
+    facet-key: string,
+    occurrence: occurrence,
+  }
+
+  record boolean-occurrence-batch {
+    events: list<boolean-occurrence-event>,
+    dropped: u64,
+  }
 
   resource on-off-facet {
     key: func() -> string; incarnation: func() -> u64;
@@ -93,6 +104,7 @@ interface provider {
     thermostat-facets: async func() -> result<list<own<thermostat-facet>>, error>;
     window-covering-facets: async func() -> result<list<own<window-covering-facet>>, error>;
     momentary-action-facets: async func() -> result<list<own<momentary-action-facet>>, error>;
+    drain-boolean-occurrences: async func(max-items: u16) -> result<boolean-occurrence-batch, error>;
   }
   start: async func(instance-id: string, config: string) -> result<own<runner>, error>;
 }
