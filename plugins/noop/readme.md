@@ -1,8 +1,6 @@
 <!-- cargo-rdme start -->
 
-Persistent task plugin for the Litehouse home automation system.
-
-This crate provides functionality for creating persistent tasks that can run in the background,
-allowing for continuous operations or monitoring within the Litehouse system.
+A basic no-op plugin intended to be used as a starting point for writing
+your own plugin.
 
 <!-- cargo-rdme end -->
