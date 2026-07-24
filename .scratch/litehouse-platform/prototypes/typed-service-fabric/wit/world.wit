@@ -1,0 +1,93 @@
+package litehouse:service-spike@0.1.0;
+
+interface model {
+  enum operation {
+    read,
+    set,
+  }
+
+  record receipt {
+    endpoint: string,
+    accepted: bool,
+    current: bool,
+    target: option<bool>,
+  }
+
+  variant service-error {
+    denied,
+    stale,
+    unavailable,
+    invalid-input(string),
+  }
+}
+
+interface provider-v1 {
+  use model.{operation, receipt, service-error};
+
+  resource endpoint {
+    key: func() -> string;
+    incarnation: func() -> u64;
+    features: func() -> list<string>;
+    invoke: async func(operation: operation, value: option<bool>) -> result<receipt, service-error>;
+  }
+
+  discover: func() -> list<own<endpoint>>;
+}
+
+interface provider-v2 {
+  use model.{operation, receipt, service-error};
+
+  resource endpoint {
+    key: func() -> string;
+    incarnation: func() -> u64;
+    invoke: async func(operation: operation, value: option<bool>) -> result<receipt, service-error>;
+  }
+
+  discover: func() -> list<own<endpoint>>;
+}
+
+interface fabric-v1 {
+  use model.{operation, receipt, service-error};
+
+  record proxy-info {
+    endpoint: string,
+    provider-instance: string,
+    store-generation: u64,
+    facet-incarnation: u64,
+    features: list<string>,
+  }
+
+  resource proxy {
+    info: func() -> proxy-info;
+    invoke: async func(operation: operation, value: option<bool>) -> result<receipt, service-error>;
+  }
+
+  bind-many: func() -> list<own<proxy>>;
+}
+
+interface fabric-v2 {
+  use model.{operation, receipt, service-error};
+
+  resource proxy {
+    invoke: async func(operation: operation, value: option<bool>) -> result<receipt, service-error>;
+  }
+
+  bind-one: func() -> option<own<proxy>>;
+}
+
+interface scenario {
+  use model.{receipt};
+
+  run: async func() -> result<list<receipt>, string>;
+}
+
+world provider-world {
+  export provider-v1;
+  export provider-v2;
+}
+
+world consumer-world {
+  import fabric-v1;
+  import fabric-v2;
+  export scenario;
+}

@@ -1,0 +1,117 @@
+package litehouse:state@1.0.0;
+
+interface types {
+  type provider-generation = u64;
+  type revision = u64;
+
+  record wall-clock-instant {
+    unix-milliseconds: u64,
+  }
+
+  enum source-time-provenance {
+    device-clock,
+    provider-clock,
+  }
+
+  record source-time {
+    instant: wall-clock-instant,
+    provenance: source-time-provenance,
+  }
+
+  enum quality {
+    source-reported,
+    source-assumed,
+  }
+
+  enum unavailability-reason {
+    disconnected,
+    reconnecting,
+    provider-failed,
+    endpoint-removed,
+    unknown,
+  }
+
+  record stale-status {
+    since: wall-clock-instant,
+  }
+
+  variant availability {
+    available,
+    unavailable(unavailability-reason),
+    stale(stale-status),
+  }
+
+  record observation-meta {
+    generation: provider-generation,
+    revision: revision,
+    received-at: wall-clock-instant,
+    source-time: option<source-time>,
+  }
+
+  record cursor {
+    generation: provider-generation,
+    revision: revision,
+  }
+
+  record revision-range {
+    first: revision,
+    last: revision,
+  }
+
+  enum gap-reason {
+    lagged,
+    overflow,
+    expired-cursor,
+    history-lost,
+    generation-changed,
+  }
+
+  type delivery-epoch = u64;
+  type subscription-id = string;
+
+  record subscription-identity {
+    id: subscription-id,
+    delivery-epoch: delivery-epoch,
+    generation: provider-generation,
+  }
+
+  record hydration-barrier {
+    subscription: subscription-identity,
+    cursor: cursor,
+  }
+
+  record gap {
+    subscription: subscription-identity,
+    reason: gap-reason,
+    lost: option<revision-range>,
+    missed-count: u64,
+    count-overflow: bool,
+  }
+
+  variant resume-position {
+    after(cursor),
+    at-now,
+  }
+
+  record resume-request {
+    subscription: subscription-identity,
+    position: resume-position,
+  }
+
+  enum continuity {
+    replayed,
+    rehydrated,
+    not-recovered,
+  }
+
+  record resume-receipt {
+    subscription: subscription-identity,
+    cursor: option<cursor>,
+    continuity: continuity,
+  }
+
+  variant stream-control {
+    caught-up(hydration-barrier),
+    gap(gap),
+  }
+}

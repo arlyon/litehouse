@@ -9,6 +9,7 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
+litehouse-contracts = { version = "0.1.0", path = "../litehouse-contracts" }
 litehouse-plugin-macro = { version = "0.1.0", path = "../plugin-macro" }
 schemars = { version = "0.8.16", default-features = false, features = [
   "derive",
@@ -18,4 +19,4 @@ serde_json = "1.0.108"
 serde_path_to_error = "0.1.14"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-wit-bindgen = "0.48.1"
+wit-bindgen = "0.59.0"

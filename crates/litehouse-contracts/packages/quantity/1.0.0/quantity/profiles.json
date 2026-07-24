@@ -1,0 +1,31 @@
+{
+  "catalog": "litehouse:quantity-catalog@1",
+  "ucumVersion": "2.2",
+  "qudtReferenceVersion": "3.4.0",
+  "profiles": [
+    { "id": "litehouse:quantity/temperature-absolute@1", "canonicalUnit": "K", "kind": "absolute-temperature" },
+    { "id": "litehouse:quantity/temperature-difference@1", "canonicalUnit": "K", "kind": "temperature-difference" },
+    { "id": "litehouse:quantity/relative-humidity@1", "canonicalUnit": "1", "kind": "ratio" },
+    { "id": "litehouse:quantity/ratio@1", "canonicalUnit": "1", "kind": "ratio" },
+    { "id": "litehouse:quantity/wmo-weather-code@1", "canonicalUnit": "1", "kind": "discrete-code" },
+    { "id": "litehouse:quantity/pressure@1", "canonicalUnit": "Pa", "kind": "linear" },
+    { "id": "litehouse:quantity/illuminance@1", "canonicalUnit": "lx", "kind": "linear" },
+    { "id": "litehouse:quantity/power@1", "canonicalUnit": "W", "kind": "linear" },
+    { "id": "litehouse:quantity/energy@1", "canonicalUnit": "J", "kind": "linear" },
+    { "id": "litehouse:quantity/voltage@1", "canonicalUnit": "V", "kind": "linear" },
+    { "id": "litehouse:quantity/electric-current@1", "canonicalUnit": "A", "kind": "linear" },
+    { "id": "litehouse:quantity/frequency@1", "canonicalUnit": "Hz", "kind": "linear" },
+    { "id": "litehouse:quantity/battery-ratio@1", "canonicalUnit": "1", "kind": "ratio" },
+    { "id": "litehouse:quantity/signal-strength@1", "canonicalUnit": "[dBm]", "kind": "logarithmic-source" },
+    { "id": "litehouse:quantity/carbon-dioxide@1", "canonicalUnit": "[ppm]", "kind": "ratio" },
+    { "id": "litehouse:quantity/carbon-monoxide@1", "canonicalUnit": "[ppm]", "kind": "ratio" },
+    { "id": "litehouse:quantity/volatile-organic-compounds@1", "canonicalUnit": "[ppm]", "kind": "ratio" },
+    { "id": "litehouse:quantity/particulate-matter-pm1@1", "canonicalUnit": "ug/m3", "kind": "linear" },
+    { "id": "litehouse:quantity/particulate-matter-pm2-5@1", "canonicalUnit": "ug/m3", "kind": "linear" },
+    { "id": "litehouse:quantity/particulate-matter-pm10@1", "canonicalUnit": "ug/m3", "kind": "linear" },
+    { "id": "litehouse:quantity/distance@1", "canonicalUnit": "m", "kind": "linear" },
+    { "id": "litehouse:quantity/speed@1", "canonicalUnit": "m/s", "kind": "linear" },
+    { "id": "litehouse:quantity/volume@1", "canonicalUnit": "m3", "kind": "linear" },
+    { "id": "litehouse:quantity/volumetric-flow@1", "canonicalUnit": "m3/s", "kind": "linear" }
+  ]
+}

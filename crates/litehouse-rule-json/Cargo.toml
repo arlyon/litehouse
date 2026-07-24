@@ -1,0 +1,28 @@
+[package]
+name = "litehouse-rule-json"
+version = "0.1.0"
+description = "Closed Litehouse Rule JSON V1 model, compiler, and pure transition planner"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+cel = { version = "=0.14.0", default-features = false, features = ["chrono"] }
+chrono = { version = "=0.4.42", default-features = false, features = ["std"] }
+jiff = { version = "=0.2.32", default-features = false, features = [
+  "std",
+  "tzdb-bundle-always",
+] }
+jiff-tzdb = "=0.1.8"
+litehouse-contracts = { version = "0.1.0", path = "../litehouse-contracts" }
+schemars = "1.2.1"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.117"
+serde_json_canonicalizer = "=0.3.2"
+sha2 = "0.10.8"
+thiserror = "1.0.58"
+
+[dev-dependencies]
+jsonschema = { version = "0.17.1", features = ["draft202012"] }

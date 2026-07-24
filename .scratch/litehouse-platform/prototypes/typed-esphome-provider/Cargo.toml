@@ -1,0 +1,16 @@
+[workspace]
+members = ["component", "harness"]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+publish = false
+
+[workspace.dependencies]
+anyhow = "1.0.86"
+litehouse-contracts = { path = "../../../../crates/litehouse-contracts" }
+litehouse-service-fabric = { path = "../../../../crates/litehouse-service-fabric" }
+tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread"] }
+wasmtime = "46.0.1"
+wasmtime-wasi = "46.0.1"
+wit-bindgen = "0.59.0"

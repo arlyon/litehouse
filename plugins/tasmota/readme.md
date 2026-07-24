@@ -1,8 +1,8 @@
 <!-- cargo-rdme start -->
 
-Tasmota plugin for the Litehouse home automation system.
+Tasmota HTTP provider for one explicitly configured private LAN node.
 
-This crate provides integration with Tasmota devices, allowing for control and monitoring
-within the Litehouse system.
+All facets share one serialized session and cache. The only outbound
+requests are four fixed reads and absolute indexed power writes.
 
 <!-- cargo-rdme end -->

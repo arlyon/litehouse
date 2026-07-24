@@ -1,0 +1,12 @@
+[metadata]
+authors = ["Litehouse contributors"]
+description = "Litehouse level-control contract"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/arlyon/litehouse"
+
+[overrides]
+"litehouse:descriptor" = { path = "../../descriptor/1.0.0/wit" }
+"litehouse:errors" = { path = "../../errors/1.0.0/wit" }
+"litehouse:quantity" = { path = "../../quantity/1.0.0/wit" }
+"litehouse:receipt" = { path = "../../receipt/1.0.0/wit" }
+"litehouse:state" = { path = "../../state/1.0.0/wit" }

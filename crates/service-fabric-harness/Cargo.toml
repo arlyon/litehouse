@@ -1,0 +1,15 @@
+[package]
+name = "litehouse-service-fabric-harness"
+version = "0.0.0"
+description = "Test-only Wasmtime harness for typed cross-store service forwarding"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+anyhow = "1.0.86"
+litehouse-contracts = { version = "0.1.0", path = "../litehouse-contracts" }
+litehouse-service-fabric = { version = "0.1.0", path = "../litehouse-service-fabric" }
+tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread", "sync"] }
+wasmtime = "46.0.1"
+wasmtime-wasi = "46.0.1"

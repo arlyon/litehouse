@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Litehouse wallboard</title>
+  <meta name="description" content="Desktop Litehouse overview built from typed capability facets." />
+  <link rel="stylesheet" href="../tokens.css" />
+  <link rel="stylesheet" href="./control-surfaces.css" />
+</head>
+<body>
+  <a class="skip-link" href="#top">Skip to controls</a>
+  <header class="site-header">
+    <div class="container">
+      <a class="wordmark" href="#top">Litehouse <span>System</span></a>
+      <nav class="top-nav" aria-label="Wallboard navigation">
+        <a href="#top" aria-current="page">Wallboard</a>
+        <a href="#states">States</a>
+        <a href="#operations">Operations</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top" class="wallboard-layout">
+    <aside class="context-rail" aria-label="Home context">
+      <section class="context-section stack-3">
+        <p class="eyebrow">Time</p>
+        <strong class="time-reading mono">18:29</strong>
+        <p class="muted small"><time datetime="2026-08-03T18:29:00">Wednesday 3 August</time></p>
+      </section>
+
+      <section class="context-section stack-3">
+        <p class="eyebrow">Context</p>
+        <h2>Good evening</h2>
+        <p class="muted">Six lights, the hall climate, and one automation are active.</p>
+      </section>
+
+      <section class="context-section stack-4">
+        <p class="eyebrow">Environment</p>
+        <div class="weather-reading">
+          <span class="icon-frame"><img class="icon-lg" src="../assets/lucide/cloud-sun.svg" alt="" /></span>
+          <div class="stack-2"><strong>23 °C</strong><span class="muted small">Source reported</span></div>
+        </div>
+        <p class="muted small">Relative humidity 46%</p>
+      </section>
+
+      <section class="context-section stack-4">
+        <p class="eyebrow">Up next</p>
+        <div class="row">
+          <span class="icon-frame"><img class="icon" src="../assets/lucide/clock-3.svg" alt="" /></span>
+          <div><strong>Laundry reminder</strong><p class="muted small">Rule schedule at 19:00</p></div>
+        </div>
+      </section>
+
+      <section class="context-section stack-4">
+        <p class="eyebrow">System</p>
+        <div class="row-between"><strong>Kitchen server</strong><span class="badge badge-success">Connected</span></div>
+        <p class="muted small">Checked <time datetime="2026-08-03T18:28:00">18:28</time></p>
+        <code>litehouse.local:8443</code>
+      </section>
+    </aside>
+
+    <section class="wallboard-main">
+      <div class="room-stack">
+        <section class="surface" aria-labelledby="living-room-heading">
+          <header class="room-header"><h2 id="living-room-heading">Living room</h2><button type="button">View room</button></header>
+          <div class="entity-list">
+            <div class="entity-row">
+              <div class="entity-main"><span class="icon-frame icon-frame-active"><img class="icon" src="../assets/lucide/lamp-ceiling.svg" alt="" /></span><div class="entity-copy"><strong>Ceiling lights</strong><span>6 lights · On / Off + Level</span></div></div>
+              <span class="entity-state active-text">On · 72%</span>
+              <div class="entity-action"><span class="sr-only">Ceiling lights are on</span><input class="switch" type="checkbox" checked aria-label="Ceiling lights power" /></div>
+            </div>
+            <div class="entity-row">
+              <div class="entity-main"><span class="icon-frame icon-frame-active"><img class="icon" src="../assets/lucide/lightbulb.svg" alt="" /></span><div class="entity-copy"><strong>Standing lamp</strong><span>Corner · Color temperature</span></div></div>
+              <span class="entity-state active-text">2700 K</span>
+              <div class="entity-action"><button type="button">Details</button><img class="chevron" src="../assets/lucide/chevron-down.svg" alt="" /></div>
+            </div>
+            <div class="entity-row">
+              <div class="entity-main"><span class="icon-frame"><img class="icon" src="../assets/lucide/thermometer.svg" alt="" /></span><div class="entity-copy"><strong>Climate</strong><span>Heat · Ambient 20.9 °C</span></div></div>
+              <span class="entity-state reading">21.5 °C</span>
+              <div class="entity-action"><button type="button">Adjust</button><img class="chevron" src="../assets/lucide/chevron-down.svg" alt="" /></div>
+            </div>
+            <div class="entity-row">
+              <div class="entity-main"><span class="icon-frame"><img class="icon" src="../assets/lucide/blinds.svg" alt="" /></span><div class="entity-copy"><strong>Window blind</strong><span>Lift · Tilt unavailable</span></div></div>
+              <span class="entity-state reading">38% open</span>
+              <div class="entity-action"><button type="button">Open</button><img class="chevron" src="../assets/lucide/chevron-down.svg" alt="" /></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="surface" aria-labelledby="hall-heading">
+          <header class="room-header"><h2 id="hall-heading">Hall</h2><button type="button">View room</button></header>
+          <div class="entity-list">
+            <div class="entity-row">
+              <div class="entity-main"><span class="icon-frame"><img class="icon" src="../assets/lucide/door-closed.svg" alt="" /></span><div class="entity-copy"><strong>Front door contact</strong><span>Boolean state · Changed 8 seconds ago</span></div></div>
+              <span class="entity-state active-text">Closed</span>
+              <div class="entity-action"><span class="status status-current">Current</span></div>
+            </div>
+            <div class="entity-row">
+              <div class="entity-main"><span class="icon-frame"><img class="icon" src="../assets/lucide/gauge.svg" alt="" /></span><div class="entity-copy"><strong>Air quality</strong><span>Carbon dioxide · Measurement</span></div></div>
+              <span class="entity-state reading">812 ppm</span>
+              <div class="entity-action"><span class="status status-stale">Stale</span></div>
+            </div>
+            <div class="entity-row">
+              <div class="entity-main"><span class="icon-frame"><img class="icon" src="../assets/lucide/mouse-pointer-click.svg" alt="" /></span><div class="entity-copy"><strong>Identify chime</strong><span>Momentary action · Non-idempotent</span></div></div>
+              <span class="entity-state">Ready</span>
+              <div class="entity-action"><button type="button">Invoke</button></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="surface" aria-labelledby="bedroom-heading">
+          <header class="room-header"><h2 id="bedroom-heading">Bedroom</h2><button type="button">View room</button></header>
+          <div class="entity-list">
+            <div class="entity-row">
+              <div class="entity-main"><span class="icon-frame"><img class="icon" src="../assets/lucide/lightbulb.svg" alt="" /></span><div class="entity-copy"><strong>Bedside lights</strong><span>2 lights</span></div></div>
+              <span class="entity-state">Off</span>
+              <div class="entity-action"><input class="switch" type="checkbox" aria-label="Bedside lights power" /></div>
+            </div>
+            <div class="entity-row">
+              <div class="entity-main"><span class="icon-frame"><img class="icon" src="../assets/lucide/thermometer.svg" alt="" /></span><div class="entity-copy"><strong>Temperature</strong><span>Measurement · Source reported</span></div></div>
+              <span class="entity-state reading">23.5 °C</span>
+              <div class="entity-action"><span class="status status-current">Current</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="states" class="surface" aria-labelledby="services-heading">
+          <header class="room-header"><h2 id="services-heading">House actions</h2><button type="button">View actions</button></header>
+          <div class="entity-list">
+            <div class="entity-row">
+              <div class="entity-main"><span class="icon-frame"><img class="icon" src="../assets/lucide/bell-ring.svg" alt="" /></span><div class="entity-copy"><strong>House notifications</strong><span>Notification sink · Plain text</span></div></div>
+              <span class="entity-state">Available</span>
+              <div class="entity-action"><button type="button">Compose</button></div>
+            </div>
+            <div class="entity-row">
+              <div class="entity-main"><span class="icon-frame"><img class="icon" src="../assets/lucide/server.svg" alt="" /></span><div class="entity-copy"><strong>Kitchen server</strong><span>System summary</span></div></div>
+              <span class="entity-state active-text">Connected</span>
+              <div class="entity-action"><button type="button">Open</button></div>
+            </div>
+          </div>
+        </section>
+
+        <div id="operations" class="notice" role="status">
+          <img class="icon" src="../assets/lucide/triangle-alert.svg" alt="" />
+          <div><strong>One operation needs reconciliation</strong><p>A blind command may have been delivered. Observe the device before retrying.</p></div>
+          <button type="button">View result</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wallboard-footer">
+    <nav class="quick-dock" aria-label="Quick actions">
+      <button class="quick-action" type="button"><img class="icon" src="../assets/lucide/house.svg" alt="" />Overview</button>
+      <button class="quick-action" type="button"><img class="icon" src="../assets/lucide/sliders-horizontal.svg" alt="" />Devices</button>
+      <button class="quick-action" type="button"><img class="icon" src="../assets/lucide/zap.svg" alt="" />Rules</button>
+      <button class="quick-action" type="button"><img class="icon" src="../assets/lucide/clock-3.svg" alt="" />History</button>
+      <button class="quick-action" type="button"><img class="icon" src="../assets/lucide/bell-ring.svg" alt="" />Notify</button>
+      <button class="quick-action" type="button"><img class="icon" src="../assets/lucide/server.svg" alt="" />Server</button>
+      <button class="quick-action" type="button"><img class="icon" src="../assets/lucide/refresh-cw.svg" alt="" />Updates</button>
+    </nav>
+  </footer>
+</body>
+</html>

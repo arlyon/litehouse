@@ -1,0 +1,213 @@
+{
+  "ci_policy_sha256": "f46b00a415903ea6f5e645633fa43e36492679f5eddfda4573356e5189679c91",
+  "contract_package_json_sha256": "c2ac2bf11cece64d8671dfd85020201c1e03be6595961be9ff81e67db4e6d337",
+  "contract_source_tree_sha256": "0b417b5407712b95d0b48f6605e7101e0d23d2de8dfdab2abc3970756a0e8e07",
+  "contract_wit_tree_sha256": "50e8b90396cad98c47f70da17232f8468d6b5cda21191fe4a845a9f1f50142bd",
+  "flatc_installer_sha256": "03544823c15299fdc1068532391aadd118cdf71f25505b66d139a6f897649154",
+  "flatc_version": "25.12.19",
+  "management_operations_sha256": "dde0e6e363f894f6f967d18328ff501c09e728786915cb78b4feb01e035eb7c4",
+  "quantity_engine_tree_sha256": "264a782ba8f0164a43c24417e1337cdb4dfb961a2e957c6a79a8a0d3524e3eb0",
+  "registry_generated_sha256": "db64638ce8966b4dee602aac9e27046058a8a6f18a83a49f6b853899cdf2c33d",
+  "registry_schema_sha256": "1f39d1296632cb9b5bb1fdca1db8d55b72aff186b55e5db537fed5b3d583aa4d",
+  "rule_engine_tree_sha256": "f6392bb0551cd9c16ea4db55632f457e5104ea32b16a02db42c06bfc51005eb0",
+  "rule_fixture_tree_sha256": "fe6bf7c781602db38c886dd2b17a67f15800826144b0d347b69943b0ca720b8d",
+  "rule_port_catalog_sha256": "9c4350a65bf297aebd3e923c4046f7b4ef6632cfffae28a408a582099343f769",
+  "rule_schema_sha256": "6e7b95bf72706e757355077a5289043abecae844478f5610f5871f32667c6755",
+  "service_fabric_consumer_fixture_sha256": "11eb0acef856e2739def27d8c1cbdb57415ffa332838f89e1efa0736e52b44b3",
+  "service_fabric_fixture_wit_sha256": "e5734ded54816bb219a5132635348843907a243d96d74e229ad4e4db0c145178",
+  "service_fabric_harness_sha256": "1508431fb5a623b121dfda7455c95759badf186551927306ff1741c734d888ca",
+  "service_fabric_kernel_sha256": "5d0dca1b6ed29ae27f78d2cd64dd736c9876489badb01f0ae385edd6b0a18099",
+  "service_fabric_provider_fixture_sha256": "f540f1d8c8fb6ca5bffb6c976b5641582ab0206bd75128df05104bbee18bfec3",
+  "service_fabric_tests_sha256": "de03ae3ff162d074b885cb2cba767bdff362b62672cc0d2ac91cb63148631575",
+  "tracked_workspace_members": [
+    {
+      "edition": "workspace",
+      "name": "litehouse-auth",
+      "path": "crates/auth/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "cockpit",
+      "path": "crates/cockpit/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-config",
+      "path": "crates/litehouse-config/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-contracts",
+      "path": "crates/litehouse-contracts/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-management",
+      "path": "crates/litehouse-management/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-mcp-server",
+      "path": "crates/litehouse-mcp-server/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-provider-host",
+      "path": "crates/litehouse-provider-host/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-rule-json",
+      "path": "crates/litehouse-rule-json/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-service-fabric",
+      "path": "crates/litehouse-service-fabric/Cargo.toml"
+    },
+    {
+      "edition": "2024",
+      "name": "litehouse",
+      "path": "crates/litehouse/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "opendal-fs-cache",
+      "path": "crates/opendal-fs-cache/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-plugin-macro",
+      "path": "crates/plugin-macro/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-plugin",
+      "path": "crates/plugin/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-provider-host-fixture",
+      "path": "crates/provider-host-fixture/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-quantity-component",
+      "path": "crates/quantity-component/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-quantity-parity",
+      "path": "crates/quantity-parity/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-registry-js",
+      "path": "crates/registry-js/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-registry",
+      "path": "crates/registry/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-service-fabric-consumer-fixture",
+      "path": "crates/service-fabric-consumer-fixture/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-service-fabric-harness",
+      "path": "crates/service-fabric-harness/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "litehouse-service-fabric-provider-fixture",
+      "path": "crates/service-fabric-provider-fixture/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "esphome",
+      "path": "plugins/esphome/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "noop",
+      "path": "plugins/noop/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "ntfy",
+      "path": "plugins/ntfy/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "open-meteo",
+      "path": "plugins/open-meteo/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "persistent-task",
+      "path": "plugins/persistent-task/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "samsung",
+      "path": "plugins/samsung/Cargo.toml"
+    },
+    {
+      "edition": "workspace",
+      "name": "tasmota",
+      "path": "plugins/tasmota/Cargo.toml"
+    }
+  ],
+  "wit_tree_sha256": "46542161cd249a84d53a374e464f7fa8601ba3d7d059ccb56f7c55cbe20f7701",
+  "workflow_actions": [
+    {
+      "action": "actions/checkout",
+      "sha": "34e114876b0b11c390a56381ad16ebd13914f8d5",
+      "workflow": ".github/workflows/biome.yml"
+    },
+    {
+      "action": "actions/checkout",
+      "sha": "34e114876b0b11c390a56381ad16ebd13914f8d5",
+      "workflow": ".github/workflows/build.yml"
+    },
+    {
+      "action": "actions/checkout",
+      "sha": "34e114876b0b11c390a56381ad16ebd13914f8d5",
+      "workflow": ".github/workflows/cargo-rdme.yml"
+    },
+    {
+      "action": "dtolnay/rust-toolchain",
+      "sha": "2c7215f132e9ebf062739d9130488b56d53c060c",
+      "workflow": ".github/workflows/cargo-rdme.yml"
+    },
+    {
+      "action": "actions/checkout",
+      "sha": "34e114876b0b11c390a56381ad16ebd13914f8d5",
+      "workflow": ".github/workflows/napi.yml"
+    },
+    {
+      "action": "actions/checkout",
+      "sha": "34e114876b0b11c390a56381ad16ebd13914f8d5",
+      "workflow": ".github/workflows/release.yml"
+    },
+    {
+      "action": "actions/checkout",
+      "sha": "34e114876b0b11c390a56381ad16ebd13914f8d5",
+      "workflow": ".github/workflows/rust.yml"
+    },
+    {
+      "action": "actions/upload-artifact",
+      "sha": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "workflow": ".github/workflows/rust.yml"
+    },
+    {
+      "action": "dtolnay/rust-toolchain",
+      "sha": "2c7215f132e9ebf062739d9130488b56d53c060c",
+      "workflow": ".github/workflows/rust.yml"
+    }
+  ],
+  "workflow_tree_sha256": "0aa7b6f765ad2d7b27b40be2bfe0700b72f8fb5438c294f9bf47c40b760c0551"
+}

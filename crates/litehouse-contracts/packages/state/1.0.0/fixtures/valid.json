@@ -1,0 +1,12 @@
+{
+  "case": "unavailable-retains-unknown-value",
+  "meta": {
+    "generation": 9,
+    "revision": 3,
+    "receivedAtUnixMilliseconds": 1784246400000,
+    "sourceTime": null
+  },
+  "availability": "unavailable:disconnected",
+  "quality": "source-assumed",
+  "value": null
+}

@@ -11,9 +11,11 @@
     "api:fetch": "echo 'export default ' > lib/openapi.ts && curl http://localhost:3001/docs/private/api.json >> lib/openapi.ts && echo 'as const' >> lib/openapi.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
     "auth:generate": "better-auth generate --output lib/auth-schema.ts -y"
   },
   "dependencies": {
+    "@better-auth/passkey": "^1.4.5",
     "@better-fetch/fetch": "^1.1.19",
     "@libsql/client": "^0.15.15",
     "@midudev/tailwind-animations": "^0.0.7",

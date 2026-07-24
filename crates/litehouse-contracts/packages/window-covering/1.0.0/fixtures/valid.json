@@ -1,0 +1,9 @@
+{
+  "case": "assumed-lift-with-separate-target",
+  "availability": "available",
+  "quality": "source-assumed",
+  "axis": "lift",
+  "current": { "profile": "litehouse:quantity/ratio@1", "magnitude": "0.25", "unit": "1" },
+  "target": { "profile": "litehouse:quantity/ratio@1", "magnitude": "1", "unit": "1" },
+  "movement": "opening"
+}

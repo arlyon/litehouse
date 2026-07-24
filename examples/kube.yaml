@@ -10,16 +10,11 @@ spec:
         - name: RUST_LOG
           value: debug,cranelift_codegen=info,rustls=info,wasmtime=info,wasmtime_cranelift=info
       volumeMounts:
-        - mountPath: /settings.json
-          name: settings
-        - mountPath: /wasm
-          name: wasm
+        # Contains settings.json, schema.json, wasm/, and workflows/.
+        - mountPath: /config
+          name: config
   volumes:
-    - name: wasm
+    - name: config
       hostPath:
-        path: /home/arlyon/wasm
+        path: /app
         type: DirectoryOrCreate
-    - name: settings
-      hostPath:
-        path: /home/arlyon/settings.json
-        type: FileOrCreate

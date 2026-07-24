@@ -1,43 +1,58 @@
-FROM clux/muslrust:nightly as chef
-RUN cargo install cargo-chef
-RUN curl https://github.com/google/flatbuffers/releases/download/v24.3.25/Linux.flatc.binary.clang++-15.zip -Lo flatc.zip && unzip flatc.zip && chmod +x flatc && mv flatc /usr/local/bin
+FROM debian:bookworm-slim AS builder
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        clang \
+        cmake \
+        curl \
+        libprotobuf-dev \
+        libssl-dev \
+        mold \
+        ninja-build \
+        pkg-config \
+        protobuf-compiler \
+        unzip \
+    && rm -rf /var/lib/apt/lists/*
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- -y --profile minimal --default-toolchain nightly-2026-07-15 \
+        --target wasm32-wasip2
+ENV PATH="/root/.cargo/bin:${PATH}"
+ENV RUSTUP_TOOLCHAIN=nightly-2026-07-15
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=clang
+
 WORKDIR /app
-
-FROM chef as planner
 COPY . .
-RUN cargo chef prepare
+RUN FLATC_DIR="$(bash scripts/install-flatc.sh)" \
+    && PATH="${FLATC_DIR}:${PATH}" cargo build --release \
+        --target wasm32-wasip2 \
+        -p esphome -p tasmota -p ntfy -p open-meteo \
+    && PATH="${FLATC_DIR}:${PATH}" cargo build --release -p litehouse
 
-FROM chef as cacher
-COPY --from=planner /app/recipe.json recipe.json
-RUN cargo chef cook -p litehouse -p cockpit --release
+FROM debian:bookworm-slim AS litehouse
 
-FROM chef as builder-litehouse
-COPY . .
-COPY --from=cacher /app/target target
-RUN cargo build --release -p litehouse
+LABEL org.opencontainers.image.source="https://github.com/arlyon/litehouse"
+LABEL org.opencontainers.image.description="Litehouse local MCP home automation daemon"
 
-FROM chef as builder-cockpit
-COPY . .
-COPY --from=cacher /app/target target
-RUN cargo build --release -p cockpit
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 10001 litehouse \
+    && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin litehouse \
+    && mkdir -p /config /opt/litehouse/components \
+    && chown litehouse:litehouse /config
 
-FROM scratch as litehouse
+COPY --from=builder /app/target/release/litehouse /usr/local/bin/litehouse
+COPY --from=builder /app/target/wasm32-wasip2/release/esphome.wasm /opt/litehouse/components/esphome.wasm
+COPY --from=builder /app/target/wasm32-wasip2/release/tasmota.wasm /opt/litehouse/components/tasmota.wasm
+COPY --from=builder /app/target/wasm32-wasip2/release/ntfy.wasm /opt/litehouse/components/ntfy.wasm
+COPY --from=builder /app/target/wasm32-wasip2/release/open_meteo.wasm /opt/litehouse/components/open_meteo.wasm
 
-LABEL io.containers.autoupdate=registry
-LABEL org.opencontainers.image.source https://github.com/arlyon/litehouse
-LABEL org.opencontainers.image.description A lightweight home automation server
-
-COPY --from=builder-litehouse /app/target/x86_64-unknown-linux-musl/release/litehouse /litehouse
-
-CMD ["/litehouse", "run"]
-
-
-FROM scratch as cockpit
-
-LABEL io.containers.autoupdate=registry
-LABEL org.opencontainers.image.source https://github.com/arlyon/litehouse
-LABEL org.opencontainers.image.description A webrtc signalling server for litehouse, the home automation server
-
-COPY --from=builder-cockpit /app/target/x86_64-unknown-linux-musl/release/cockpit /cockpit
-
-CMD ["/cockpit"]
+USER 10001:10001
+WORKDIR /config
+EXPOSE 8080
+STOPSIGNAL SIGTERM
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD ["curl", "--fail", "--silent", "http://127.0.0.1:8080/healthz"]
+ENTRYPOINT ["/usr/local/bin/litehouse"]
+CMD ["run", "--wasm-path", "/opt/litehouse/components", "--bind", "0.0.0.0:8080", "--allowed-host", "localhost", "--allowed-origin", "http://localhost:8080"]

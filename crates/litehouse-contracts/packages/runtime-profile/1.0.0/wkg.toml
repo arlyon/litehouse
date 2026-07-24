@@ -1,0 +1,8 @@
+[metadata]
+authors = ["Litehouse contributors"]
+description = "Litehouse runtime-profile contract"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/arlyon/litehouse"
+
+[overrides]
+"litehouse:descriptor" = { path = "../../descriptor/1.0.0/wit" }

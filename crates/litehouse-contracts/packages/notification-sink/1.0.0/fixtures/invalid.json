@@ -1,0 +1,6 @@
+{
+  "case": "unsupported-title",
+  "supportedFields": ["priority"],
+  "notification": { "title": "Unsupported", "body": "Body" },
+  "invalidBecause": "unsupported-field:title"
+}

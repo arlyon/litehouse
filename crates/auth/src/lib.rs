@@ -1,187 +1,278 @@
-use std::convert::Infallible;
-
-use bytes::Bytes;
-use http_body_util::Empty;
-use hyper::StatusCode;
-use hyper::server::conn::http1;
-use hyper::service::service_fn;
-use hyper_util::rt::TokioIo;
-use oauth2::basic::{BasicClient, BasicTokenType};
+use oauth2::basic::BasicTokenType;
 use oauth2::reqwest::async_http_client;
-pub use oauth2::{AuthUrl, ClientId, TokenUrl};
-use oauth2::{
-    AuthorizationCode, CsrfToken, EmptyExtraTokenFields, PkceCodeChallenge, RedirectUrl, Scope,
-    StandardTokenResponse, TokenResponse as _,
-};
-use serde::Deserialize;
+pub use oauth2::{ClientId, TokenUrl};
+use oauth2::{EmptyExtraTokenFields, Scope, StandardTokenResponse, TokenResponse as _};
+use serde::{Deserialize, Serialize};
 
 pub type TokenResponse = StandardTokenResponse<EmptyExtraTokenFields, BasicTokenType>;
 
-#[derive(Deserialize)]
-struct QsData {
-    code: String,
-    #[allow(dead_code)]
-    state: String,
-}
-
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct AuthUser {
+    pub id: String,
     pub email: String,
-    pub family_name: Option<String>,
-    pub given_name: Option<String>,
     pub name: Option<String>,
-    pub picture: Option<String>,
-    pub username: Option<String>,
-    pub user_id: String,
+    pub image: Option<String>,
+    #[serde(rename = "emailVerified")]
+    pub email_verified: bool,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: String,
 }
 
-/// Get a token for use with the litehouse API.
-///
-/// If the access token has more than 30 minutes left, it will be returned as-is.
-/// If the refresh token is still valid, it will be used to get a new access token.
-/// Otherwise, a new access token will be requested.
-pub async fn get_token(
+#[derive(Debug, Deserialize, Serialize)]
+pub struct DeviceCodeResponse {
+    pub device_code: String,
+    pub user_code: String,
+    pub verification_uri: String,
+    pub verification_uri_complete: Option<String>,
+    pub expires_in: u64,
+    pub interval: Option<u64>,
+}
+
+#[derive(Debug, Serialize)]
+struct DeviceCodeRequest {
+    client_id: String,
+    scope: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct DeviceTokenRequest {
+    grant_type: String,
+    device_code: String,
+    client_id: String,
+}
+
+/// Better Auth device token success response
+#[derive(Debug, Deserialize)]
+struct DeviceTokenSuccess {
+    access_token: String,
+    token_type: String,
+    expires_in: u64,
+    scope: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum DeviceTokenResponse {
+    Success(DeviceTokenSuccess),
+    Error(DeviceTokenError),
+}
+
+#[derive(Debug, Deserialize)]
+struct DeviceTokenError {
+    error: String,
+    error_description: Option<String>,
+}
+
+/// Request a device code for device authorization flow
+pub async fn request_device_code(
     client_id: ClientId,
-    auth_url: AuthUrl,
-    token_url: TokenUrl,
-) -> Result<TokenResponse, ()> {
-    let redirect_url =
-        RedirectUrl::new("http://localhost:9789/oauth2/callback".to_string()).unwrap();
-
-    let client = BasicClient::new(client_id, None, auth_url, Some(token_url))
-        // Set the URL the user will be redirected to after the authorization process.
-        .set_redirect_uri(redirect_url);
-
-    // Generate a PKCE challenge.
-    let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
-
-    // Generate the full authorization URL.
-    let (auth_url, _csrf_token) = client
-        .authorize_url(CsrfToken::new_random)
-        // Set the desired scopes.
-        .add_scope(Scope::new("profile".to_string()))
-        .add_scope(Scope::new("email".to_string()))
-        // Set the PKCE code challenge.
-        .set_pkce_challenge(pkce_challenge)
-        .url();
-
-    let socket = tokio::net::TcpListener::bind(("0.0.0.0", 9789))
-        .await
-        .unwrap();
-    let (token_tx, mut token_rx) = tokio::sync::watch::channel(None);
-
-    if open::that(auth_url.to_string()).is_err() {
-        println!(
-            "Please open the following url in your browser: {}",
-            auth_url
-        );
-    }
-
-    let token = loop {
-        tokio::select! {
-            _ = tokio::signal::ctrl_c() => {
-                return Err(());
-            },
-            conn = socket.accept() => {
-                let (conn, _addr) = conn.unwrap();
-                let io = TokioIo::new(conn);
-                let token_tx = token_tx.clone();
-
-                tokio::task::spawn(async move {
-                    http1::Builder::new()
-                        .serve_connection(
-                            io,
-                            service_fn(|req| {
-                                let token_tx = token_tx.clone();
-                                async move {
-                                    let mut resp = hyper::Response::new(Empty::<Bytes>::new());
-                                    let Some(qs) = req.uri().query() else {
-                                        *resp.status_mut() = StatusCode::BAD_REQUEST;
-                                        return Ok::<_, Infallible>(resp);
-                                    };
-
-                                    let Ok(data) = serde_qs::from_str::<QsData>(qs) else {
-                                        *resp.status_mut() = StatusCode::BAD_REQUEST;
-                                        return Ok::<_, Infallible>(resp);
-                                    };
-
-                                    token_tx.send(Some(data.code)).unwrap();
-
-                                    Ok::<_, Infallible>(resp)
-                                }
-                            }),
-                        )
-                        .await
-                        .unwrap();
-                });
-            }
-            token = token_rx.wait_for(|v| v.is_some()) => {
-                let token = token.unwrap();
-                break token.as_ref().unwrap().to_owned();
-            }
-        }
+    device_code_url: &str,
+) -> Result<DeviceCodeResponse, String> {
+    let client = reqwest::Client::new();
+    let request = DeviceCodeRequest {
+        client_id: client_id.to_string(),
+        scope: Some("openid profile email".to_string()),
     };
 
-    let token_result = client
-        .exchange_code(AuthorizationCode::new(token))
-        // Set the PKCE code verifier.
-        .set_pkce_verifier(pkce_verifier)
-        .request_async(async_http_client)
-        .await
-        .unwrap();
-
-    Ok(token_result)
-}
-
-// do a request to `user_info_url` with the token as a Authorization header
-pub async fn get_user(token: &TokenResponse, user_info_url: &str) -> Result<AuthUser, ()> {
-    // get hyper client and make request
-    let client = reqwest::Client::new();
     let resp = client
-        .get(user_info_url)
-        .header(
-            "Authorization",
-            format!("Bearer {}", token.access_token().secret()),
-        )
+        .post(device_code_url)
+        .json(&request)
         .send()
         .await
-        .unwrap();
+        .map_err(|e| format!("Failed to request device code: {}", e))?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let text = resp.text().await.unwrap_or_default();
+        return Err(format!("Device code request failed ({}): {}", status, text));
+    }
+
+    resp.json::<DeviceCodeResponse>()
+        .await
+        .map_err(|e| format!("Failed to parse device code response: {}", e))
+}
+
+/// Poll for device authorization token
+pub async fn poll_device_token(
+    client_id: ClientId,
+    device_code: String,
+    token_url: &str,
+    interval: u64,
+) -> Result<String, String> {
+    let client = reqwest::Client::new();
+    let mut polling_interval = std::time::Duration::from_secs(interval);
+
+    loop {
+        tokio::time::sleep(polling_interval).await;
+
+        let request = DeviceTokenRequest {
+            grant_type: "urn:ietf:params:oauth:grant-type:device_code".to_string(),
+            device_code: device_code.clone(),
+            client_id: client_id.to_string(),
+        };
+
+        let resp = client
+            .post(token_url)
+            .json(&request)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to poll for token: {}", e))?;
+
+        let response: DeviceTokenResponse = resp
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse token response: {}", e))?;
+
+        match response {
+            DeviceTokenResponse::Success(token) => return Ok(token.access_token),
+            DeviceTokenResponse::Error(err) => match err.error.as_str() {
+                "authorization_pending" => {
+                    // Continue polling
+                    continue;
+                }
+                "slow_down" => {
+                    // Increase polling interval by 5 seconds
+                    polling_interval += std::time::Duration::from_secs(5);
+                    continue;
+                }
+                "expired_token" => {
+                    return Err("Device code has expired. Please try again.".to_string());
+                }
+                "access_denied" => {
+                    return Err("Access was denied by the user.".to_string());
+                }
+                _ => {
+                    return Err(format!(
+                        "Error: {} - {}",
+                        err.error,
+                        err.error_description.unwrap_or_default()
+                    ));
+                }
+            },
+        }
+    }
+}
+
+/// Get a token using the device authorization flow
+/// Returns the session token (access_token) as a string
+pub async fn get_token(
+    client_id: ClientId,
+    device_code_url: String,
+    token_url: String,
+) -> Result<String, String> {
+    // Request device code
+    let device_response = request_device_code(client_id.clone(), &device_code_url).await?;
+
+    println!("\n📱 Device Authorization in Progress");
+    println!("Please visit: {}", device_response.verification_uri);
+    println!("Enter code: {}\n", device_response.user_code);
+
+    // Open browser to verification page
+    let url_to_open = device_response
+        .verification_uri_complete
+        .as_ref()
+        .unwrap_or(&device_response.verification_uri);
+
+    println!("🌐 Opening browser...");
+    if let Err(e) = open::that(url_to_open) {
+        eprintln!("Failed to open browser: {}", e);
+        println!("Please manually visit the URL above.");
+    }
+
+    let interval = device_response.interval.unwrap_or(5);
+    println!(
+        "⏳ Waiting for authorization... (polling every {}s)",
+        interval
+    );
+
+    // Poll for token
+    poll_device_token(client_id, device_response.device_code, &token_url, interval).await
+}
+
+/// Better Auth session response structure
+#[derive(Debug, Deserialize)]
+struct BetterAuthSession {
+    session: SessionData,
+    user: AuthUser,
+}
+
+#[derive(Debug, Deserialize)]
+struct SessionData {
+    id: String,
+    #[serde(rename = "expiresAt")]
+    expires_at: String,
+    token: String,
+    #[serde(rename = "userId")]
+    user_id: String,
+}
+
+// Get user info from Better Auth session endpoint using Bearer token
+pub async fn get_user(token: &str, session_url: &str) -> Result<AuthUser, String> {
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(session_url)
+        .header("Authorization", format!("Bearer {}", token))
+        .send()
+        .await
+        .map_err(|e| format!("Failed to get session: {}", e))?;
+
+    let status = resp.status();
+    let headers = resp.headers().clone();
+    let body_text = resp
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    println!("token: {}", token);
+
+    println!("\n=== Response Debug ===");
+    println!("Status: {}", status);
+    println!("Headers: {:?}", headers);
+    println!("Body: {}", body_text);
+    println!("===================\n");
 
     // check response status
-    if !resp.status().is_success() {
-        return Err(());
+    if !status.is_success() {
+        return Err(format!(
+            "Session request failed ({}): {}",
+            status, body_text
+        ));
     }
 
     // read response body as json
-    let user: AuthUser = resp.json().await.unwrap();
+    let session: BetterAuthSession = serde_json::from_str(&body_text).map_err(|e| {
+        format!(
+            "Failed to parse session response: {} (body: {})",
+            e, body_text
+        )
+    })?;
 
-    Ok(user)
+    Ok(session.user)
 }
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[tokio::test]
     #[ignore]
     async fn can_get_token() {
         let client_id = ClientId::new("Xdxbwyvdo4gce8jw".to_string());
-        let auth_url =
-            AuthUrl::new("https://clerk.arlyon.dev/oauth/authorize".to_string()).unwrap();
-        let token_url = TokenUrl::new("https://clerk.arlyon.dev/oauth/token".to_string()).unwrap();
+        let device_code_url = "http://localhost:3000/api/auth/device/code".to_string();
+        let token_url = "http://localhost:3000/api/auth/device/token".to_string();
 
-        let result = get_token(client_id, auth_url, token_url).await.unwrap();
+        let token = get_token(client_id, device_code_url, token_url)
+            .await
+            .unwrap();
 
-        println!("{:?}", result.access_token().secret());
+        println!("Token: {:?}", token);
 
-        let user = get_user(
-            result,
-            "https://clerk.arlyon.dev/oauth/userinfo".to_string(),
-        )
-        .await
-        .unwrap();
+        let user = get_user(&token, "http://localhost:3000/api/auth/get-session")
+            .await
+            .unwrap();
 
-        println!("{:?}", user);
+        println!("User: {:?}", user);
     }
 }

@@ -1,0 +1,111 @@
+package litehouse:provider@1.0.0;
+
+interface provider {
+  use litehouse:boolean-state/types@1.0.0.{boolean-descriptor, error as boolean-error, occurrence, state as boolean-state};
+  use litehouse:color-control/types@1.0.0.{color-descriptor, error as color-error, move-request as color-move-request, operation-receipt as color-operation-receipt, set-request as color-set-request, state as color-state, step-request as color-step-request};
+  use litehouse:errors/types@1.0.0.{core-error, retry-advice};
+  use litehouse:level-control/types@1.0.0.{coupled-move-request, coupled-request, coupled-step-request, error as level-error, level-descriptor, move-request as level-move-request, operation-receipt as level-operation-receipt, set-request as level-set-request, state as level-state, step-request as level-step-request};
+  use litehouse:measurement/types@1.0.0.{error as measurement-error, measurement-descriptor, state as measurement-state};
+  use litehouse:momentary-action/types@1.0.0.{action-descriptor, error as momentary-error, invoke-receipt};
+  use litehouse:notification-sink/types@1.0.0.{error as notification-error, notification, notification-descriptor, send-receipt};
+  use litehouse:on-off/types@1.0.0.{error as on-off-error, on-off-descriptor, operation-receipt, set-request, state as on-off-state};
+  use litehouse:receipt/types@1.0.0.{request-context};
+  use litehouse:thermostat/types@1.0.0.{error as thermostat-error, operation-receipt as thermostat-operation-receipt, set-choice-request, set-dual-target-request, set-mode-request, set-single-target-request, state as thermostat-state, thermostat-descriptor};
+  use litehouse:window-covering/types@1.0.0.{axis-request, covering-descriptor, error as covering-error, operation-receipt as covering-operation-receipt, position-request, state as covering-state};
+
+  record error { inner: core-error, retry: retry-advice, message: option<string>, error-id: string }
+
+  record boolean-occurrence-event {
+    sequence: u64,
+    facet-key: string,
+    occurrence: occurrence,
+  }
+
+  record boolean-occurrence-batch {
+    events: list<boolean-occurrence-event>,
+    dropped: u64,
+  }
+
+  resource on-off-facet {
+    key: func() -> string; incarnation: func() -> u64;
+    describe: async func(context: request-context) -> result<on-off-descriptor, on-off-error>;
+    query: async func(context: request-context) -> result<on-off-state, on-off-error>;
+    set: async func(context: request-context, request: set-request) -> result<operation-receipt, on-off-error>;
+  }
+  resource boolean-facet {
+    key: func() -> string; incarnation: func() -> u64;
+    describe: async func(context: request-context) -> result<boolean-descriptor, boolean-error>;
+    query: async func(context: request-context) -> result<boolean-state, boolean-error>;
+  }
+  resource measurement-facet {
+    key: func() -> string; incarnation: func() -> u64;
+    describe: async func(context: request-context) -> result<measurement-descriptor, measurement-error>;
+    query: async func(context: request-context) -> result<measurement-state, measurement-error>;
+  }
+  resource notification-sink-facet {
+    key: func() -> string; incarnation: func() -> u64;
+    describe: async func(context: request-context) -> result<notification-descriptor, notification-error>;
+    send: async func(context: request-context, value: notification) -> result<send-receipt, notification-error>;
+  }
+  resource level-control-facet {
+    key: func() -> string; incarnation: func() -> u64;
+    describe: async func(context: request-context) -> result<level-descriptor, level-error>;
+    query: async func(context: request-context) -> result<level-state, level-error>;
+    set-level: async func(context: request-context, request: level-set-request) -> result<level-operation-receipt, level-error>;
+    step: async func(context: request-context, request: level-step-request) -> result<level-operation-receipt, level-error>;
+    move: async func(context: request-context, request: level-move-request) -> result<level-operation-receipt, level-error>;
+    stop: async func(context: request-context) -> result<level-operation-receipt, level-error>;
+    set-level-with-on-off: async func(context: request-context, request: coupled-request) -> result<level-operation-receipt, level-error>;
+    step-with-on-off: async func(context: request-context, request: coupled-step-request) -> result<level-operation-receipt, level-error>;
+    move-with-on-off: async func(context: request-context, request: coupled-move-request) -> result<level-operation-receipt, level-error>;
+  }
+  resource color-control-facet {
+    key: func() -> string; incarnation: func() -> u64;
+    describe: async func(context: request-context) -> result<color-descriptor, color-error>;
+    query: async func(context: request-context) -> result<color-state, color-error>;
+    set-color: async func(context: request-context, request: color-set-request) -> result<color-operation-receipt, color-error>;
+    step-color: async func(context: request-context, request: color-step-request) -> result<color-operation-receipt, color-error>;
+    move-color: async func(context: request-context, request: color-move-request) -> result<color-operation-receipt, color-error>;
+    stop: async func(context: request-context) -> result<color-operation-receipt, color-error>;
+  }
+  resource thermostat-facet {
+    key: func() -> string; incarnation: func() -> u64;
+    describe: async func(context: request-context) -> result<thermostat-descriptor, thermostat-error>;
+    query: async func(context: request-context) -> result<thermostat-state, thermostat-error>;
+    set-mode: async func(context: request-context, request: set-mode-request) -> result<thermostat-operation-receipt, thermostat-error>;
+    set-single-target: async func(context: request-context, request: set-single-target-request) -> result<thermostat-operation-receipt, thermostat-error>;
+    set-dual-target: async func(context: request-context, request: set-dual-target-request) -> result<thermostat-operation-receipt, thermostat-error>;
+    set-fan: async func(context: request-context, request: set-choice-request) -> result<thermostat-operation-receipt, thermostat-error>;
+    set-swing: async func(context: request-context, request: set-choice-request) -> result<thermostat-operation-receipt, thermostat-error>;
+    set-preset: async func(context: request-context, request: set-choice-request) -> result<thermostat-operation-receipt, thermostat-error>;
+  }
+  resource window-covering-facet {
+    key: func() -> string; incarnation: func() -> u64;
+    describe: async func(context: request-context) -> result<covering-descriptor, covering-error>;
+    query: async func(context: request-context) -> result<covering-state, covering-error>;
+    open: async func(context: request-context, request: axis-request) -> result<covering-operation-receipt, covering-error>;
+    close: async func(context: request-context, request: axis-request) -> result<covering-operation-receipt, covering-error>;
+    stop: async func(context: request-context, request: axis-request) -> result<covering-operation-receipt, covering-error>;
+    set-position: async func(context: request-context, request: position-request) -> result<covering-operation-receipt, covering-error>;
+  }
+  resource momentary-action-facet {
+    key: func() -> string; incarnation: func() -> u64;
+    describe: async func(context: request-context) -> result<action-descriptor, momentary-error>;
+    invoke: async func(context: request-context) -> result<invoke-receipt, momentary-error>;
+  }
+
+  resource runner {
+    on-off-facets: async func() -> result<list<own<on-off-facet>>, error>;
+    boolean-facets: async func() -> result<list<own<boolean-facet>>, error>;
+    measurement-facets: async func() -> result<list<own<measurement-facet>>, error>;
+    notification-sink-facets: async func() -> result<list<own<notification-sink-facet>>, error>;
+    level-control-facets: async func() -> result<list<own<level-control-facet>>, error>;
+    color-control-facets: async func() -> result<list<own<color-control-facet>>, error>;
+    thermostat-facets: async func() -> result<list<own<thermostat-facet>>, error>;
+    window-covering-facets: async func() -> result<list<own<window-covering-facet>>, error>;
+    momentary-action-facets: async func() -> result<list<own<momentary-action-facet>>, error>;
+    drain-boolean-occurrences: async func(max-items: u16) -> result<boolean-occurrence-batch, error>;
+  }
+  start: async func(instance-id: string, config: string) -> result<own<runner>, error>;
+}
+world component { export provider; }

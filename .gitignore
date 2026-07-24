@@ -1,10 +1,19 @@
 /target
+**/target/
 *.wasm
 !wasi_snapshot_preview1.reactor.wasm
 schema.json
-settings.json
+.litehouse-authoring.lock
 
-# site
+# site and greenfield web
+/web/dist/
+/web/.tanstack/
+/web/.wrangler/
+/web/.dev.vars
+/web/.dev.vars.*
+/web/.env
+/web/.env.*
+!/web/.env.example
 
 # deps
 node_modules

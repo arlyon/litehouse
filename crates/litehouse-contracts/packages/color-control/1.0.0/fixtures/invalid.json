@@ -1,0 +1,6 @@
+{
+  "case": "silent-rgb-to-xy-conversion",
+  "advertisedModels": ["uncalibrated-rgb"],
+  "request": { "model": "cie-xy", "x": "0.3", "y": "0.3" },
+  "invalidBecause": "unsupported-model:cie-xy"
+}

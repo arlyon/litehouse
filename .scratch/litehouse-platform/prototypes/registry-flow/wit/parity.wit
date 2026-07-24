@@ -1,0 +1,15 @@
+package litehouse:registry-parity@0.1.0;
+
+interface query {
+  run: func(
+    root: list<u8>,
+    shard: list<u8>,
+    package-name: string,
+    version: string,
+    trusted-key: list<u8>
+  ) -> result<string, string>;
+}
+
+world parity-guest {
+  export query;
+}

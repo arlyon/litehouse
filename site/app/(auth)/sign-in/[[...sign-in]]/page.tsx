@@ -58,6 +58,25 @@ export default function Page() {
     }
   };
 
+  const handlePasskeySignIn = async () => {
+    setLoading(true);
+
+    try {
+      await signIn.passkey({
+        fetchOptions: {
+          onSuccess: () => {
+            router.push("/registry");
+          },
+          onError: (ctx) => {
+            toast.error(ctx.error.message ?? "Failed to sign in with passkey");
+          },
+        },
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-md space-y-6">
       <div className="space-y-2 text-center">
@@ -115,6 +134,16 @@ export default function Page() {
         disabled={loading || !email}
       >
         Send Magic Link
+      </Button>
+
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        onClick={handlePasskeySignIn}
+        disabled={loading}
+      >
+        Sign in with Passkey
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">

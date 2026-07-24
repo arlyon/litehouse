@@ -1,0 +1,5 @@
+{
+  "case": "implicit-recurring-rounding",
+  "input": { "magnitude": "1", "unit": "m", "divideBy": "3" },
+  "invalidBecause": "explicit-half-even-quantization-required"
+}

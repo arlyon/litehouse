@@ -1,6 +1,6 @@
 use std::fs::OpenOptions;
 
-use litehouse_auth::{self, AuthUrl, AuthUser, ClientId, TokenResponse, TokenUrl};
+use litehouse_auth::{self, AuthUser, ClientId};
 use miette::{Context, IntoDiagnostic};
 
 #[derive(clap::Subcommand)]
@@ -18,7 +18,7 @@ pub enum AuthCommand {
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct AuthConfig {
-    tokens: TokenResponse,
+    token: String,
     user: AuthUser,
 }
 
@@ -53,20 +53,19 @@ pub async fn do_auth(auth_command: AuthCommand) -> Result<(), miette::Error> {
         }
         AuthCommand::Login => {
             let client_id = ClientId::new("Xdxbwyvdo4gce8jw".to_string());
-            let auth_url =
-                AuthUrl::new("https://clerk.arlyon.dev/oauth/authorize".to_string()).unwrap();
-            let token_url =
-                TokenUrl::new("https://clerk.arlyon.dev/oauth/token".to_string()).unwrap();
+            let device_code_url = "http://localhost:3000/api/auth/device/code".to_string();
+            let token_url = "http://localhost:3000/api/auth/device/token".to_string();
 
-            let tokens = litehouse_auth::get_token(client_id, auth_url, token_url)
+            let token = litehouse_auth::get_token(client_id, device_code_url, token_url)
                 .await
-                .unwrap();
+                .map_err(|e| miette::miette!("Failed to get token: {}", e))?;
 
-            let user = litehouse_auth::get_user(&tokens, "https://clerk.arlyon.dev/oauth/userinfo")
-                .await
-                .unwrap();
+            let user =
+                litehouse_auth::get_user(&token, "http://localhost:3000/api/auth/get-session")
+                    .await
+                    .map_err(|e| miette::miette!("Failed to get user info: {}", e))?;
 
-            let data = AuthConfig { tokens, user };
+            let data = AuthConfig { token, user };
 
             serde_json::to_writer_pretty(&auth_file, &data).unwrap();
 

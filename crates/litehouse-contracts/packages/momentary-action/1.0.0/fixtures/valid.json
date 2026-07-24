@@ -1,0 +1,8 @@
+{
+  "case": "accepted-without-fabricated-state",
+  "actionId": "identify",
+  "risk": "routine",
+  "requestId": "req-action-1",
+  "deadlineMonotonicNanoseconds": 3000000000,
+  "receiptConfidence": "accepted-for-delivery"
+}

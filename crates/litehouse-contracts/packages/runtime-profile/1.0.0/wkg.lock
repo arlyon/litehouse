@@ -1,0 +1,10 @@
+version = 1
+
+[[packages]]
+name = "litehouse:descriptor"
+registry = "local.litehouse.invalid"
+
+[[packages.versions]]
+requirement = "=1.0.0"
+version = "1.0.0"
+digest = "sha256:ae0614ebed080ec7a3d19d50b769eae0824cf7fd062ac5848a3cda20a1f5e5c1"

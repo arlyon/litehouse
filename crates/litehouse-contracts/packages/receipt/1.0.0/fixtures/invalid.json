@@ -1,0 +1,6 @@
+{
+  "case": "fabricated-observed-completion",
+  "providerEvidence": "accepted-only",
+  "receiptConfidence": "observed-completed",
+  "invalidBecause": "confidence-exceeds-evidence"
+}

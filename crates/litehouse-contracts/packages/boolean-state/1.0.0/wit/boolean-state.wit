@@ -1,0 +1,91 @@
+package litehouse:boolean-state@1.0.0;
+
+interface types {
+  use litehouse:descriptor/types@1.0.0.{facet-descriptor};
+  use litehouse:errors/types@1.0.0.{core-error, retry-advice};
+  use litehouse:state/types@1.0.0.{availability, gap, hydration-barrier, observation-meta, quality};
+
+  enum boolean-profile {
+    contact,
+    occupancy,
+    smoke,
+    status,
+    moisture,
+    vibration,
+    generic,
+  }
+
+  enum state-field {
+    current,
+  }
+
+  enum event-kind {
+    state-observation,
+    occurrence,
+  }
+
+  record boolean-descriptor {
+    common: facet-descriptor,
+    profile: boolean-profile,
+    state-fields: list<state-field>,
+    events: list<event-kind>,
+  }
+
+  record state {
+    meta: observation-meta,
+    availability: availability,
+    quality: option<quality>,
+    current: option<bool>,
+  }
+
+  record occurrence {
+    event-id: string,
+    source-id: string,
+    generation: u64,
+    received-at-unix-milliseconds: u64,
+    value: option<bool>,
+  }
+
+  variant contract-error-detail {
+    unsupported-event(event-kind),
+  }
+
+  record error {
+    inner: core-error,
+    detail: option<contract-error-detail>,
+    retry: retry-advice,
+    message: option<string>,
+    error-id: string,
+  }
+
+  variant state-event {
+    snapshot(state),
+    caught-up(hydration-barrier),
+    observation(state),
+    occurrence(occurrence),
+    gap(gap),
+  }
+}
+
+interface capability {
+  use litehouse:receipt/types@1.0.0.{request-context};
+  use litehouse:state/types@1.0.0.{resume-position, resume-receipt, resume-request};
+  use types.{boolean-descriptor, error, state, state-event};
+
+  resource state-subscription {
+    next: async func(context: request-context) -> result<state-event, error>;
+    resume: async func(context: request-context, request: resume-request) -> result<resume-receipt, error>;
+  }
+
+  describe: async func(context: request-context) -> result<boolean-descriptor, error>;
+  query: async func(context: request-context) -> result<state, error>;
+  subscribe: async func(context: request-context, resume: option<resume-position>) -> result<state-subscription, error>;
+}
+
+world provider {
+  export capability;
+}
+
+world consumer {
+  import capability;
+}

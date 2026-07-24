@@ -1,16 +1,15 @@
-use std::{collections::HashMap, path::Path, sync::Arc};
+use std::{collections::BTreeMap, path::Path, sync::Arc};
 
 use futures::{StreamExt, TryStreamExt};
 use litehouse_config::{Import, LitehouseConfig, PluginConfig};
+use litehouse_contracts::metadata::RuntimeMetadataV1;
 use litehouse_plugin::serde_json::{self, Value};
 use miette::{Context, IntoDiagnostic, Result, SourceSpan, miette};
 use tokio::sync::broadcast::channel;
 use tokio_stream::wrappers::ReadDirStream;
 
 use crate::{
-    runtime::{
-        PluginRunnerFactory, bindings::exports::litehouse::plugin::plugin::Metadata, set_up_engine,
-    },
+    runtime::{PluginRunnerFactory, epoch_ticks, set_up_engine},
     store::StoreStrategy,
 };
 
@@ -24,25 +23,28 @@ pub async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value
     let linker = Arc::new(linker);
     let engine = Arc::new(engine);
 
-    let dirs: Result<HashMap<_, _>> = ReadDirStream::new(
+    let dirs: Result<BTreeMap<_, _>> = ReadDirStream::new(
         tokio::fs::read_dir(wasm_path)
             .await
             .into_diagnostic()
             .wrap_err_with(|| format!("unable to read modules in `{}`", wasm_path.display()))?,
     )
-    .map(|dir| {
-        let file_name = dir
-            .as_ref()
-            .unwrap()
+    .map(|entry| {
+        let entry = entry
+            .into_diagnostic()
+            .wrap_err("unable to read a plugin directory entry")?;
+        let file_name = entry
             .file_name()
             .into_string()
-            .map_err(|_| miette!("unable to parse file name as string"))?;
+            .map_err(|_| miette!("unable to parse plugin file name as UTF-8"))?;
         let plugin: Import = file_name.parse().wrap_err("invalid wasm plugin name")?;
         Ok((
-            dir.unwrap().file_name().into_string().unwrap(),
+            file_name,
             PluginConfig {
-                config: None,
                 plugin,
+                instance_id: None,
+                capabilities: Vec::new(),
+                config: None,
             },
         ))
     })
@@ -65,27 +67,33 @@ pub async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value
         tracing::warn!("no plugins found in `{}`", wasm_path.display());
     }
 
-    let jobs = hosts.into_iter().map(|(a, instance, host, mut store, _)| {
-        async move {
+    let jobs = hosts
+        .into_iter()
+        .map(|(a, instance, host, mut store, _)| async move {
             let mut store = store.enter().await;
 
             let indices =
                 crate::runtime::bindings::exports::litehouse::plugin::plugin::GuestIndices::new(
                     &host.instance_pre(&mut store),
                 )
-                .unwrap();
-            let guest = indices.load(&mut store, &host).unwrap();
-            let metadata = guest.call_get_metadata(&mut store).await;
+                .map_err(|error| miette!("failed to load plugin export indices: {error:?}"))?;
+            let guest = indices
+                .load(&mut store, &host)
+                .map_err(|error| miette!("failed to load plugin exports: {error:?}"))?;
+            store.set_epoch_deadline(epoch_ticks(std::time::Duration::from_secs(10)));
+            let metadata = tokio::time::timeout(
+                std::time::Duration::from_secs(10),
+                guest.call_get_metadata(&mut store),
+            )
+            .await
+            .map_err(|_| miette!("plugin metadata call exceeded 10 seconds"))?;
 
             match metadata {
-                Ok(Metadata {
-                    config_schema,
-                    identifier,
-                    version,
-                    ..
-                }) => {
-                    // check that version above and version here match
-
+                Ok(metadata) => {
+                    let metadata = RuntimeMetadataV1::decode_section(&metadata)
+                        .into_diagnostic()
+                        .wrap_err("plugin returned invalid bounded runtime metadata")?;
+                    let identifier = metadata.package.name;
                     if instance.plugin.plugin != identifier {
                         tracing::error!(
                             "plugin identifier mismatch: {} != {}",
@@ -95,7 +103,14 @@ pub async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value
                         return Err(miette!("plugin identifier mismatch"));
                     };
 
-                    let version = version.parse().into_diagnostic()?;
+                    let version = format!(
+                        "{}.{}.{}",
+                        metadata.package.version.major,
+                        metadata.package.version.minor,
+                        metadata.package.version.patch
+                    )
+                    .parse()
+                    .into_diagnostic()?;
                     if let Some(version_exp) = &instance.plugin.version
                         && version_exp != &version
                     {
@@ -111,6 +126,14 @@ pub async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value
                         .into());
                     }
 
+                    let config_schema = metadata
+                        .config_schema
+                        .map(|schema| {
+                            serde_json::from_str(&schema)
+                                .into_diagnostic()
+                                .wrap_err("plugin returned malformed typed config schema")
+                        })
+                        .transpose()?;
                     Ok((
                         Import {
                             plugin: identifier,
@@ -118,23 +141,24 @@ pub async fn generate(wasm_path: &Path, cache: bool) -> Result<serde_json::Value
                             registry: None,
                             sha: None,
                         },
-                        config_schema.and_then(|s| serde_json::from_str(&s).ok()),
+                        config_schema,
                     ))
                 }
-                Err(_) => {
-                    tracing::error!("failed to generate schema: {:?}", metadata);
-                    panic!();
+                Err(error) => {
+                    tracing::error!("failed to obtain plugin metadata: {error:?}");
+                    Err(miette!("plugin metadata call failed"))
                 }
             }
-        }
-    });
+        });
 
     let schemas: Vec<(_, Option<serde_json::Value>)> = futures::future::try_join_all(jobs).await?;
 
     let config_schema = schemars::schema_for!(LitehouseConfig);
-    let json = serde_json::to_value(&config_schema).expect("can't fail");
+    let json = serde_json::to_value(&config_schema)
+        .into_diagnostic()
+        .wrap_err("unable to encode Litehouse config schema")?;
 
-    Ok(inject_plugin_instance(json, schemas.into_iter()))
+    inject_plugin_instance(json, schemas.into_iter())
 }
 
 #[derive(miette::Diagnostic, Debug, thiserror::Error)]
@@ -157,63 +181,85 @@ pub struct VersionMismatch {
 fn inject_plugin_instance(
     mut json: Value,
     plugins: impl Iterator<Item = (Import, Option<Value>)>,
-) -> serde_json::Value {
+) -> Result<serde_json::Value> {
     let definitions = json
         .get_mut("definitions")
-        .expect("this is always present")
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| miette!("generated config schema has no definitions object"))?;
+    let plugin_config = definitions
         .get_mut("PluginConfig")
-        .expect("always exists")
-        .as_object_mut()
-        .expect("is always an object");
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| miette!("generated config schema has no PluginConfig definition"))?;
+    let base = std::mem::take(plugin_config);
 
-    let base = std::mem::take(definitions);
+    let variants = plugins
+        .map(|(import, schema)| {
+            let mut config_base = base.clone();
+            let properties = config_base
+                .get_mut("properties")
+                .and_then(Value::as_object_mut)
+                .ok_or_else(|| miette!("PluginConfig schema has no properties object"))?;
 
-    definitions.insert(
-        "oneOf".to_string(),
-        plugins
-            .map(|(import, schema)| {
-                let mut config_base = base.clone();
-                let properties = config_base
-                    .get_mut("properties")
-                    .expect("always exists")
+            let plugin = properties
+                .get_mut("plugin")
+                .ok_or_else(|| miette!("PluginConfig schema has no plugin property"))?;
+            *plugin =
+                serde_json::Map::from_iter([("const".into(), import.to_string().into())]).into();
+
+            let has_config = if let Some(mut schema) = schema {
+                let object = schema
                     .as_object_mut()
-                    .expect("is always an object");
+                    .ok_or_else(|| miette!("plugin config schema must be an object"))?;
+                object.remove("$schema");
+                object.remove("title");
+                let config = properties
+                    .get_mut("config")
+                    .ok_or_else(|| miette!("PluginConfig schema has no config property"))?;
+                *config = schema;
+                true
+            } else {
+                properties.remove("config");
+                false
+            };
 
-                *properties.get_mut("plugin").unwrap() =
-                    serde_json::Map::from_iter([("const".into(), import.to_string().into())])
-                        .into();
+            let required = config_base
+                .get_mut("required")
+                .and_then(Value::as_array_mut)
+                .ok_or_else(|| miette!("PluginConfig schema has no required array"))?;
+            match (
+                required.iter().position(|value| value == "config"),
+                has_config,
+            ) {
+                (Some(position), false) => {
+                    required.remove(position);
+                }
+                (None, true) => required.push("config".into()),
+                _ => {}
+            }
+            Ok(config_base)
+        })
+        .collect::<Result<Vec<_>>>()?;
 
-                let set = if let Some(mut schema) = schema {
-                    let object = schema.as_object_mut().unwrap();
-                    object.remove("$schema");
-                    object.remove("title");
-                    *properties.get_mut("config").unwrap() = schema;
-                    true
-                } else {
-                    properties.remove("config");
-                    false
-                };
+    plugin_config.insert("oneOf".to_string(), variants.into());
+    Ok(json)
+}
 
-                let required = config_base
-                    .get_mut("required")
-                    .unwrap()
-                    .as_array_mut()
-                    .unwrap();
+#[cfg(test)]
+mod tests {
+    use super::inject_plugin_instance;
+    use litehouse_config::{Import, LitehouseConfig};
 
-                match (required.iter().position(|s| s == "config"), set) {
-                    (Some(pos), false) => {
-                        required.remove(pos);
-                    }
-                    (None, true) => {
-                        required.push("config".into());
-                    }
-                    _ => {}
-                };
+    #[test]
+    fn malformed_plugin_schema_returns_an_error() {
+        let root = serde_json::to_value(schemars::schema_for!(LitehouseConfig)).unwrap();
+        let plugin: Import = "noop".parse().unwrap();
 
-                config_base
-            })
-            .collect(),
-    );
-
-    json
+        assert!(
+            inject_plugin_instance(
+                root,
+                [(plugin, Some(serde_json::Value::String("invalid".into())))].into_iter(),
+            )
+            .is_err()
+        );
+    }
 }

@@ -1,0 +1,7 @@
+{
+  "case": "undeclared-raw-socket-import",
+  "profile": "litehouse:runtime-profile@1.0.0",
+  "componentImport": "wasi:sockets/tcp@0.3.0",
+  "declaredFacility": "http-only",
+  "invalidBecause": "linkability-does-not-grant-authority"
+}

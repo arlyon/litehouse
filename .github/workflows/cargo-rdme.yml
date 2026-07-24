@@ -1,19 +1,32 @@
+---
 name: Cargo RDME
 
-on:
+"on":
   pull_request:
-    branches:
-      - main
+    branches: ["main"]
   push:
-    branches:
-      - main
+    branches: ["main"]
+
+permissions:
+  contents: read
 
 jobs:
   cargo-rdme:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Install cargo-rdme and cargo-workspaces
-        run: cargo install cargo-rdme cargo-workspaces
-      - name: Check cargo-rdme
-        run: cargo ws exec cargo rdme --check
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
+        with:
+          toolchain: nightly-2026-07-15
+      - name: Install documentation tool
+        run: cargo install cargo-rdme --version 2.1.0 --locked
+      - name: Check cargo-rdme managed files
+        run: |
+          mapfile -t readmes < <(git grep -l '<!-- cargo-rdme' -- '*.md')
+          test "${#readmes[@]}" -gt 0
+          for readme in "${readmes[@]}"; do
+            echo "checking $readme"
+            (cd "$(dirname "$readme")" && cargo rdme --check --readme-path "$(basename "$readme")")
+          done

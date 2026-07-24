@@ -1,0 +1,14 @@
+{
+  "request": {
+    "requestId": "req-7",
+    "correlationId": "corr-2",
+    "absoluteMonotonicNanoseconds": 7000000000,
+    "attempt": 1,
+    "idempotency": { "key": "idem-7", "scope": "facet-1" }
+  },
+  "receipt": {
+    "providerGeneration": 4,
+    "confidence": "protocol-or-target-acknowledged",
+    "idempotencyKey": "idem-7"
+  }
+}

@@ -23,3 +23,4 @@ storage:
         local: kube.yaml
   directories:
     - path: /app/wasm
+    - path: /app/workflows

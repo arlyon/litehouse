@@ -1,0 +1,194 @@
+package litehouse:level-control@1.0.0;
+
+interface types {
+  use litehouse:descriptor/types@1.0.0.{facet-descriptor};
+  use litehouse:errors/types@1.0.0.{core-error, retry-advice};
+  use litehouse:quantity/types@1.0.0.{quantity};
+  use litehouse:receipt/types@1.0.0.{command-receipt, deduplication-guarantee, operation-kind};
+  use litehouse:state/types@1.0.0.{availability, gap, hydration-barrier, observation-meta, quality};
+
+  enum feature {
+    target-level,
+    native-range,
+    transition,
+    relative-step,
+    continuous-move,
+    coupled-on-off,
+  }
+
+  enum operation {
+    set-level,
+    step,
+    move,
+    stop,
+    set-level-with-on-off,
+    step-with-on-off,
+    move-with-on-off,
+  }
+
+  enum state-field {
+    current-level,
+    target-level,
+    transition-remaining,
+  }
+
+  enum event-kind {
+    state-observation,
+  }
+
+  enum level-role {
+    brightness,
+    opening,
+    volume,
+    generic,
+  }
+
+  record native-range {
+    minimum: string,
+    maximum: string,
+    step: option<string>,
+    unit: string,
+  }
+
+  record level-descriptor {
+    common: facet-descriptor,
+    role: level-role,
+    features: list<feature>,
+    operations: list<operation>,
+    state-fields: list<state-field>,
+    events: list<event-kind>,
+    native-range: option<native-range>,
+    operation-support: list<operation-support>,
+  }
+
+  record operation-support {
+    operation: operation,
+    kind: operation-kind,
+    deduplication: deduplication-guarantee,
+    default-deadline-milliseconds: u32,
+    maximum-deadline-milliseconds: u32,
+  }
+
+  record state {
+    meta: observation-meta,
+    availability: availability,
+    quality: option<quality>,
+    current: option<quantity>,
+    target: option<quantity>,
+    transition-remaining-milliseconds: option<u64>,
+  }
+
+  record transition {
+    duration-milliseconds: u64,
+  }
+
+  record set-request {
+    level: quantity,
+    transition: option<transition>,
+  }
+
+  enum step-direction {
+    increase,
+    decrease,
+  }
+
+  record step-request {
+    direction: step-direction,
+    amount: quantity,
+    transition: option<transition>,
+  }
+
+  record move-request {
+    direction: step-direction,
+    rate-per-second: quantity,
+  }
+
+  record coupled-request {
+    level: quantity,
+    on-when-nonzero: bool,
+    transition: option<transition>,
+  }
+
+  record coupled-step-request {
+    direction: step-direction,
+    amount: quantity,
+    on-when-nonzero: bool,
+    transition: option<transition>,
+  }
+
+  record coupled-move-request {
+    direction: step-direction,
+    rate-per-second: quantity,
+    on-when-nonzero: bool,
+  }
+
+  variant operation-intent {
+    set-level(set-request),
+    step(step-request),
+    move(move-request),
+    stop,
+    set-level-with-on-off(coupled-request),
+    step-with-on-off(coupled-step-request),
+    move-with-on-off(coupled-move-request),
+  }
+
+  record operation-receipt {
+    operation: operation-intent,
+    receipt: command-receipt,
+  }
+
+  variant contract-error-detail {
+    out-of-range(quantity),
+    unsupported-operation(operation),
+    unsupported-coupling,
+    unsupported-transition,
+    invalid-rate(quantity),
+    invalid-step(quantity),
+  }
+
+  record error {
+    inner: core-error,
+    detail: option<contract-error-detail>,
+    retry: retry-advice,
+    message: option<string>,
+    error-id: string,
+  }
+
+  variant state-event {
+    snapshot(state),
+    caught-up(hydration-barrier),
+    observation(state),
+    gap(gap),
+  }
+
+}
+
+interface capability {
+  use litehouse:receipt/types@1.0.0.{request-context};
+  use litehouse:state/types@1.0.0.{resume-position, resume-receipt, resume-request};
+  use types.{coupled-move-request, coupled-request, coupled-step-request, error, level-descriptor, move-request, operation-receipt, set-request, state, state-event, step-request};
+
+  resource state-subscription {
+    next: async func(context: request-context) -> result<state-event, error>;
+    resume: async func(context: request-context, request: resume-request) -> result<resume-receipt, error>;
+  }
+
+  describe: async func(context: request-context) -> result<level-descriptor, error>;
+  query: async func(context: request-context) -> result<state, error>;
+  subscribe: async func(context: request-context, resume: option<resume-position>) -> result<state-subscription, error>;
+  set-level: async func(context: request-context, request: set-request) -> result<operation-receipt, error>;
+  step: async func(context: request-context, request: step-request) -> result<operation-receipt, error>;
+  move: async func(context: request-context, request: move-request) -> result<operation-receipt, error>;
+  stop: async func(context: request-context) -> result<operation-receipt, error>;
+  set-level-with-on-off: async func(context: request-context, request: coupled-request) -> result<operation-receipt, error>;
+  step-with-on-off: async func(context: request-context, request: coupled-step-request) -> result<operation-receipt, error>;
+  move-with-on-off: async func(context: request-context, request: coupled-move-request) -> result<operation-receipt, error>;
+}
+
+world provider {
+  export capability;
+}
+
+world consumer {
+  import capability;
+}

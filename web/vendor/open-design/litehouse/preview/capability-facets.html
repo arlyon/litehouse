@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Litehouse capability facets</title>
+  <meta name="description" content="Dark-mode reference fixture for all nine Litehouse capability facets and operational states." />
+  <link rel="stylesheet" href="../tokens.css" />
+  <link rel="stylesheet" href="./control-surfaces.css" />
+</head>
+<body>
+  <a class="skip-link" href="#top">Skip to capability controls</a>
+  <header class="site-header">
+    <div class="container">
+      <a class="wordmark" href="#top">Litehouse <span>System</span></a>
+      <nav class="top-nav" aria-label="Capability fixture navigation">
+        <a href="./wallboard.html">Wallboard</a>
+        <a href="./phone-controls.html">Phone</a>
+        <a href="#top" aria-current="page">Facets</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top" class="facets-page">
+    <div class="container">
+      <header class="facets-intro stack-3">
+        <p class="eyebrow">Canonical renderer coverage</p>
+        <h1>Nine typed facets, one control grammar.</h1>
+        <p class="muted">This dark-mode fixture verifies every v1 capability renderer without inventing a generic device widget. Controls appear only when their advertised features and ranges support them.</p>
+      </header>
+
+      <section class="facet-theme" data-theme="dark" aria-labelledby="dark-fixture-heading">
+        <header class="facet-theme-header">
+          <div class="stack-2"><p class="eyebrow">Dark mode fixture</p><h2 id="dark-fixture-heading">Capability renderer matrix</h2></div>
+          <span class="badge badge-success">Exact major 1</span>
+        </header>
+
+        <div class="facet-list">
+          <article class="facet-row">
+            <div class="facet-label"><strong>Power</strong><code>on-off@1</code><span class="muted small">Absolute state change</span></div>
+            <div class="facet-control">
+              <fieldset class="segmented"><legend class="sr-only">Power state</legend><label><input type="radio" name="facet-power" checked />On</label><label><input type="radio" name="facet-power" />Off</label></fieldset>
+              <span class="status status-current">Observed on</span>
+            </div>
+          </article>
+
+          <article class="facet-row">
+            <div class="facet-label"><strong>Level</strong><code>level-control@1</code><span class="muted small">Bounded ratio</span></div>
+            <div class="facet-control">
+              <label class="range"><span class="sr-only">Brightness level</span><input type="range" min="0" max="100" value="72" /><output>72%</output></label>
+            </div>
+          </article>
+
+          <article class="facet-row">
+            <div class="facet-label"><strong>Color</strong><code>color-control@1</code><span class="muted small">Advertised temperature model</span></div>
+            <div class="facet-control">
+              <select aria-label="Color model"><option>Color temperature</option><option>Hue and saturation</option></select>
+              <label class="range"><span class="sr-only">Color temperature</span><input type="range" min="2200" max="6500" value="2700" /><output>2700 K</output></label>
+            </div>
+          </article>
+
+          <article class="facet-row">
+            <div class="facet-label"><strong>Door contact</strong><code>boolean-state@1</code><span class="muted small">Read-only semantic state</span></div>
+            <div class="facet-control">
+              <div class="facet-value"><strong>Closed</strong><span>Changed 8 seconds ago</span></div>
+              <span class="status status-current">Current</span>
+            </div>
+          </article>
+
+          <article class="facet-row">
+            <div class="facet-label"><strong>Carbon dioxide</strong><code>measurement@1</code><span class="muted small">Canonical decimal plus UCUM unit</span></div>
+            <div class="facet-control">
+              <div class="facet-value"><strong>812 ppm</strong><span>Source reported</span></div>
+              <span class="status status-stale">Stale</span>
+            </div>
+          </article>
+
+          <article class="facet-row">
+            <div class="facet-label"><strong>Hall climate</strong><code>thermostat@1</code><span class="muted small">Mode and target are feature-gated</span></div>
+            <div class="facet-control">
+              <fieldset class="segmented"><legend class="sr-only">Thermostat mode</legend><label><input type="radio" name="facet-mode" checked />Heat</label><label><input type="radio" name="facet-mode" />Off</label></fieldset>
+              <div class="stepper"><button type="button" aria-label="Decrease target temperature">−</button><output>21.5 °C</output><button type="button" aria-label="Increase target temperature">+</button></div>
+              <span class="status status-current">Ambient 20.9 °C</span>
+            </div>
+          </article>
+
+          <article class="facet-row">
+            <div class="facet-label"><strong>Bedroom blind</strong><code>window-covering@1</code><span class="muted small">Lift available, tilt unavailable</span></div>
+            <div class="facet-control">
+              <button type="button">Open</button><button type="button">Stop</button><button type="button">Close</button>
+              <label class="range"><span class="sr-only">Blind lift position</span><input type="range" min="0" max="100" value="38" /><output>38%</output></label>
+              <span class="status status-unavailable">Tilt unavailable</span>
+            </div>
+          </article>
+
+          <article class="facet-row">
+            <div class="facet-label"><strong>Identify server</strong><code>momentary-action@1</code><span class="muted small">Non-idempotent action</span></div>
+            <div class="facet-control"><span class="status">Ready</span><button class="primary" type="button">Invoke once</button></div>
+          </article>
+
+          <article class="facet-row">
+            <div class="facet-label"><strong>House notifications</strong><code>notification-sink@1</code><span class="muted small">Plain-text payload profile</span></div>
+            <div class="facet-control">
+              <div class="notification-field"><label for="notification-message"><strong>Message</strong></label><span class="status status-pending">Accepted for delivery</span><textarea id="notification-message" rows="2">Dinner is ready.</textarea><button class="primary" type="button">Send notification</button></div>
+            </div>
+          </article>
+        </div>
+
+        <footer class="facet-note" aria-label="Operational state vocabulary">
+          <span class="badge badge-success">Current</span>
+          <span class="badge badge-warning">Stale</span>
+          <span class="badge">Unknown</span>
+          <span class="badge">Unavailable</span>
+          <span class="badge">Offline</span>
+          <span class="badge badge-warning">Accepted for delivery</span>
+          <span class="badge badge-danger">Outcome unknown</span>
+        </footer>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

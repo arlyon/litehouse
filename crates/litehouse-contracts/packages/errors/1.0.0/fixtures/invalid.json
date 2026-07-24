@@ -1,0 +1,6 @@
+{
+  "case": "definite-failure-after-possible-dispatch",
+  "inner": { "timing": "deadline-exceeded" },
+  "sideEffectMayHaveOccurred": true,
+  "invalidBecause": "must-use-outcome-unknown"
+}

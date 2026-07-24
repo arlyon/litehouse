@@ -46,18 +46,17 @@ First, let's set up a settings file, and a schema file.
 litehouse init && litehouse generate
 ```
 
-Next, we should add some plugins to the import field in `settings.json`.
+The connected-release first-party provider portfolio is deliberately closed to
+ESPHome, Tasmota HTTP, ntfy, and Open-Meteo. Each configured provider instance
+represents one physical device or one explicit remote subject. `noop` and
+`persistent-task` remain development fixtures, while Samsung is deferred and is
+not part of the published provider group.
 
-```diff
-{
-  "$schema": "schema.json",
-- "plugins": {}
-+ "plugins": {},
-+ "imports": ["weather", "tasmota", "samsung"]
-}
-```
+Provider components use `litehouse:provider@1.0.0` and exact per-instance network
+authority. The legacy registry-backed plugin flow below remains available only
+for compatible development plugins.
 
-From there, we can fetch the plugins from the registry, and re-run the
+From there, fetch compatible development plugins from the registry and re-run the
 generate command to update the schema file.
 
 ```bash
@@ -73,6 +72,22 @@ autocompletion for the settings file as you type.
 litehouse validate
 litehouse run
 ```
+
+## Container release validation
+
+Pull requests and `main` builds validate the Phase 1 image on native
+`linux/amd64` and `linux/arm64` GitHub-hosted runners. Each job builds locally
+without publishing, then verifies the non-root identity, the exact four-provider
+bundle, generated init artifacts, health and readiness, and bounded clean
+shutdown. This gate does not publish or sign images, contact real hardware, or
+exercise provider networks; provider execution is covered separately by the
+WASM component fixture tests.
+
+> **Security:** Phase 1 MCP is intentionally unauthenticated. Network
+> reachability grants its full configured authority; Host and Origin allowlists
+> are not authentication. Never publish port 8080 to an untrusted network. The
+> Compose example binds it to `127.0.0.1` and applies a read-only root,
+> capability dropping, and `no-new-privileges`.
 
 ## Protocol
 
@@ -96,17 +111,24 @@ native http client, meaning plugins do not need to bundle heavy dependencies.
 Other capabilities, such as filesystem, clocks, random numbers, and more are
 also available but not exposed to plugins yet.
 
-Plugins are completely sandboxed by default, so to allow them to access
-outside the sandbox, you must award them capabilities by adding them to
-the `capabilities` field in your settings file.
+Plugins are completely sandboxed by default. The top-level `capabilities` list
+remains a backwards-compatible default for every plugin. Prefer granting an
+exact HTTP origin or TCP socket to one configured instance:
 
 ```jsonc
 {
-  "capabilities": [
-    "http-client:api.open-meteo.com",
-    "http-server:0.0.0.0:8000",
-    // (not implemented yet)
-    "folder:example",
-  ],
+  "plugins": {
+    "example": {
+      "plugin": "example@0.1.0",
+      "capabilities": ["http-client:https://api.example.test"]
+    }
+  }
 }
 ```
+
+Per-instance capabilities require the default `instance` sandbox strategy;
+shared global/per-plugin stores continue to support the legacy top-level list.
+If a plugin declares an environment-backed protected config field, its instance
+also needs a stable lowercase UUID `instance_id`. Litehouse derives the exact
+`LITEHOUSE_INSTANCE_<UUID>_<FIELD>` variable, reads only that variable at
+startup, and never writes its value to `settings.json`.

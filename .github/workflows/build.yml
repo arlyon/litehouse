@@ -1,55 +1,47 @@
-# github workflow that runs a docker build and pushes it
-name: Build
+---
+name: Container validation
 
-on:
+"on":
   push:
     branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: container-validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  slack:
-    name: Build Litehouse
-    timeout-minutes: 15
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
-      contents: read
+  validate:
+    name: Validate Litehouse OCI (${{ matrix.architecture }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: amd64
+            machine: x86_64
+            runner: ubuntu-24.04
+          - architecture: arm64
+            machine: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
     steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          push: true
-          tags: ghcr.io/arlyon/litehouse:latest
-          file: Dockerfile
-          target: litehouse
-
-  worker:
-    name: Build Cockpit
-    timeout-minutes: 15
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
-      contents: read
-    steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          push: true
-          tags: ghcr.io/arlyon/cockpit:latest
-          file: Dockerfile
-          target: cockpit
+          persist-credentials: false
+      - name: Verify native runner architecture
+        env:
+          EXPECTED_MACHINE: ${{ matrix.machine }}
+        run: test "$(uname -m)" = "$EXPECTED_MACHINE"
+      - name: Build native OCI image
+        env:
+          IMAGE: litehouse-phase1:${{ matrix.architecture }}
+        run: docker build --tag "$IMAGE" --file Dockerfile .
+      - name: Validate native OCI image
+        env:
+          IMAGE: litehouse-phase1:${{ matrix.architecture }}
+        run: scripts/validate-oci-image.sh "$IMAGE" "${{ matrix.architecture }}"

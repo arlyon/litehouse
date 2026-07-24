@@ -1,0 +1,348 @@
+{
+  "editor": {
+    "groups": {},
+    "nodes": {
+      "trigger": {
+        "collapsed": false,
+        "group": null,
+        "presentation": "compact",
+        "unexpected": true,
+        "x": -120,
+        "y": 40
+      }
+    },
+    "revision": 1,
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "zoom_milli": 1000
+    }
+  },
+  "enabled": true,
+  "revision": 7,
+  "rule_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "schema": {
+    "profile_sha256": "b4e58b0d2d70adc4af0ada28158965e3b429e41e4208c095c6c913b76a1912a2",
+    "sha256": "6e7b95bf72706e757355077a5289043abecae844478f5610f5871f32667c6755",
+    "url": "https://schemas.litehouse.dev/rule-ir/v1.0.0/schema.json",
+    "version": "1.0.0"
+  },
+  "semantic": {
+    "annotations": {
+      "litehouse:fixture": "generated"
+    },
+    "description": "Deterministically generated Rule JSON V1 fixture.",
+    "edges": [
+      {
+        "from": {
+          "node": "trigger",
+          "port": "next"
+        },
+        "id": "e_trigger_snapshot",
+        "order": 0,
+        "to": {
+          "node": "snapshot",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "snapshot",
+          "port": "next"
+        },
+        "id": "e_snapshot_condition",
+        "order": 0,
+        "to": {
+          "node": "condition",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "snapshot",
+          "port": "value"
+        },
+        "id": "e_snapshot_value",
+        "order": 0,
+        "to": {
+          "node": "condition",
+          "port": "left"
+        }
+      },
+      {
+        "from": {
+          "node": "condition",
+          "port": "next"
+        },
+        "id": "e_condition_branch",
+        "order": 0,
+        "to": {
+          "node": "branch",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "condition",
+          "port": "result"
+        },
+        "id": "e_condition_result",
+        "order": 0,
+        "to": {
+          "node": "branch",
+          "port": "predicate"
+        }
+      },
+      {
+        "from": {
+          "node": "branch",
+          "port": "true"
+        },
+        "id": "e_true_set",
+        "order": 0,
+        "to": {
+          "node": "set_light",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "set_light",
+          "port": "receipt"
+        },
+        "id": "e_set_receipt",
+        "order": 0,
+        "to": {
+          "node": "receipt",
+          "port": "receipt"
+        }
+      },
+      {
+        "from": {
+          "node": "receipt",
+          "port": "accepted_for_delivery"
+        },
+        "id": "e_receipt_success",
+        "order": 0,
+        "to": {
+          "node": "end_success",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "branch",
+          "port": "false"
+        },
+        "id": "e_false_noop",
+        "order": 0,
+        "to": {
+          "node": "end_noop",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "branch",
+          "port": "unknown"
+        },
+        "id": "e_unknown_end",
+        "order": 0,
+        "to": {
+          "node": "end_unknown",
+          "port": "in"
+        }
+      },
+      {
+        "from": {
+          "node": "branch",
+          "port": "error"
+        },
+        "id": "e_error_end",
+        "order": 0,
+        "to": {
+          "node": "end_error",
+          "port": "in"
+        }
+      }
+    ],
+    "limits": {
+      "max_cel_eval_ms": 10,
+      "max_cel_memory_bytes": 1048576,
+      "max_cel_steps": 10000,
+      "max_condition_nodes": 32,
+      "max_depth": 32,
+      "max_edges": 256,
+      "max_effect_intents": 32,
+      "max_nodes": 128,
+      "max_parallel_branches": 4,
+      "max_patch_operations": 128,
+      "max_plan_input_bytes": 65536,
+      "max_queued_triggers": 16,
+      "max_timers": 32,
+      "max_trace_bytes": 32768
+    },
+    "locks": {
+      "cel": {
+        "id": "litehouse-cel@1",
+        "sha256": "23f28d31f94d5e355a6848fb9bc5e47d4b3a8b49e7711aea0e909d46f0cea950"
+      },
+      "compiler": {
+        "id": "litehouse:rule-compiler@1",
+        "sha256": "bfb858d9294a5370ade07c9944f4169bc90274f47283e3fb9a178041095c515f"
+      },
+      "contract_catalog": {
+        "id": "litehouse:contract-catalog@1",
+        "sha256": "ef1d9d07810b24f8bbf51a604c423179efedc9049e57413cb0b046b02da4bc64"
+      },
+      "management_operations": {
+        "id": "litehouse:management-operations@1",
+        "sha256": "dde0e6e363f894f6f967d18328ff501c09e728786915cb78b4feb01e035eb7c4"
+      },
+      "port_catalog": {
+        "id": "https://schemas.litehouse.dev/rule-ir/v1.0.0/node-port-catalog.json",
+        "sha256": "9c4350a65bf297aebd3e923c4046f7b4ef6632cfffae28a408a582099343f769"
+      },
+      "quantity_catalog": {
+        "id": "litehouse:quantity-catalog@1",
+        "sha256": "a627de236ab267644a3d78a41abec8e6583bc9d5d9518e4c2ea5e407c884a62a"
+      },
+      "runtime_profile": {
+        "id": "litehouse:rule-runtime@1",
+        "sha256": "f527cf2473f1070fd5ed94ea4a7c67b9539a44aea13cc64a4d160e26bf35a5a3"
+      },
+      "timezone_database": {
+        "id": "jiff-tzdb@0.1.8+2026c",
+        "sha256": "1fa05209f7938ef05d72f80d2441e1ae586364bf0bbfb4f85d959b360eb41f85"
+      }
+    },
+    "name": "Observed On/Off emits an effect and waits for its typed receipt",
+    "nodes": [
+      {
+        "field": {
+          "kind": "on_off_current"
+        },
+        "id": "snapshot",
+        "kind": "snapshot",
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "on-off"
+          },
+          "facet_key": "source_switch",
+          "provider_instance_id": "11111111111111111111111111111111",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "expression": {
+          "inputs": [
+            {
+              "name": "left",
+              "type_ref": {
+                "item": {
+                  "kind": "bool"
+                },
+                "kind": "optional"
+              }
+            }
+          ],
+          "normalized_source_sha256": "0c8b28ce7fc8f0ce1333f545b1b03c9339c5b8c68e85cc1887794d94c1dc1b86",
+          "source": "left == true"
+        },
+        "id": "condition",
+        "kind": "condition",
+        "version": 1
+      },
+      {
+        "id": "branch",
+        "kind": "branch",
+        "version": 1
+      },
+      {
+        "deadline_ms": 30000,
+        "id": "set_light",
+        "kind": "effect_intent",
+        "operation": {
+          "on": true,
+          "operation": "capability.on-off.set@1"
+        },
+        "required_receipt": "accepted_for_delivery",
+        "retry": {
+          "kind": "none"
+        },
+        "selector": {
+          "cardinality": "one",
+          "contract": {
+            "interface": "capability",
+            "major": 1,
+            "namespace": "litehouse",
+            "package": "on-off"
+          },
+          "facet_key": "target_light",
+          "provider_instance_id": "22222222222222222222222222222222",
+          "rebind": "same_identity"
+        },
+        "version": 1
+      },
+      {
+        "effect_node_id": "set_light",
+        "id": "receipt",
+        "kind": "receipt_branch",
+        "version": 1
+      },
+      {
+        "id": "end_success",
+        "kind": "end",
+        "outcome": "success",
+        "version": 1
+      },
+      {
+        "id": "end_noop",
+        "kind": "end",
+        "outcome": "noop",
+        "version": 1
+      },
+      {
+        "id": "end_unknown",
+        "kind": "end",
+        "outcome": "unknown",
+        "version": 1
+      },
+      {
+        "id": "end_error",
+        "kind": "end",
+        "outcome": "error",
+        "version": 1
+      }
+    ],
+    "policies": {
+      "activation": "explicit",
+      "dependency_hydration": "wait_until_hydrated_or_unavailable",
+      "trigger_queue": "coalesce"
+    },
+    "trigger": {
+      "id": "trigger",
+      "initial": "ignore",
+      "kind": "state_observation",
+      "mode": "value_change",
+      "selector": {
+        "cardinality": "one",
+        "contract": {
+          "interface": "capability",
+          "major": 1,
+          "namespace": "litehouse",
+          "package": "on-off"
+        },
+        "facet_key": "source_switch",
+        "provider_instance_id": "11111111111111111111111111111111",
+        "rebind": "same_identity"
+      },
+      "version": 1
+    }
+  }
+}

@@ -1,0 +1,38 @@
+package litehouse:runtime-profile@1.0.0;
+
+interface types {
+  use litehouse:descriptor/types@1.0.0.{package-identity, package-requirement};
+
+  enum component-model-feature {
+    component-model,
+    async-functions,
+    concurrent-calls,
+  }
+
+  record accepted-import-package {
+    requirement: package-requirement,
+    exact-version: package-identity,
+    interfaces: list<string>,
+  }
+
+  enum sandbox-strategy {
+    per-instance-store,
+  }
+
+  record execution-limits {
+    maximum-call-milliseconds: u32,
+    maximum-in-flight-per-instance: u32,
+    maximum-waiting-per-instance: u32,
+    maximum-linear-memory-bytes: u64,
+    maximum-resource-table-entries: u32,
+  }
+
+  record compatibility-profile {
+    identity: package-identity,
+    wasmtime-version: string,
+    features: list<component-model-feature>,
+    accepted-imports: list<accepted-import-package>,
+    sandbox: sandbox-strategy,
+    limits: execution-limits,
+  }
+}

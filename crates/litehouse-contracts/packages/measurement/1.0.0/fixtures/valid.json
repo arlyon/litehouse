@@ -1,0 +1,8 @@
+{
+  "case": "canonical-power-with-native-source",
+  "kind": "instantaneous",
+  "current": { "profile": "litehouse:quantity/power@1", "magnitude": "42.5", "unit": "W" },
+  "native": { "magnitude": "42.50", "unit": "J/s", "quantization": { "scale": 2, "mode": "half-even" } },
+  "availability": "available",
+  "quality": "source-reported"
+}

@@ -1,0 +1,13 @@
+[package]
+name = "litehouse-service-fabric"
+version = "0.1.0"
+description = "Typed endpoint registry, authorization, and binding kernel for Litehouse"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+litehouse-contracts = { version = "0.1.0", path = "../litehouse-contracts" }

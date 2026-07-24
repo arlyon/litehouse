@@ -1,0 +1,20 @@
+[package]
+name = "open-meteo"
+version = "0.1.0"
+description = "Bounded Open-Meteo current-conditions provider for Litehouse"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+publish = false
+readme = "readme.md"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+futures = "0.3.31"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.117"
+wit-bindgen = "0.59.0"

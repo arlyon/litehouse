@@ -1,0 +1,11 @@
+[package]
+name = "typed-esphome-provider-component"
+version = "0.0.0"
+edition.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen.workspace = true

@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "od-design-system-project/v1",
+  "id": "litehouse",
+  "name": "Litehouse",
+  "category": "Home Automation",
+  "description": "A quietly capable design system spanning Litehouse public, documentation, registry, pairing, and Cockpit control-plane surfaces.",
+  "source": {
+    "type": "bundled",
+    "origin": "Source extraction from arlyon/litehouse site and product context, reviewed 2026-07-13"
+  },
+  "files": {
+    "design": "DESIGN.md",
+    "tokens": "tokens.css",
+    "designTokens": "design-tokens.json",
+    "tailwind": "tailwind-v4.css",
+    "components": "components.html"
+  },
+  "assetsDir": "assets",
+  "usage": "USAGE.md",
+  "componentsManifest": "components.manifest.json",
+  "importMode": "hybrid",
+  "craft": {
+    "applies": [],
+    "suggested": [
+      "accessibility-baseline",
+      "color"
+    ],
+    "exemptions": []
+  },
+  "preview": {
+    "dir": "preview",
+    "pages": [
+      {
+        "path": "preview/colors.html",
+        "role": "colors",
+        "title": "Colors"
+      },
+      {
+        "path": "preview/typography.html",
+        "role": "typography",
+        "title": "Typography"
+      },
+      {
+        "path": "preview/spacing.html",
+        "role": "spacing",
+        "title": "Spacing"
+      },
+      {
+        "path": "preview/wallboard.html",
+        "role": "wallboard",
+        "title": "Wallboard Overview"
+      },
+      {
+        "path": "preview/phone-controls.html",
+        "role": "phone-controls",
+        "title": "Phone Controls"
+      },
+      {
+        "path": "preview/device-detail.html",
+        "role": "device-detail",
+        "title": "Device Detail"
+      },
+      {
+        "path": "preview/capability-facets.html",
+        "role": "capability-facets",
+        "title": "Capability Facets"
+      }
+    ]
+  },
+  "sourceFiles": {
+    "evidence": "source/evidence.md",
+    "tokens": "source/tokens.source.json",
+    "report": "source/token-contract.report.json"
+  }
+}

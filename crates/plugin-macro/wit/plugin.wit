@@ -1,4 +1,4 @@
-package litehouse:plugin;
+package litehouse:plugin@1.0.0;
 
 interface plugin {
     use update.{update};
@@ -44,37 +44,26 @@ interface plugin {
     }
 
     variant output {
-      notify,
+      switch(own<a>),
+      switch-b(own<b>),
     }
 
     resource runner {
       constructor(nickname: string, config: option<string>);
       subscribe: func() -> result<list<subscription>, u32>;
-      update: func(events: list<event>) -> result<bool, u32>;
-      outputs: func() -> result<list<output>, u32>;
+      update: async func(events: list<event>) -> result<bool, u32>;
+      outputs: async func() -> result<list<output>, u32>;
     }
 
-    record metadata {
-      version: string,
-      identifier: string,
-      config-schema: option<string>,
-      author: option<string>,
-      homepage: option<string>,
-      source: option<string>,
-      description: option<string>,
-      readme: option<string>,
-      capabilities: list<string>,
-    }
-
-    get-metadata: func() -> metadata;
-}
-
-interface notify {
-    // An additional interface for plugins that can notify the user
-    resource notify {
+    resource a {
         constructor();
-        notify: func(message: string) -> result<bool, u32>;
     }
+
+    resource b {
+        constructor();
+    }
+
+    get-metadata: func() -> list<u8>;
 }
 
 // note: we import this so we can't export it (ie. keep it in plugin)
@@ -93,16 +82,14 @@ interface update {
     }
 }
 
+interface host {
+  use update.{update};
+  send-update: func(nickname: string, update: update);
+}
+
 world plugin-host {
-  import wasi:http/outgoing-handler@0.2.8;
-  import wasi:sockets/tcp@0.2.8;
-  import wasi:sockets/tcp-create-socket@0.2.8;
-  import wasi:sockets/instance-network@0.2.8;
-
-  import host: interface {
-    use update.{update};
-    send-update: func(nickname: string, update: update);
-  }
-
+  import wasi:http/client@0.3.0;
+  import wasi:sockets/types@0.3.0;
+  import host;
   export plugin;
 }

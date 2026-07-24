@@ -112,14 +112,14 @@ cargo install --git https://github.com/arlyon/litehouse litehouse
 ### Docker
 
 Getting started with docker is an easy approach if you have docker easily available.
-The docker image is lightweight, weighing in at 10MB.
+The docker image is lightweight, weighing in at 10MB. Mount one writable
+configuration directory containing `settings.json`, `schema.json`, `wasm/`, and
+`workflows/`; mounting `settings.json` alone would prevent atomic replacement.
 
 ```bash title="Terminal"
 docker run -d \
     --name litehouse \
-    -v /path/to/settings.json:/settings.json \
-    -v /path/to/schema.json:/schema.json \
-    -v /path/to/wasm:/wasm \
+    -v /path/to/litehouse:/config \
     ghcr.io/arlyon/litehouse:latest
 ```
 
@@ -142,9 +142,7 @@ Good news! The setup is pretty much the same as docker, but with some extra good
 ```bash title="Terminal"
 podman run -d \
     --name litehouse \
-    -v /path/to/settings.json:/settings.json \
-    -v /path/to/schema.json:/schema.json \
-    -v /path/to/wasm:/wasm \
+    -v /path/to/litehouse:/config \
     ghcr.io/arlyon/litehouse:latest
 ```
 

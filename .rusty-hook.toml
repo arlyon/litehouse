@@ -1,5 +1,5 @@
 [hooks]
-pre-commit = "cargo fmt --all && taplo fmt"
+pre-commit = "mise exec -- cargo fmt --all && mise exec -- taplo fmt"
 
 [logging]
 verbose = true

@@ -1,0 +1,641 @@
+{
+  "schemaVersion": 1,
+  "contract": "TOKEN_SCHEMA",
+  "generatedAt": "2026-07-13T00:00:00.000Z",
+  "sourceScope": "litehouse-site-source-extraction",
+  "summary": {
+    "totalTokens": 56,
+    "declaredTokens": 56,
+    "sourceBackedTokens": 56,
+    "sourceBackedA1": 26,
+    "fallbackTokens": 0,
+    "aliasTokens": 2,
+    "layerCounts": {
+      "A1-identity": 8,
+      "B-slot": 4,
+      "A2": 26,
+      "A1-structure": 18
+    },
+    "score": 100,
+    "grade": "excellent",
+    "recommendRebuild": false
+  },
+  "tokens": [
+    {
+      "name": "--bg",
+      "layer": "A1-identity",
+      "value": "#ffffff",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:2"
+      ],
+      "sourceName": "--bg"
+    },
+    {
+      "name": "--surface",
+      "layer": "A1-identity",
+      "value": "#ffffff",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:3"
+      ],
+      "sourceName": "--surface"
+    },
+    {
+      "name": "--surface-warm",
+      "layer": "B-slot",
+      "value": "#fafaf9",
+      "confidence": "high",
+      "reason": "Bound to the nearest source-backed Litehouse tier so shared components resolve without one-off tokens.",
+      "sources": [
+        "tokens.css:4"
+      ],
+      "sourceName": "--surface-warm"
+    },
+    {
+      "name": "--fg",
+      "layer": "A1-identity",
+      "value": "#0c0a09",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:5"
+      ],
+      "sourceName": "--fg"
+    },
+    {
+      "name": "--fg-2",
+      "layer": "B-slot",
+      "value": "#1c1917",
+      "confidence": "high",
+      "reason": "Bound to the nearest source-backed Litehouse tier so shared components resolve without one-off tokens.",
+      "sources": [
+        "tokens.css:6"
+      ],
+      "sourceName": "--fg-2"
+    },
+    {
+      "name": "--muted",
+      "layer": "A1-identity",
+      "value": "#79716b",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:7"
+      ],
+      "sourceName": "--muted"
+    },
+    {
+      "name": "--meta",
+      "layer": "B-slot",
+      "value": "var(--muted)",
+      "confidence": "high",
+      "reason": "Bound to the nearest source-backed Litehouse tier so shared components resolve without one-off tokens.",
+      "sources": [
+        "tokens.css:8"
+      ],
+      "sourceName": "--meta"
+    },
+    {
+      "name": "--border",
+      "layer": "A1-identity",
+      "value": "#e7e5e4",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:9"
+      ],
+      "sourceName": "--border"
+    },
+    {
+      "name": "--border-soft",
+      "layer": "B-slot",
+      "value": "var(--border)",
+      "confidence": "high",
+      "reason": "Bound to the nearest source-backed Litehouse tier so shared components resolve without one-off tokens.",
+      "sources": [
+        "tokens.css:10"
+      ],
+      "sourceName": "--border-soft"
+    },
+    {
+      "name": "--accent",
+      "layer": "A1-identity",
+      "value": "#00a544",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:11"
+      ],
+      "sourceName": "--accent"
+    },
+    {
+      "name": "--accent-on",
+      "layer": "A2",
+      "value": "#0c0a09",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:12"
+      ],
+      "sourceName": "--accent-on"
+    },
+    {
+      "name": "--accent-hover",
+      "layer": "A2",
+      "value": "#00a544",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:13"
+      ],
+      "sourceName": "--accent-hover"
+    },
+    {
+      "name": "--accent-active",
+      "layer": "A2",
+      "value": "#00a544",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:14"
+      ],
+      "sourceName": "--accent-active"
+    },
+    {
+      "name": "--success",
+      "layer": "A2",
+      "value": "#008138",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:15"
+      ],
+      "sourceName": "--success"
+    },
+    {
+      "name": "--warn",
+      "layer": "A2",
+      "value": "#c53c00",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:16"
+      ],
+      "sourceName": "--warn"
+    },
+    {
+      "name": "--danger",
+      "layer": "A2",
+      "value": "#e40014",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:17"
+      ],
+      "sourceName": "--danger"
+    },
+    {
+      "name": "--font-display",
+      "layer": "A1-identity",
+      "value": "Inter, ui-sans-serif, system-ui, sans-serif",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:18"
+      ],
+      "sourceName": "--font-display"
+    },
+    {
+      "name": "--font-body",
+      "layer": "A1-identity",
+      "value": "Inter, ui-sans-serif, system-ui, sans-serif",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:19"
+      ],
+      "sourceName": "--font-body"
+    },
+    {
+      "name": "--font-mono",
+      "layer": "A2",
+      "value": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:20"
+      ],
+      "sourceName": "--font-mono"
+    },
+    {
+      "name": "--text-xs",
+      "layer": "A1-structure",
+      "value": "12px",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:21"
+      ],
+      "sourceName": "--text-xs"
+    },
+    {
+      "name": "--text-sm",
+      "layer": "A1-structure",
+      "value": "14px",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:22"
+      ],
+      "sourceName": "--text-sm"
+    },
+    {
+      "name": "--text-base",
+      "layer": "A1-structure",
+      "value": "16px",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:23"
+      ],
+      "sourceName": "--text-base"
+    },
+    {
+      "name": "--text-lg",
+      "layer": "A1-structure",
+      "value": "18px",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:24"
+      ],
+      "sourceName": "--text-lg"
+    },
+    {
+      "name": "--text-xl",
+      "layer": "A1-structure",
+      "value": "20px",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:25"
+      ],
+      "sourceName": "--text-xl"
+    },
+    {
+      "name": "--text-2xl",
+      "layer": "A1-structure",
+      "value": "24px",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:26"
+      ],
+      "sourceName": "--text-2xl"
+    },
+    {
+      "name": "--text-3xl",
+      "layer": "A1-structure",
+      "value": "36px",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:27"
+      ],
+      "sourceName": "--text-3xl"
+    },
+    {
+      "name": "--text-4xl",
+      "layer": "A1-structure",
+      "value": "60px",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:28"
+      ],
+      "sourceName": "--text-4xl"
+    },
+    {
+      "name": "--leading-body",
+      "layer": "A1-structure",
+      "value": "1.5",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:29"
+      ],
+      "sourceName": "--leading-body"
+    },
+    {
+      "name": "--leading-tight",
+      "layer": "A1-structure",
+      "value": "1.1",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:30"
+      ],
+      "sourceName": "--leading-tight"
+    },
+    {
+      "name": "--tracking-display",
+      "layer": "A1-structure",
+      "value": "-0.025em",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:31"
+      ],
+      "sourceName": "--tracking-display"
+    },
+    {
+      "name": "--space-1",
+      "layer": "A2",
+      "value": "4px",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:32"
+      ],
+      "sourceName": "--space-1"
+    },
+    {
+      "name": "--space-2",
+      "layer": "A2",
+      "value": "8px",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:33"
+      ],
+      "sourceName": "--space-2"
+    },
+    {
+      "name": "--space-3",
+      "layer": "A2",
+      "value": "12px",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:34"
+      ],
+      "sourceName": "--space-3"
+    },
+    {
+      "name": "--space-4",
+      "layer": "A2",
+      "value": "16px",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:35"
+      ],
+      "sourceName": "--space-4"
+    },
+    {
+      "name": "--space-5",
+      "layer": "A2",
+      "value": "20px",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:36"
+      ],
+      "sourceName": "--space-5"
+    },
+    {
+      "name": "--space-6",
+      "layer": "A2",
+      "value": "24px",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:37"
+      ],
+      "sourceName": "--space-6"
+    },
+    {
+      "name": "--space-8",
+      "layer": "A2",
+      "value": "32px",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:38"
+      ],
+      "sourceName": "--space-8"
+    },
+    {
+      "name": "--space-12",
+      "layer": "A2",
+      "value": "48px",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:39"
+      ],
+      "sourceName": "--space-12"
+    },
+    {
+      "name": "--section-y-desktop",
+      "layer": "A1-structure",
+      "value": "64px",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:40"
+      ],
+      "sourceName": "--section-y-desktop"
+    },
+    {
+      "name": "--section-y-tablet",
+      "layer": "A1-structure",
+      "value": "48px",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:41"
+      ],
+      "sourceName": "--section-y-tablet"
+    },
+    {
+      "name": "--section-y-phone",
+      "layer": "A1-structure",
+      "value": "32px",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:42"
+      ],
+      "sourceName": "--section-y-phone"
+    },
+    {
+      "name": "--radius-sm",
+      "layer": "A2",
+      "value": "6px",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:43"
+      ],
+      "sourceName": "--radius-sm"
+    },
+    {
+      "name": "--radius-md",
+      "layer": "A2",
+      "value": "8px",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:44"
+      ],
+      "sourceName": "--radius-md"
+    },
+    {
+      "name": "--radius-lg",
+      "layer": "A2",
+      "value": "14px",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:45"
+      ],
+      "sourceName": "--radius-lg"
+    },
+    {
+      "name": "--radius-pill",
+      "layer": "A2",
+      "value": "9999px",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:46"
+      ],
+      "sourceName": "--radius-pill"
+    },
+    {
+      "name": "--elev-flat",
+      "layer": "A2",
+      "value": "none",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:47"
+      ],
+      "sourceName": "--elev-flat"
+    },
+    {
+      "name": "--elev-ring",
+      "layer": "A2",
+      "value": "0 0 0 1px var(--border)",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:48"
+      ],
+      "sourceName": "--elev-ring"
+    },
+    {
+      "name": "--elev-raised",
+      "layer": "A2",
+      "value": "0 1px 3px 0 rgb(0 0 0 / 10%), 0 1px 2px -1px rgb(0 0 0 / 10%)",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:49"
+      ],
+      "sourceName": "--elev-raised"
+    },
+    {
+      "name": "--focus-ring",
+      "layer": "A2",
+      "value": "0 0 0 2px var(--bg), 0 0 0 4px var(--fg)",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:50"
+      ],
+      "sourceName": "--focus-ring"
+    },
+    {
+      "name": "--motion-fast",
+      "layer": "A2",
+      "value": "150ms",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:51"
+      ],
+      "sourceName": "--motion-fast"
+    },
+    {
+      "name": "--motion-base",
+      "layer": "A2",
+      "value": "200ms",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:52"
+      ],
+      "sourceName": "--motion-base"
+    },
+    {
+      "name": "--ease-standard",
+      "layer": "A2",
+      "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "confidence": "high",
+      "reason": "Normalized from current Litehouse component behavior and the Open Design required token contract.",
+      "sources": [
+        "tokens.css:53"
+      ],
+      "sourceName": "--ease-standard"
+    },
+    {
+      "name": "--container-max",
+      "layer": "A1-structure",
+      "value": "1280px",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:54"
+      ],
+      "sourceName": "--container-max"
+    },
+    {
+      "name": "--container-gutter-desktop",
+      "layer": "A1-structure",
+      "value": "32px",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:55"
+      ],
+      "sourceName": "--container-gutter-desktop"
+    },
+    {
+      "name": "--container-gutter-tablet",
+      "layer": "A1-structure",
+      "value": "24px",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:56"
+      ],
+      "sourceName": "--container-gutter-tablet"
+    },
+    {
+      "name": "--container-gutter-phone",
+      "layer": "A1-structure",
+      "value": "16px",
+      "confidence": "high",
+      "reason": "Extracted from the winning Litehouse theme, compiled utility vocabulary, or repeated source structure.",
+      "sources": [
+        "tokens.css:57"
+      ],
+      "sourceName": "--container-gutter-phone"
+    }
+  ]
+}

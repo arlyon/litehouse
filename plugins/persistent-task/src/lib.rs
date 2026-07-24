@@ -3,8 +3,6 @@
 //! This crate provides functionality for creating persistent tasks that can run in the background,
 //! allowing for continuous operations or monitoring within the Litehouse system.
 
-use std::time::Duration;
-
 use crate::exports::litehouse::plugin::plugin::{
     Every, GuestRunner, Output, Subscription, TimeUnit,
 };
@@ -17,14 +15,6 @@ pub struct PersistentPlugin {
 
 impl GuestRunner for PersistentPlugin {
     fn new(nickname: String, _config: Option<String>) -> Self {
-        // let (commands_tx, commands_rx) = std::sync::mpsc::channel();
-        // let (updates_tx, updates_rx) = std::sync::mpsc::channel();
-        std::thread::spawn(move || {
-            loop {
-                std::thread::sleep(Duration::from_secs(1));
-                tracing::info!("sending update");
-            }
-        });
         Self { nickname }
     }
 
@@ -37,12 +27,15 @@ impl GuestRunner for PersistentPlugin {
         )])
     }
 
-    fn update(&self, _events: Vec<exports::litehouse::plugin::plugin::Event>) -> Result<bool, u32> {
+    async fn update(
+        &self,
+        _events: Vec<exports::litehouse::plugin::plugin::Event>,
+    ) -> Result<bool, u32> {
+        tracing::info!(plugin = %self.nickname, "persistent task tick");
         Ok(true)
     }
 
-    #[allow(async_fn_in_trait)]
-    fn outputs(&self) -> Result<_rt::Vec<Output>, u32> {
-        todo!()
+    async fn outputs(&self) -> Result<_rt::Vec<Output>, u32> {
+        Ok(vec![])
     }
 }

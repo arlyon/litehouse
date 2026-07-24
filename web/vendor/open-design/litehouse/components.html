@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Litehouse reference components</title>
+  <meta name="description" content="Accessible Litehouse primitives and operational states for public, Registry, pairing, and Cockpit surfaces." />
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --surface-warm: #fafaf9;
+      --fg: #0c0a09;
+      --fg-2: #1c1917;
+      --muted: #79716b;
+      --meta: var(--muted);
+      --border: #e7e5e4;
+      --border-soft: var(--border);
+      --accent: #00a544;
+      --accent-on: #0c0a09;
+      --accent-hover: #00a544;
+      --accent-active: #00a544;
+      --success: #008138;
+      --warn: #c53c00;
+      --danger: #e40014;
+      --font-display: Inter, ui-sans-serif, system-ui, sans-serif;
+      --font-body: Inter, ui-sans-serif, system-ui, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --text-xs: 12px;
+      --text-sm: 14px;
+      --text-base: 16px;
+      --text-lg: 18px;
+      --text-xl: 20px;
+      --text-2xl: 24px;
+      --text-3xl: 36px;
+      --text-4xl: 60px;
+      --leading-body: 1.5;
+      --leading-tight: 1.1;
+      --tracking-display: -0.025em;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-12: 48px;
+      --section-y-desktop: 64px;
+      --section-y-tablet: 48px;
+      --section-y-phone: 32px;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 14px;
+      --radius-pill: 9999px;
+      --elev-flat: none;
+      --elev-ring: 0 0 0 1px var(--border);
+      --elev-raised: 0 1px 3px 0 rgb(0 0 0 / 10%), 0 1px 2px -1px rgb(0 0 0 / 10%);
+      --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--fg);
+      --motion-fast: 150ms;
+      --motion-base: 200ms;
+      --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+      --container-max: 1280px;
+      --container-gutter-desktop: 32px;
+      --container-gutter-tablet: 24px;
+      --container-gutter-phone: 16px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { color-scheme: light; }
+    body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: var(--text-base); line-height: var(--leading-body); -webkit-font-smoothing: antialiased; }
+    button, input, select, textarea { font: inherit; }
+    button, select, textarea { color: inherit; }
+    svg { display: block; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    .skip-link { position: fixed; z-index: 20; top: var(--space-2); left: var(--space-2); padding: var(--space-2) var(--space-3); border: 2px solid var(--fg); border-radius: var(--radius-md); background: var(--bg); color: var(--fg); font-weight: 700; transform: translateY(calc(-100% - var(--space-4))); }
+    .skip-link:focus { transform: translateY(0); }
+
+    .container { width: min(100%, var(--container-max)); margin-inline: auto; padding-inline: var(--container-gutter-desktop); }
+    section { padding-block: var(--section-y-tablet); }
+    section + section { border-top: 1px solid var(--border); }
+    .stack-3 > * + * { margin-block-start: var(--space-3); }
+    .stack-4 > * + * { margin-block-start: var(--space-4); }
+    .stack-6 > * + * { margin-block-start: var(--space-6); }
+    .row-between { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+    .component-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr); gap: var(--space-8); align-items: start; }
+    .state-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+
+    h1, h2, h3, p { margin: 0; }
+    h1, h2, h3 { font-family: var(--font-display); line-height: var(--leading-tight); }
+    h1 { max-width: 18ch; font-size: var(--text-3xl); letter-spacing: var(--tracking-display); }
+    h2 { font-size: var(--text-2xl); }
+    h3 { font-size: var(--text-lg); }
+    .lead { max-width: 62ch; color: var(--fg-2); font-size: var(--text-lg); }
+    .eyebrow { color: var(--success); font: 600 var(--text-xs)/1.4 var(--font-mono); letter-spacing: .05em; text-transform: uppercase; }
+    .body-muted { color: var(--muted); }
+    .body-sm { font-size: var(--text-sm); }
+    code, kbd { font-family: var(--font-mono); }
+    kbd { padding: var(--space-1) var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-warm); color: var(--fg-2); font-size: var(--text-xs); box-shadow: var(--elev-ring); }
+
+    a { color: var(--success); text-decoration-thickness: 1px; text-underline-offset: var(--space-1); }
+    a:hover { text-decoration-thickness: 2px; }
+    a:focus-visible { border-radius: var(--radius-sm); outline: 2px solid var(--fg); outline-offset: 3px; box-shadow: var(--focus-ring); }
+
+    .site-header { position: sticky; top: 0; z-index: 2; height: 64px; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--bg), transparent 6%); }
+    .site-header .container { height: 100%; display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); }
+    .wordmark { color: var(--fg); font-weight: 700; text-decoration: none; }
+    .wordmark span { color: var(--success); }
+    .nav { display: flex; align-items: center; gap: var(--space-5); }
+    .nav a { color: var(--muted); font-size: var(--text-sm); text-decoration: none; }
+    .nav a:hover, .nav a[aria-current="page"] { color: var(--fg); }
+    .nav a[aria-current="page"] { text-decoration: underline; text-decoration-color: var(--success); text-decoration-thickness: 2px; }
+
+    .btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); padding-inline: var(--space-4); border: 1px solid transparent; border-radius: var(--radius-md); background: transparent; font-size: var(--text-sm); font-weight: 600; line-height: 1; cursor: pointer; text-decoration: none; transition: transform var(--motion-fast) var(--ease-standard), background-color var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard); }
+    .btn:hover:not(:disabled) { transform: translateY(-1px); }
+    .btn:active:not(:disabled) { transform: translateY(0); }
+    .btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+    .btn:disabled, .btn[aria-disabled="true"] { cursor: not-allowed; border-color: var(--border); border-style: dashed; background: var(--surface-warm); color: var(--muted); }
+    .btn-primary { background: var(--accent); color: var(--accent-on); }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); box-shadow: var(--elev-raised); }
+    .btn-primary:active:not(:disabled) { background: var(--accent-active); box-shadow: inset 0 0 0 1px var(--fg); }
+    .btn-secondary { border-color: var(--border); background: var(--surface-warm); color: var(--fg-2); }
+    .btn-secondary:hover:not(:disabled) { border-color: var(--muted); background: var(--surface); }
+    .btn-danger { background: var(--danger); color: var(--surface); }
+    .btn-danger:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--fg); }
+    .btn .icon { width: var(--space-4); height: var(--space-4); flex: 0 0 auto; }
+    .btn.is-loading { position: relative; }
+    .spinner { width: var(--space-4); height: var(--space-4); border: 2px solid currentColor; border-right-color: transparent; border-radius: var(--radius-pill); animation: spin .8s linear infinite; }
+
+    .field { display: grid; gap: var(--space-2); }
+    .field label { color: var(--fg-2); font-size: var(--text-sm); font-weight: 600; }
+    .field input { width: 100%; min-height: 44px; padding-inline: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); color: var(--fg); font-size: var(--text-sm); transition: border-color var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard), background-color var(--motion-fast) var(--ease-standard); }
+    .field input:hover:not(:disabled) { border-color: var(--muted); }
+    .field input:focus-visible { border-color: var(--fg); outline: none; box-shadow: var(--focus-ring); }
+    .field input:active:not(:disabled) { background: var(--surface-warm); }
+    .field input:disabled { border-style: dashed; background: var(--surface-warm); color: var(--muted); cursor: not-allowed; }
+    .field input[aria-invalid="true"] { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
+    .field input[aria-invalid="true"]:focus-visible { box-shadow: var(--focus-ring); }
+    .field-help { color: var(--muted); font-size: var(--text-xs); }
+    .field-error { display: flex; align-items: center; gap: var(--space-2); color: var(--danger); font-size: var(--text-xs); font-weight: 600; }
+    .field-error::before { content: "!"; width: var(--space-4); height: var(--space-4); display: inline-grid; place-items: center; border: 1px solid currentColor; border-radius: var(--radius-pill); font-size: var(--text-xs); line-height: 1; }
+
+    .search-field { position: relative; }
+    .search-field .icon { position: absolute; left: var(--space-3); top: 50%; width: var(--space-4); height: var(--space-4); color: var(--muted); transform: translateY(-50%); pointer-events: none; }
+    .search-field input { padding-left: var(--space-8); border-radius: var(--radius-pill); background: var(--surface-warm); }
+
+    .card { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--elev-raised); }
+    .card-header, .card-content, .card-footer { padding-inline: var(--space-6); }
+    .card-header { padding-block: var(--space-6) var(--space-3); }
+    .card-content { padding-block: var(--space-3); }
+    .card-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding-block: var(--space-3) var(--space-6); }
+    .package-card { position: relative; display: block; color: inherit; text-decoration: none; transition: background-color var(--motion-base) var(--ease-standard), border-color var(--motion-base) var(--ease-standard), transform var(--motion-fast) var(--ease-standard); }
+    .package-card:hover { border-color: var(--success); background: var(--surface-warm); transform: translateY(-1px); }
+    .package-card:active { transform: translateY(0); }
+    .package-card:focus-visible { outline: none; box-shadow: var(--focus-ring), var(--elev-raised); }
+    .package-card[aria-disabled="true"] { border-style: dashed; color: var(--muted); pointer-events: none; }
+    .package-title { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+    .package-meta { color: var(--muted); font: var(--text-xs)/1.5 var(--font-mono); }
+
+    .badge { display: inline-flex; align-items: center; gap: var(--space-2); width: fit-content; padding: var(--space-1) var(--space-2); border: 1px solid currentColor; border-radius: var(--radius-pill); background: var(--surface); font-size: var(--text-xs); font-weight: 600; line-height: 1.3; }
+    .badge::before { content: ""; width: 7px; height: 7px; border-radius: var(--radius-pill); background: currentColor; }
+    .badge-success { color: var(--success); }
+    .badge-warning { color: var(--warn); }
+    .badge-error { color: var(--danger); }
+    .badge-muted { color: var(--muted); }
+    .badge-loading::before { background: transparent; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
+
+    .facet-grid { display: grid; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
+    .facet-item { min-height: 84px; padding: var(--space-4) var(--space-5); display: grid; grid-template-columns: minmax(190px, .7fr) minmax(0, 1.3fr); gap: var(--space-6); align-items: center; border-bottom: 1px solid var(--border); }
+    .facet-item:last-child { border-bottom: 0; }
+    .facet-label { display: grid; gap: var(--space-1); }
+    .facet-label code { color: var(--muted); font-size: var(--text-xs); }
+    .facet-control { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-3); }
+    .facet-value { display: grid; gap: var(--space-1); text-align: right; }
+    .facet-value strong { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+    .facet-value span { color: var(--muted); font-size: var(--text-xs); }
+    .facet-status { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--muted); font-size: var(--text-xs); font-weight: 600; }
+    .facet-status::before { content: ""; width: 7px; height: 7px; border: 1px solid currentColor; border-radius: var(--radius-pill); background: currentColor; }
+    .facet-status.is-current { color: var(--success); }
+    .facet-status.is-stale, .facet-status.is-pending { color: var(--warn); }
+    .facet-status.is-unknown::before, .facet-status.is-unavailable::before { background: transparent; }
+    .facet-segmented { margin: 0; padding: 0; display: inline-flex; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-md); }
+    .facet-segmented label { min-width: 72px; min-height: 44px; padding-inline: var(--space-3); display: inline-flex; align-items: center; justify-content: center; border-right: 1px solid var(--border); cursor: pointer; }
+    .facet-segmented label:last-child { border-right: 0; }
+    .facet-segmented input { position: absolute; opacity: 0; pointer-events: none; }
+    .facet-segmented label:has(input:checked) { background: var(--accent); color: var(--accent-on); font-weight: 700; }
+    .facet-segmented label:has(input:focus-visible) { outline: 2px solid var(--fg); outline-offset: -3px; }
+    .facet-range { min-width: 220px; display: grid; grid-template-columns: minmax(120px, 1fr) 64px; gap: var(--space-3); align-items: center; }
+    .facet-range input { width: 100%; min-height: 24px; accent-color: var(--accent); }
+    .facet-range output { font-family: var(--font-mono); text-align: right; }
+    .facet-stepper { display: inline-grid; grid-template-columns: 44px minmax(82px, auto) 44px; border: 1px solid var(--border); border-radius: var(--radius-md); }
+    .facet-stepper .btn { min-height: 42px; padding: 0; border: 0; border-radius: 0; }
+    .facet-stepper output { min-height: 42px; padding-inline: var(--space-3); display: grid; place-items: center; border-inline: 1px solid var(--border); font-family: var(--font-mono); }
+    .facet-control select, .facet-control textarea { min-height: 44px; padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+    .facet-control textarea { width: min(100%, 420px); resize: vertical; }
+
+    .notice { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-3); align-items: start; padding: var(--space-4); border: 1px solid var(--danger); border-radius: var(--radius-md); background: var(--surface); }
+    .notice-icon { width: var(--space-5); height: var(--space-5); display: grid; place-items: center; border: 1px solid var(--danger); border-radius: var(--radius-pill); color: var(--danger); font-weight: 700; }
+    .notice strong { display: block; }
+    .notice p { color: var(--muted); font-size: var(--text-sm); }
+
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); }
+    table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+    caption { padding: var(--space-4); color: var(--muted); text-align: left; font-size: var(--text-xs); }
+    th, td { padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border-soft); text-align: left; vertical-align: middle; }
+    th { height: 48px; color: var(--muted); font-weight: 600; }
+    tbody tr { transition: background-color var(--motion-fast) var(--ease-standard); }
+    tbody tr:hover { background: var(--surface-warm); }
+    tbody tr:focus-within { outline: 2px solid var(--fg); outline-offset: -2px; }
+    .cell-mono { font-family: var(--font-mono); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
+
+    .skeleton-group { display: grid; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+    .skeleton { min-height: var(--space-4); border-radius: var(--radius-sm); background: var(--surface-warm); animation: pulse 2s var(--ease-standard) infinite; }
+    .skeleton:first-of-type { width: 42%; }
+    .skeleton:last-of-type { width: 72%; }
+
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); gap: var(--space-12); align-items: end; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+    .status-panel { padding: var(--space-5); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-warm); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 50% { opacity: .55; } }
+
+    @media (max-width: 1023px) {
+      .container { padding-inline: var(--container-gutter-tablet); }
+      .hero-grid, .component-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 639px) {
+      .container { padding-inline: var(--container-gutter-phone); }
+      section { padding-block: var(--section-y-phone); }
+      h1 { font-size: var(--text-2xl); }
+      .site-header { height: auto; min-height: 64px; }
+      .site-header .container { padding-block: var(--space-3); align-items: flex-start; }
+      .nav { gap: var(--space-3); flex-wrap: wrap; justify-content: flex-end; }
+      .notice { grid-template-columns: auto minmax(0, 1fr); }
+      .notice .btn { grid-column: 1 / -1; }
+      .facet-item { grid-template-columns: 1fr; gap: var(--space-3); padding: var(--space-4); }
+      .facet-control { justify-content: flex-start; }
+      .facet-value { text-align: left; }
+      .facet-range { min-width: 0; width: 100%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+      .btn:hover:not(:disabled), .package-card:hover { transform: none; }
+    }
+    @media (forced-colors: active) {
+      a:focus-visible, .btn:focus-visible, .field input:focus-visible { outline: 2px solid CanvasText; outline-offset: 3px; }
+      .facet-segmented label:has(input:checked) { border-color: Highlight; background: Highlight; color: HighlightText; }
+      .facet-status::before { border-color: currentColor; background: currentColor; }
+      .facet-status.is-unknown::before, .facet-status.is-unavailable::before { background: Canvas; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#top">Skip to components</a>
+  <header class="site-header">
+    <div class="container">
+      <a class="wordmark" href="#top">Litehouse <span>System</span></a>
+      <nav class="nav" aria-label="Reference navigation">
+        <a href="#components" aria-current="page">Components</a>
+        <a href="#capabilities">Capabilities</a>
+        <a href="#states">States</a>
+        <a href="#operations">Operations</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section>
+      <div class="container hero-grid">
+        <div class="stack-4">
+          <p class="eyebrow">Connected directly</p>
+          <h1>One calm system from first visit to daily control.</h1>
+          <p class="lead">The public surface breathes. Cockpit compresses. Both use the same warm neutrals, green capability signal, Inter body, and precise operational states.</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary" type="button">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+              Pair a server
+            </button>
+            <a class="btn btn-secondary" href="#operations">Open Cockpit</a>
+          </div>
+        </div>
+        <aside class="status-panel stack-3" aria-label="Local connection status">
+          <div class="row-between"><strong>Kitchen server</strong><span class="badge badge-success">Connected</span></div>
+          <p class="body-sm body-muted">Direct local connection. Last checked <time datetime="2026-07-13T10:42:00Z">10:42</time>.</p>
+          <p class="body-sm"><code>litehouse.local:3478</code></p>
+        </aside>
+      </div>
+    </section>
+
+    <section id="components">
+      <div class="container component-grid">
+        <div class="stack-6">
+          <div class="stack-3"><p class="eyebrow">Primary primitives</p><h2>Actions and fields</h2><p class="body-muted">Hover with a pointer and tab through each enabled control to inspect source-backed interaction states.</p></div>
+          <div class="state-row" aria-label="Button examples">
+            <button class="btn btn-primary" type="button">Run automation</button>
+            <button class="btn btn-secondary" type="button">View details</button>
+            <button class="btn btn-danger" type="button">Disconnect</button>
+            <button class="btn btn-secondary" type="button" disabled>Unavailable</button>
+            <button class="btn btn-primary is-loading" type="button" disabled aria-busy="true"><span class="spinner" aria-hidden="true"></span>Pairing</button>
+          </div>
+          <div class="component-grid">
+            <div class="field">
+              <label for="server-name">Server name</label>
+              <input id="server-name" value="quiet-cedar" aria-describedby="server-help" />
+              <p id="server-help" class="field-help">Shown only on this Litehouse account.</p>
+            </div>
+            <div class="field">
+              <label for="pair-code">Pairing code</label>
+              <input id="pair-code" inputmode="numeric" value="148" aria-invalid="true" aria-describedby="pair-error" />
+              <p id="pair-error" class="field-error">Enter all 6 digits.</p>
+            </div>
+          </div>
+          <div class="field">
+            <label for="disabled-field">Server address</label>
+            <input id="disabled-field" value="Detected automatically" disabled />
+          </div>
+        </div>
+
+        <div class="stack-4">
+          <div class="field search-field">
+            <label for="package-search">Search packages</label>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+            <input id="package-search" type="search" placeholder="Search packages…" />
+          </div>
+          <a class="card package-card" href="#package-example" aria-label="Open Local Weather package version 1.4.2">
+            <div class="card-header stack-3">
+              <div class="package-title"><h3 id="package-example">Local Weather</h3><span class="badge badge-muted">Integration</span></div>
+              <p class="package-meta">v1.4.2</p>
+            </div>
+            <div class="card-content"><p class="body-sm body-muted">Read local forecasts through a typed component with explicit network permission.</p></div>
+            <div class="card-footer"><span class="package-meta">Updated 2 days ago</span><span aria-hidden="true">Open →</span></div>
+          </a>
+          <div class="skeleton-group" role="status" aria-label="Loading package details">
+            <span class="sr-only">Loading package details</span>
+            <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="capabilities">
+      <div class="container stack-6">
+        <div class="stack-3"><p class="eyebrow">Typed capability controls</p><h2>Nine host-owned renderers</h2><p class="body-muted">Each renderer follows the advertised exact-major contract. Physical devices may compose several rows without merging their independent facet identities.</p></div>
+        <div class="facet-grid">
+          <article class="facet-item">
+            <div class="facet-label"><strong>Power</strong><code>on-off@1</code><span class="body-sm body-muted">Absolute state change</span></div>
+            <div class="facet-control"><fieldset class="facet-segmented"><legend class="sr-only">Power state</legend><label><input type="radio" name="fixture-power" checked />On</label><label><input type="radio" name="fixture-power" />Off</label></fieldset><span class="facet-status is-current">Observed on</span></div>
+          </article>
+          <article class="facet-item">
+            <div class="facet-label"><strong>Level</strong><code>level-control@1</code><span class="body-sm body-muted">Bounded ratio</span></div>
+            <div class="facet-control"><label class="facet-range"><span class="sr-only">Brightness level</span><input type="range" min="0" max="100" value="72" /><output>72%</output></label></div>
+          </article>
+          <article class="facet-item">
+            <div class="facet-label"><strong>Color</strong><code>color-control@1</code><span class="body-sm body-muted">Advertised model only</span></div>
+            <div class="facet-control"><select aria-label="Color model"><option>Color temperature</option><option>Hue and saturation</option></select><label class="facet-range"><span class="sr-only">Color temperature</span><input type="range" min="2200" max="6500" value="2700" /><output>2700 K</output></label></div>
+          </article>
+          <article class="facet-item">
+            <div class="facet-label"><strong>Door contact</strong><code>boolean-state@1</code><span class="body-sm body-muted">Read-only semantic state</span></div>
+            <div class="facet-control"><div class="facet-value"><strong>Closed</strong><span>Changed 8 seconds ago</span></div><span class="facet-status is-current">Current</span></div>
+          </article>
+          <article class="facet-item">
+            <div class="facet-label"><strong>Carbon dioxide</strong><code>measurement@1</code><span class="body-sm body-muted">Canonical decimal and UCUM</span></div>
+            <div class="facet-control"><div class="facet-value"><strong>812 ppm</strong><span>Source reported</span></div><span class="facet-status is-stale">Stale</span></div>
+          </article>
+          <article class="facet-item">
+            <div class="facet-label"><strong>Hall climate</strong><code>thermostat@1</code><span class="body-sm body-muted">Feature-gated mode and target</span></div>
+            <div class="facet-control"><fieldset class="facet-segmented"><legend class="sr-only">Thermostat mode</legend><label><input type="radio" name="fixture-mode" checked />Heat</label><label><input type="radio" name="fixture-mode" />Off</label></fieldset><div class="facet-stepper"><button class="btn" type="button" aria-label="Decrease target temperature">−</button><output>21.5 °C</output><button class="btn" type="button" aria-label="Increase target temperature">+</button></div></div>
+          </article>
+          <article class="facet-item">
+            <div class="facet-label"><strong>Bedroom blind</strong><code>window-covering@1</code><span class="body-sm body-muted">Lift available, tilt unavailable</span></div>
+            <div class="facet-control"><button class="btn btn-secondary" type="button">Open</button><button class="btn btn-secondary" type="button">Stop</button><button class="btn btn-secondary" type="button">Close</button><label class="facet-range"><span class="sr-only">Blind lift position</span><input type="range" min="0" max="100" value="38" /><output>38%</output></label><span class="facet-status is-unavailable">Tilt unavailable</span></div>
+          </article>
+          <article class="facet-item">
+            <div class="facet-label"><strong>Identify server</strong><code>momentary-action@1</code><span class="body-sm body-muted">Non-idempotent action</span></div>
+            <div class="facet-control"><span class="facet-status">Ready</span><button class="btn btn-primary" type="button">Invoke once</button></div>
+          </article>
+          <article class="facet-item">
+            <div class="facet-label"><strong>House notifications</strong><code>notification-sink@1</code><span class="body-sm body-muted">Plain-text payload profile</span></div>
+            <div class="facet-control"><label class="sr-only" for="fixture-notification">Notification message</label><textarea id="fixture-notification" rows="2">Dinner is ready.</textarea><span class="facet-status is-pending">Accepted for delivery</span><button class="btn btn-primary" type="button">Send notification</button></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="states">
+      <div class="container stack-6">
+        <div class="stack-3"><p class="eyebrow">Operational state</p><h2>Meaning survives without color</h2></div>
+        <div class="state-row" aria-label="Status badge examples">
+          <span class="badge badge-success">Current</span>
+          <span class="badge badge-warning">Stale</span>
+          <span class="badge badge-muted">Unknown</span>
+          <span class="badge badge-muted">Unavailable</span>
+          <span class="badge badge-muted">Offline</span>
+          <span class="badge badge-warning">Accepted for delivery</span>
+          <span class="badge badge-error">Outcome unknown</span>
+          <span class="badge badge-loading">Reconnecting</span>
+        </div>
+        <div class="notice" role="alert">
+          <span class="notice-icon" aria-hidden="true">!</span>
+          <div><strong>Pairing code expired</strong><p>Request a new code from the server, then try again. No permissions were changed.</p></div>
+          <button class="btn btn-secondary" type="button">Request code</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="operations">
+      <div class="container stack-4">
+        <div class="row-between"><div class="stack-3"><p class="eyebrow">Cockpit density</p><h2>Automation runs</h2></div><p class="body-sm body-muted">Press <kbd>R</kbd> to refresh</p></div>
+        <div class="table-wrap">
+          <table>
+            <caption>Recent automation runs, newest first</caption>
+            <thead><tr><th scope="col">Time</th><th scope="col">Automation</th><th scope="col">State</th><th scope="col">Duration</th></tr></thead>
+            <tbody>
+              <tr><td class="cell-mono"><time datetime="2026-07-13T10:42:18Z">10:42:18</time></td><td>Hall motion → lights</td><td><span class="badge badge-success">Completed</span></td><td class="cell-mono">128 ms</td></tr>
+              <tr><td class="cell-mono"><time datetime="2026-07-13T10:39:03Z">10:39:03</time></td><td>Night lock check</td><td><span class="badge badge-warning">Needs permission</span></td><td class="cell-mono">2.4 s</td></tr>
+              <tr><td class="cell-mono"><time datetime="2026-07-13T10:34:51Z">10:34:51</time></td><td>Weather refresh</td><td><span class="badge badge-error">Failed</span></td><td class="cell-mono">5.0 s</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,13 @@
+[package]
+name = "typed-esphome-provider-harness"
+version = "0.0.0"
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+litehouse-contracts.workspace = true
+litehouse-service-fabric.workspace = true
+tokio.workspace = true
+wasmtime.workspace = true
+wasmtime-wasi.workspace = true

@@ -1,0 +1,7 @@
+{
+  "case": "blind-retry-after-ambiguous-dispatch",
+  "operation": "invoke",
+  "priorOutcome": "outcome-unknown",
+  "deduplication": "none",
+  "invalidBecause": "momentary-effects-are-not-automatically-retried"
+}

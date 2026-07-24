@@ -1,0 +1,172 @@
+package litehouse:window-covering@1.0.0;
+
+interface types {
+  use litehouse:descriptor/types@1.0.0.{facet-descriptor};
+  use litehouse:errors/types@1.0.0.{core-error, retry-advice};
+  use litehouse:quantity/types@1.0.0.{quantity};
+  use litehouse:receipt/types@1.0.0.{command-receipt, deduplication-guarantee, operation-kind};
+  use litehouse:state/types@1.0.0.{availability, gap, hydration-barrier, observation-meta, quality};
+
+  enum axis {
+    lift,
+    tilt,
+  }
+
+  enum position-awareness {
+    unaware,
+    estimated,
+    source-reported,
+  }
+
+  enum movement {
+    opening,
+    closing,
+    stopped,
+    idle,
+    unknown,
+  }
+
+  enum feature {
+    lift,
+    tilt,
+    target-position,
+    stop,
+    safety-status,
+    fault-status,
+  }
+
+  enum operation {
+    open,
+    close,
+    stop,
+    set-position,
+  }
+
+  enum state-field {
+    current-position,
+    target-position,
+    movement,
+    safety-status,
+    fault-status,
+  }
+
+  enum event-kind {
+    state-observation,
+  }
+
+  record axis-descriptor {
+    axis: axis,
+    awareness: position-awareness,
+    native-step: option<string>,
+  }
+
+  record operation-support {
+    operation: operation,
+    kind: operation-kind,
+    deduplication: deduplication-guarantee,
+    default-deadline-milliseconds: u32,
+    maximum-deadline-milliseconds: u32,
+  }
+
+  record covering-descriptor {
+    common: facet-descriptor,
+    axes: list<axis-descriptor>,
+    features: list<feature>,
+    operations: list<operation>,
+    state-fields: list<state-field>,
+    events: list<event-kind>,
+    operation-support: list<operation-support>,
+  }
+
+  record axis-state {
+    axis: axis,
+    current: option<quantity>,
+    target: option<quantity>,
+    movement: movement,
+  }
+
+  record state {
+    meta: observation-meta,
+    availability: availability,
+    quality: option<quality>,
+    axes: list<axis-state>,
+    safety-status: list<string>,
+    fault-status: list<string>,
+  }
+
+  record axis-request {
+    axis: axis,
+  }
+
+  record position-request {
+    axis: axis,
+    position: quantity,
+  }
+
+  variant operation-intent {
+    open(axis-request),
+    close(axis-request),
+    stop(axis-request),
+    set-position(position-request),
+  }
+
+  record operation-receipt {
+    operation: operation-intent,
+    receipt: command-receipt,
+  }
+
+  variant contract-error-detail {
+    unsupported-axis(axis),
+    unsupported-position(axis),
+    unsupported-stop(axis),
+    invalid-position(quantity),
+    obstruction,
+    safety-lockout,
+    not-calibrated(axis),
+    conflicting-stop-or-movement,
+    unsupported-operation(operation),
+  }
+
+  record error {
+    inner: core-error,
+    detail: option<contract-error-detail>,
+    retry: retry-advice,
+    message: option<string>,
+    error-id: string,
+  }
+
+  variant state-event {
+    snapshot(state),
+    caught-up(hydration-barrier),
+    observation(state),
+    gap(gap),
+  }
+
+}
+
+interface capability {
+  use litehouse:receipt/types@1.0.0.{request-context};
+  use litehouse:state/types@1.0.0.{resume-position, resume-receipt, resume-request};
+  use types.{axis-request, covering-descriptor, error, operation-receipt, position-request, state, state-event};
+
+  resource state-subscription {
+    next: async func(context: request-context) -> result<state-event, error>;
+    resume: async func(context: request-context, request: resume-request) -> result<resume-receipt, error>;
+  }
+
+  describe: async func(context: request-context) -> result<covering-descriptor, error>;
+  query: async func(context: request-context) -> result<state, error>;
+  subscribe: async func(context: request-context, resume: option<resume-position>) -> result<state-subscription, error>;
+  open: async func(context: request-context, request: axis-request) -> result<operation-receipt, error>;
+  close: async func(context: request-context, request: axis-request) -> result<operation-receipt, error>;
+  stop: async func(context: request-context, request: axis-request) -> result<operation-receipt, error>;
+  set-position: async func(context: request-context, request: position-request) -> result<operation-receipt, error>;
+}
+
+world provider {
+  export capability;
+}
+
+world consumer {
+  import capability;
+}

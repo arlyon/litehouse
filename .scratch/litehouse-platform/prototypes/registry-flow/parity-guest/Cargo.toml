@@ -1,0 +1,14 @@
+[package]
+name = "registry-flow-parity-guest"
+version = "0.0.0"
+edition.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ed25519-dalek.workspace = true
+hex.workspace = true
+registry-flow-core = { path = "../core" }
+wit-bindgen.workspace = true

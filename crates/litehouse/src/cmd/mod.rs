@@ -3,10 +3,12 @@
 mod auth;
 mod generate;
 mod packages;
-mod run;
 mod validate;
 
-use std::path::PathBuf;
+use std::{
+    net::SocketAddr,
+    path::{Path, PathBuf},
+};
 
 use auth::AuthCommand;
 use jsonc_parser::CollectOptions;
@@ -15,6 +17,7 @@ use litehouse_config::{
     ConfigError, Import, ImportAddResult, LitehouseConfig, Manifest, ManifestAddResult,
     ManifestImport, ParseError, PluginConfig,
 };
+use litehouse_contracts::metadata::RuntimeMetadataV1;
 use litehouse_plugin::serde_json;
 use litehouse_registry::Registry;
 use miette::{Context, IntoDiagnostic, NamedSource, Result};
@@ -22,7 +25,7 @@ use tokio::sync::broadcast::channel;
 
 use crate::{
     LogMessage,
-    runtime::{PluginRunnerFactory, set_up_engine},
+    runtime::{PluginRunnerFactory, epoch_ticks, set_up_engine},
     store::StoreStrategy,
     util::resolve_span,
 };
@@ -42,9 +45,18 @@ struct FeedbackMessage {
 pub enum Subcommand {
     /// Run the litehouse server
     Run {
-        /// The path to look for wasm files in.
-        #[clap(default_value = "./wasm", short, long)]
+        /// Directory containing the four bundled provider components.
+        #[clap(default_value = "./components", short, long)]
         wasm_path: PathBuf,
+        /// Address for the unauthenticated MCP listener.
+        #[clap(long, default_value = "127.0.0.1:8080")]
+        bind: SocketAddr,
+        /// Exact Host headers accepted by MCP.
+        #[clap(long = "allowed-host", default_value = "127.0.0.1")]
+        allowed_hosts: Vec<String>,
+        /// Exact HTTP(S) Origin headers accepted by MCP.
+        #[clap(long = "allowed-origin", default_value = "http://localhost")]
+        allowed_origins: Vec<String>,
         /// Whether to enable the wasm cache
         #[clap(long)]
         no_cache: bool,
@@ -108,12 +120,6 @@ pub enum Subcommand {
         wasm_path: PathBuf,
         #[clap(long, default_value_t = false)]
         debug: bool,
-        /// Do not perform the final packaging, leaving a regular wasm file.
-        #[clap(long)]
-        no_package: bool,
-        /// Do not optimise the wasm file for size.
-        #[clap(long)]
-        no_optimise: bool,
     },
     /// Search for a package in the registry.
     Search {
@@ -137,29 +143,28 @@ pub enum Subcommand {
 }
 
 impl Subcommand {
-    pub async fn run(self, logs_rx: tokio::sync::broadcast::Receiver<LogMessage>) -> Result<()> {
+    pub async fn run(self, _logs_rx: tokio::sync::broadcast::Receiver<LogMessage>) -> Result<()> {
         let registry = Registry::build("default".to_string());
 
         match self {
             Subcommand::Init => {
-                std::fs::create_dir_all("wasm")
+                std::fs::create_dir_all("components")
                     .into_diagnostic()
-                    .wrap_err("unable to create wasm directory")?;
+                    .wrap_err("unable to create components directory")?;
                 if std::fs::metadata("settings.json").is_ok() {
+                    let config = LitehouseConfig::load()?;
+                    std::fs::create_dir_all(&config.workflows)
+                        .into_diagnostic()
+                        .wrap_err("unable to create configured workflows directory")?;
+                    write_phase1_schemas()?;
                     return Ok(());
                 }
-                let default = LitehouseConfig::default();
-                let mut value = serde_json::to_value(default).expect("can't fail");
-                value
-                    .as_object_mut()
-                    .expect("can't fail")
-                    .insert("$schema".to_string(), "schema.json".into());
-                let mut file = std::fs::File::create("settings.json")
+                let mut config = LitehouseConfig::default();
+                std::fs::create_dir_all(&config.workflows)
                     .into_diagnostic()
-                    .wrap_err("unable to create settings.json")?;
-                serde_json::to_writer_pretty(&mut file, &value)
-                    .into_diagnostic()
-                    .wrap_err("unable to write settings.json")?;
+                    .wrap_err("unable to create workflows directory")?;
+                config.save().wrap_err("unable to write settings.json")?;
+                write_phase1_schemas()?;
 
                 Ok(())
             }
@@ -252,8 +257,11 @@ impl Subcommand {
             }
             Subcommand::Run {
                 wasm_path,
+                bind,
+                allowed_hosts,
+                allowed_origins,
                 no_cache,
-            } => run::run(&wasm_path, !no_cache, logs_rx)
+            } => crate::daemon::run(&wasm_path, !no_cache, bind, allowed_hosts, allowed_origins)
                 .await
                 .wrap_err("unable to start litehouse"),
             Subcommand::Inspect {
@@ -266,8 +274,10 @@ impl Subcommand {
                 let dirs = [(
                     plugin.plugin.clone(),
                     PluginConfig {
-                        config: None,
                         plugin,
+                        instance_id: None,
+                        capabilities: Vec::new(),
+                        config: None,
                     },
                 )]
                 .into_iter()
@@ -292,44 +302,63 @@ impl Subcommand {
                     .map(|(a, _, host, mut store, _)| async move {
                         let mut store = store.enter().await;
 
-                        let indices = crate::runtime::bindings::exports::litehouse::plugin::plugin::GuestIndices::new( &host.instance_pre(&mut store)).unwrap();
-                        let guest = indices.load(&mut store, &host).unwrap();
-                        let metadata = guest.call_get_metadata(&mut store).await;
+                        let indices = crate::runtime::bindings::exports::litehouse::plugin::plugin::GuestIndices::new(
+                            &host.instance_pre(&mut store),
+                        )
+                        .map_err(|error| miette::miette!("failed to load plugin export indices: {error:?}"))?;
+                        let guest = indices
+                            .load(&mut store, &host)
+                            .map_err(|error| miette::miette!("failed to load plugin exports: {error:?}"))?;
+                        store.set_epoch_deadline(epoch_ticks(std::time::Duration::from_secs(10)));
+                        let metadata = tokio::time::timeout(
+                            std::time::Duration::from_secs(10),
+                            guest.call_get_metadata(&mut store),
+                        )
+                        .await
+                        .map_err(|_| miette::miette!("plugin metadata call exceeded 10 seconds"))?;
 
                         match metadata {
                             Ok(meta) => {
+                                let meta = RuntimeMetadataV1::decode_section(&meta)
+                                    .into_diagnostic()
+                                    .wrap_err("plugin returned invalid bounded runtime metadata")?;
                                 println!("metadata for {}:\n", a);
-                                println!(" - version: {}", meta.version);
-                                if let Some(author) = meta.author
-                                    && !author.is_empty()
-                                {
-                                    println!(" - author: {}", author);
-                                }
-                                if let Some(homepage) = meta.homepage
-                                    && !homepage.is_empty()
-                                {
-                                    println!(" - homepage: {}", homepage);
-                                }
-                                if let Some(source) = meta.source
-                                    && !source.is_empty()
-                                {
-                                    println!(" - source: {}", source);
-                                }
+                                println!(
+                                    " - package: {}:{}@{}.{}.{}",
+                                    meta.package.namespace,
+                                    meta.package.name,
+                                    meta.package.version.major,
+                                    meta.package.version.minor,
+                                    meta.package.version.patch
+                                );
+                                println!(
+                                    " - runtime profile: {}:{}@^{}.{}.{}",
+                                    meta.runtime_profile.namespace,
+                                    meta.runtime_profile.name,
+                                    meta.runtime_profile.minimum.major,
+                                    meta.runtime_profile.minimum.minor,
+                                    meta.runtime_profile.minimum.patch
+                                );
                                 if let Some(description) = meta.description
                                     && !description.is_empty()
                                 {
                                     println!(" - description: {}", description);
                                 }
-                                println!(" - capabilities: {:?}", meta.capabilities);
+                                println!(" - provided contracts: {}", meta.provides.len());
+                                println!(" - required contracts: {}", meta.requires.len());
+                                println!(
+                                    " - protected config requirements: {}",
+                                    meta.config_annotations.len()
+                                );
+                                Ok(())
                             }
-                            Err(_) => {
-                                tracing::error!("failed to generate schema: {:?}", metadata);
-                                panic!();
-                            }
+                            Err(error) => Err(miette::miette!(
+                                "failed to obtain plugin metadata: {error:?}"
+                            )),
                         }
                     });
 
-                _ = futures::future::join_all(jobs).await;
+                futures::future::try_join_all(jobs).await?;
 
                 Ok(())
             }
@@ -356,10 +385,17 @@ impl Subcommand {
                 wasm_path,
                 no_cache,
             } => {
+                let typed = LitehouseConfig::load()?;
+                litehouse_management::WorkflowDirectory::load(&typed.workflows)
+                    .into_diagnostic()
+                    .wrap_err("could not validate authored workflows")?;
+
                 let schema = generate::generate(&wasm_path, !no_cache)
                     .await
                     .wrap_err("unable to generate schema")?;
-                let schema = jsonschema::JSONSchema::compile(&schema).expect("can't fail");
+                let schema = jsonschema::JSONSchema::compile(&schema).map_err(|error| {
+                    miette::miette!("generated config schema is invalid: {error}")
+                })?;
 
                 let data = std::fs::read_to_string("settings.json")
                     .into_diagnostic()
@@ -383,7 +419,9 @@ impl Subcommand {
                     })
                 })?;
 
-                let config = ast.value.expect("has a value");
+                let config = ast
+                    .value
+                    .ok_or_else(|| miette::miette!("settings document is empty"))?;
 
                 schema
                     .validate(&config.clone().into())
@@ -419,7 +457,8 @@ impl Subcommand {
                             data2,
                         )
                     })
-                    .wrap_err("could not validate settings.json")
+                    .wrap_err("could not validate settings.json")?;
+                Ok(())
             }
             Subcommand::Publish {
                 package,
@@ -457,9 +496,7 @@ impl Subcommand {
                 wasm_path,
                 package,
                 debug,
-                no_package,
-                no_optimise,
-            } => packages::build(&package, &wasm_path, debug, !no_optimise, no_package).await,
+            } => packages::build(&package, &wasm_path, debug).await,
             Subcommand::Search { query } => {
                 let prefix = query.map(|q| Import {
                     plugin: q,
@@ -532,5 +569,57 @@ impl Subcommand {
             }
             Subcommand::Auth { auth_command } => auth::do_auth(auth_command).await,
         }
+    }
+}
+
+fn write_phase1_schemas() -> Result<()> {
+    write_schema_file(
+        Path::new("schema.json"),
+        &generated_settings_schema_bytes()?,
+    )?;
+    write_schema_file(
+        Path::new("rule.schema.json"),
+        &litehouse_rule_json::schema::generated_rule_schema_bytes(),
+    )
+}
+
+fn generated_settings_schema_bytes() -> Result<Vec<u8>> {
+    let schema = schemars::schema_for!(LitehouseConfig);
+    let mut bytes = serde_json::to_vec_pretty(&schema)
+        .into_diagnostic()
+        .wrap_err("unable to encode settings schema")?;
+    bytes.push(b'\n');
+    Ok(bytes)
+}
+
+fn write_schema_file(path: &Path, bytes: &[u8]) -> Result<()> {
+    std::fs::write(path, bytes)
+        .into_diagnostic()
+        .wrap_err_with(|| format!("unable to write {}", path.display()))
+}
+
+#[cfg(test)]
+mod phase1_tests {
+    use super::*;
+
+    #[test]
+    fn generated_settings_schema_is_deterministic_and_closed() {
+        let first = generated_settings_schema_bytes().unwrap();
+        let second = generated_settings_schema_bytes().unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.last(), Some(&b'\n'));
+
+        let schema: serde_json::Value = serde_json::from_slice(&first).unwrap();
+        assert_eq!(schema["additionalProperties"], false);
+        assert!(schema["properties"]["workflows"].is_object());
+        assert!(schema["properties"]["plugins"].is_object());
+    }
+
+    #[test]
+    fn generated_rule_schema_is_valid_json_with_a_trailing_newline() {
+        let bytes = litehouse_rule_json::schema::generated_rule_schema_bytes();
+        assert_eq!(bytes.last(), Some(&b'\n'));
+        let schema: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(schema["$id"], litehouse_rule_json::SCHEMA_URL);
     }
 }

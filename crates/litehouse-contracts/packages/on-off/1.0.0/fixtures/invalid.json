@@ -1,0 +1,6 @@
+{
+  "case": "toggle-not-advertised",
+  "advertisedOperations": ["set"],
+  "request": { "operation": "toggle" },
+  "invalidBecause": "unsupported-operation:toggle"
+}

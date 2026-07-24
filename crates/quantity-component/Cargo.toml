@@ -1,0 +1,16 @@
+[package]
+name = "litehouse-quantity-component"
+version = "0.1.0"
+description = "Wasm component projection of the Litehouse quantity engine"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+litehouse-contracts = { version = "0.1.0", path = "../litehouse-contracts" }
+wit-bindgen = "0.59.0"

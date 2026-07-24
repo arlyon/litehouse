@@ -1,8 +1,9 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db";
-import { deviceAuthorization, magicLink } from "better-auth/plugins";
+import { bearer, deviceAuthorization, magicLink } from "better-auth/plugins";
 import { createTransport } from "nodemailer";
+import { passkey } from "@better-auth/passkey"
 
 const transporter = createTransport({
   host: "smtp.fastmail.com",
@@ -36,6 +37,8 @@ export const auth = betterAuth({
     deviceAuthorization({
        verificationUri: "/device",
      }),
+    passkey(),
+    bearer()
   ],
   trustedOrigins: [
     process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",

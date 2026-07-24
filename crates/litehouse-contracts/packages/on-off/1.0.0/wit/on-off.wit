@@ -1,0 +1,127 @@
+package litehouse:on-off@1.0.0;
+
+interface types {
+  use litehouse:descriptor/types@1.0.0.{facet-descriptor};
+  use litehouse:errors/types@1.0.0.{core-error, retry-advice};
+  use litehouse:receipt/types@1.0.0.{command-receipt, deduplication-guarantee, operation-kind};
+  use litehouse:state/types@1.0.0.{availability, gap, hydration-barrier, observation-meta, quality};
+
+  enum feature {
+    timed,
+    startup,
+    effect,
+    dead-front,
+    off-only,
+  }
+
+  enum operation {
+    set,
+    toggle,
+  }
+
+  enum state-field {
+    current,
+  }
+
+  enum event-kind {
+    state-observation,
+  }
+
+  record operation-support {
+    operation: operation,
+    kind: operation-kind,
+    deduplication: deduplication-guarantee,
+    default-deadline-milliseconds: u32,
+    maximum-deadline-milliseconds: u32,
+  }
+
+  record on-off-descriptor {
+    common: facet-descriptor,
+    features: list<feature>,
+    operations: list<operation>,
+    state-fields: list<state-field>,
+    events: list<event-kind>,
+    operation-support: list<operation-support>,
+  }
+
+  record state {
+    meta: observation-meta,
+    availability: availability,
+    quality: option<quality>,
+    current: option<bool>,
+  }
+
+  record timed-options {
+    delay-milliseconds: u64,
+    duration-milliseconds: option<u64>,
+  }
+
+  record set-request {
+    value: bool,
+    timed: option<timed-options>,
+    effect: option<string>,
+  }
+
+  variant operation-intent {
+    set(set-request),
+    toggle,
+  }
+
+  record operation-receipt {
+    operation: operation-intent,
+    receipt: command-receipt,
+  }
+
+  enum invalid-timed-option {
+    starts-after-deadline,
+    zero-duration,
+    conflicting-options,
+    invalid-effect,
+  }
+
+  variant contract-error-detail {
+    unsupported-operation(operation),
+    unsupported-feature(feature),
+    invalid-timed-options(invalid-timed-option),
+  }
+
+  record error {
+    inner: core-error,
+    detail: option<contract-error-detail>,
+    retry: retry-advice,
+    message: option<string>,
+    error-id: string,
+  }
+
+  variant state-event {
+    snapshot(state),
+    caught-up(hydration-barrier),
+    observation(state),
+    gap(gap),
+  }
+}
+
+interface capability {
+  use litehouse:receipt/types@1.0.0.{request-context};
+  use litehouse:state/types@1.0.0.{resume-position, resume-receipt, resume-request};
+  use types.{error, on-off-descriptor, operation-receipt, set-request, state, state-event};
+
+  resource state-subscription {
+    next: async func(context: request-context) -> result<state-event, error>;
+    resume: async func(context: request-context, request: resume-request) -> result<resume-receipt, error>;
+  }
+
+  describe: async func(context: request-context) -> result<on-off-descriptor, error>;
+  query: async func(context: request-context) -> result<state, error>;
+  subscribe: async func(context: request-context, resume: option<resume-position>) -> result<state-subscription, error>;
+  set: async func(context: request-context, request: set-request) -> result<operation-receipt, error>;
+  toggle: async func(context: request-context) -> result<operation-receipt, error>;
+}
+
+world provider {
+  export capability;
+}
+
+world consumer {
+  import capability;
+}

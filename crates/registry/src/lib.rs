@@ -32,9 +32,9 @@ pub mod partition;
 pub mod partition_scheme;
 
 #[allow(clippy::all, warnings)]
-#[rustfmt::skip]
-#[path = "../target/flatbuffers/registry_generated.rs"]
-pub mod proto;
+pub mod proto {
+    include!(concat!(env!("OUT_DIR"), "/registry_generated.rs"));
+}
 pub mod partitioned_store;
 
 pub struct LitehouseRegistry<'a> {
