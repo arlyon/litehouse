@@ -184,6 +184,19 @@ impl WorkflowRepository {
             .map_err(|_| WorkflowMutationError::StatePoisoned)
     }
 
+    /// Reads and validates authored files without creating or taking the cross-process write lock.
+    /// Atomic file replacement keeps individual documents coherent; callers must tolerate a
+    /// concurrent multi-file authoring operation producing a validation error.
+    pub(crate) fn authored_snapshot_read_only(
+        &self,
+    ) -> Result<Arc<WorkflowDirectory>, WorkflowMutationError> {
+        let _mutation = self
+            .mutation
+            .lock()
+            .map_err(|_| WorkflowMutationError::StatePoisoned)?;
+        Ok(Arc::new(WorkflowDirectory::load(&self.root)?))
+    }
+
     /// Reads and validates the current authored directory without changing the loaded snapshot.
     pub fn authored_snapshot(&self) -> Result<Arc<WorkflowDirectory>, WorkflowMutationError> {
         let _mutation = self

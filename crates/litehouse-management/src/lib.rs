@@ -2,6 +2,7 @@ mod interaction;
 mod workflow_executor;
 mod workflow_files;
 mod workflow_runtime;
+mod workflow_simulation;
 
 pub use interaction::{
     ColorDirection, InteractionColor, InteractionColorSpace, InteractionCoveringAxis,
@@ -17,6 +18,7 @@ pub use workflow_runtime::{
     WorkflowOutcomeSnapshot, WorkflowRunOutcome, WorkflowRunStatus, WorkflowRuntime,
     WorkflowRuntimeError,
 };
+pub use workflow_simulation::*;
 
 use litehouse_contracts::management::{
     CAPABILITY_OPERATION_IDS, OAuthScope, ScopePolicy, management_manifest,
@@ -127,6 +129,11 @@ pub enum WorkflowRequest {
         #[schemars(length(max = 131_072))]
         source: String,
     },
+    Simulate {
+        #[schemars(regex(pattern = "^[0-9a-f]{32}$"))]
+        rule_id: String,
+        input: WorkflowSimulationInput,
+    },
     Put {
         #[schemars(length(min = 1, max = 512))]
         relative_path: String,
@@ -178,6 +185,8 @@ pub struct WorkflowToolResult {
     pub validation: Option<WorkflowValidationResult>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub outcomes: Option<WorkflowOutcomeSnapshot>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub simulation: Option<WorkflowSimulationResult>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -1762,6 +1771,41 @@ impl McpAdapter {
                     Some(workflow_validation_result(validation)),
                 )
             }
+            WorkflowRequest::Simulate { rule_id, input } => {
+                if !valid_rule_id(&rule_id) {
+                    return Err(caller_error(
+                        WORKFLOW_OPERATION,
+                        ErrorCode::ContractFailed,
+                        "rule_id must be 32 lowercase hexadecimal characters",
+                    ));
+                }
+                let loaded = repository.snapshot().map_err(workflow_error)?;
+                let workflow = loaded.workflows().get(&rule_id).ok_or_else(|| {
+                    caller_error(
+                        WORKFLOW_OPERATION,
+                        ErrorCode::NotFound,
+                        "loaded workflow was not found",
+                    )
+                })?;
+                let simulation = simulate_initial_microstep(
+                    workflow.compiled(),
+                    hex_sha256(workflow.source_sha256()),
+                    &input,
+                )
+                .map_err(|_| {
+                    caller_error(
+                        WORKFLOW_OPERATION,
+                        ErrorCode::ContractFailed,
+                        "workflow simulation input was rejected",
+                    )
+                })?;
+                let authored = repository
+                    .authored_snapshot_read_only()
+                    .map_err(workflow_error)?;
+                let mut result = workflow_tool_result_from_snapshots(authored, loaded, None, None);
+                result.simulation = Some(simulation);
+                Ok(result)
+            }
             WorkflowRequest::Put {
                 relative_path,
                 expected_sha256,
@@ -1877,7 +1921,7 @@ impl McpAdapter {
 
     #[tool(
         name = "litehouse_workflows",
-        description = "Inspect, validate, and atomically author Rule JSON workflows. Authored changes require a Litehouse restart.",
+        description = "Inspect, validate, simulate, and atomically author Rule JSON workflows. Authored changes require a Litehouse restart.",
         input_schema = workflow_input_schema(),
         output_schema = rmcp::handler::server::tool::schema_for_type::<WorkflowToolResult>()
     )]
@@ -1944,6 +1988,17 @@ fn workflow_tool_result(
     validation: Option<WorkflowValidationResult>,
 ) -> Result<WorkflowToolResult, ManagementError> {
     let loaded = repository.snapshot().map_err(workflow_error)?;
+    Ok(workflow_tool_result_from_snapshots(
+        authored, loaded, source, validation,
+    ))
+}
+
+fn workflow_tool_result_from_snapshots(
+    authored: Arc<WorkflowDirectory>,
+    loaded: Arc<WorkflowDirectory>,
+    source: Option<String>,
+    validation: Option<WorkflowValidationResult>,
+) -> WorkflowToolResult {
     let authored_sha256 = hex_sha256(authored.authored_sha256());
     let loaded_sha256 = hex_sha256(loaded.authored_sha256());
     let workflows = authored
@@ -1951,7 +2006,7 @@ fn workflow_tool_result(
         .values()
         .map(workflow_summary)
         .collect();
-    Ok(WorkflowToolResult {
+    WorkflowToolResult {
         restart_required: authored_sha256 != loaded_sha256,
         authored_sha256,
         loaded_sha256,
@@ -1959,7 +2014,8 @@ fn workflow_tool_result(
         source,
         validation,
         outcomes: None,
-    })
+        simulation: None,
+    }
 }
 
 fn workflow_summary(workflow: &LoadedWorkflow) -> WorkflowSummary {
@@ -2992,6 +3048,9 @@ mod tests {
         let schema = serde_json::to_string(&workflow.input_schema).unwrap();
         assert!(schema.contains("\"maxLength\":131072"));
         assert!(schema.contains("\"maxLength\":512"));
+        assert!(schema.contains("\"maxItems\":128"));
+        assert!(schema.contains("\"maxItems\":32"));
+        assert!(schema.contains("simulate"));
         assert!(schema.contains("^[0-9a-f]{64}$"));
     }
 
@@ -3056,6 +3115,156 @@ mod tests {
         let source = get.source.unwrap();
         assert!(source.contains("\"revision\": 2"));
         assert!(source.contains("\"enabled\": false"));
+
+        drop(adapter);
+        drop(repository);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn workflow_simulation_is_deterministic_and_never_dispatches_or_mutates() {
+        let root = std::env::temp_dir().join(format!(
+            "litehouse-workflow-simulation-{}-{}",
+            std::process::id(),
+            REQUEST_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let source = include_str!("../../litehouse-rule-json/fixtures/valid-planner-compat.json");
+        std::fs::write(root.join("rule.json"), source).unwrap();
+        let repository = Arc::new(WorkflowRepository::open(&root).unwrap());
+        let loaded_before = repository.snapshot().unwrap();
+        let workflow = loaded_before.workflows().values().next().unwrap();
+        let rule_id = workflow.compiled().rule_id().to_owned();
+        let selector = match workflow.compiled().trigger() {
+            litehouse_rule_json::CompiledTrigger::StateObservation { selector, .. } => {
+                selector.clone()
+            }
+            _ => panic!("fixture must have a state-observation trigger"),
+        };
+        let mut authored: serde_json::Value = serde_json::from_str(source).unwrap();
+        authored["revision"] = serde_json::json!(2);
+        std::fs::write(
+            root.join("rule.json"),
+            serde_json::to_vec_pretty(&authored).unwrap(),
+        )
+        .unwrap();
+        let entries_before = std::fs::read_dir(&root)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect::<BTreeSet<_>>();
+        let timestamp = WorkflowSimulationTimestamp {
+            unix_seconds: 1_700_000_000,
+            nanosecond: 0,
+        };
+        let input = WorkflowSimulationInput {
+            evaluation_time: WorkflowSimulationTimestamp {
+                unix_seconds: 1_700_000_001,
+                nanosecond: 0,
+            },
+            trigger: WorkflowSimulationTrigger::StateObservation {
+                provider_generation: 1,
+                facet_revision: 1,
+                observed_at: timestamp,
+                delivery: WorkflowSimulationObservationDelivery::ValueChanged,
+            },
+            snapshots: vec![WorkflowSimulationSnapshot {
+                selector,
+                provider_generation: 1,
+                facet_revision: 1,
+                source_time: None,
+                received_at: timestamp,
+                freshness: WorkflowSimulationFreshness::Fresh,
+                fields: vec![WorkflowSimulationSnapshotField {
+                    field: litehouse_rule_json::StateFieldRef::OnOffCurrent,
+                    state: WorkflowSimulationValueState::Known {
+                        value: WorkflowSimulationValue::Bool { value: true },
+                    },
+                }],
+            }],
+            effect_bindings: vec![WorkflowSimulationEffectBinding {
+                node_id: "set_light".to_owned(),
+                provider_generation: 1,
+                facet_revision: 1,
+                grant_revision: 1,
+                operation_kind: WorkflowSimulationOperationKind::AbsoluteConvergent,
+                deduplication: WorkflowSimulationDeduplication::None,
+                receipt_support: vec![litehouse_rule_json::ReceiptConfidence::AcceptedForDelivery],
+                default_deadline_ms: 30_000,
+                maximum_deadline_ms: 30_000,
+            }],
+        };
+        let mut unknown_field = serde_json::to_value(WorkflowRequest::Simulate {
+            rule_id: rule_id.clone(),
+            input: input.clone(),
+        })
+        .unwrap();
+        unknown_field["input"]["unexpected"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<WorkflowRequest>(unknown_field).is_err());
+
+        let runtime = Arc::new(WorkflowRuntime::new());
+        let adapter = McpAdapter::new(
+            ManagementService::from_bundled([]).unwrap(),
+            Principal::proving("phase1-workflow-simulation").unwrap(),
+        )
+        .with_workflows(repository.clone())
+        .with_workflow_runtime(runtime.clone());
+
+        let mut oversized = input.clone();
+        oversized.snapshots = vec![oversized.snapshots[0].clone(); 129];
+        assert!(
+            adapter
+                .workflow_operation(WorkflowRequest::Simulate {
+                    rule_id: rule_id.clone(),
+                    input: oversized,
+                })
+                .is_err()
+        );
+
+        let first_result = adapter
+            .workflow_operation(WorkflowRequest::Simulate {
+                rule_id: rule_id.clone(),
+                input: input.clone(),
+            })
+            .unwrap();
+        let second_result = adapter
+            .workflow_operation(WorkflowRequest::Simulate { rule_id, input })
+            .unwrap();
+        assert!(first_result.restart_required);
+        assert_eq!(first_result.workflows[0].revision, 2);
+        let first = first_result.simulation.unwrap();
+        let second = second_result.simulation.unwrap();
+
+        assert_eq!(first, second);
+        assert!(first.simulated);
+        assert!(first.bindings_hypothetical);
+        assert_eq!(first.loaded_rule_revision, workflow.compiled().revision());
+        assert_eq!(first.loaded_rule_id, workflow.compiled().rule_id());
+        assert_eq!(
+            first.loaded_semantic_sha256,
+            workflow.compiled().semantic_sha256()
+        );
+        assert_eq!(first.outcome, WorkflowSimulationOutcome::Suspended);
+        assert_eq!(first.effects.len(), 1);
+        assert_eq!(first.effects[0].node_id, "set_light");
+        assert!(first.timers.is_empty());
+        assert!(runtime.outcomes(None).unwrap().active.is_empty());
+        assert!(runtime.outcomes(None).unwrap().terminal.is_empty());
+        assert_eq!(
+            repository.snapshot().unwrap().authored_sha256(),
+            loaded_before.authored_sha256()
+        );
+        assert_ne!(
+            repository
+                .authored_snapshot_read_only()
+                .unwrap()
+                .authored_sha256(),
+            loaded_before.authored_sha256()
+        );
+        let entries_after = std::fs::read_dir(&root)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(entries_after, entries_before);
 
         drop(adapter);
         drop(repository);
