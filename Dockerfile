@@ -1,13 +1,25 @@
 FROM debian:bookworm-slim AS builder
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates clang curl mold pkg-config \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        clang \
+        cmake \
+        curl \
+        libprotobuf-dev \
+        libssl-dev \
+        mold \
+        ninja-build \
+        pkg-config \
+        protobuf-compiler \
+        unzip \
     && rm -rf /var/lib/apt/lists/*
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
     | sh -s -- -y --profile minimal --default-toolchain nightly-2026-07-15 \
         --target wasm32-wasip2
 ENV PATH="/root/.cargo/bin:${PATH}"
 ENV RUSTUP_TOOLCHAIN=nightly-2026-07-15
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=clang
 
 WORKDIR /app
 COPY . .

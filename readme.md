@@ -73,6 +73,22 @@ litehouse validate
 litehouse run
 ```
 
+## Container release validation
+
+Pull requests and `main` builds validate the Phase 1 image on native
+`linux/amd64` and `linux/arm64` GitHub-hosted runners. Each job builds locally
+without publishing, then verifies the non-root identity, the exact four-provider
+bundle, generated init artifacts, health and readiness, and bounded clean
+shutdown. This gate does not publish or sign images, contact real hardware, or
+exercise provider networks; provider execution is covered separately by the
+WASM component fixture tests.
+
+> **Security:** Phase 1 MCP is intentionally unauthenticated. Network
+> reachability grants its full configured authority; Host and Origin allowlists
+> are not authentication. Never publish port 8080 to an untrusted network. The
+> Compose example binds it to `127.0.0.1` and applies a read-only root,
+> capability dropping, and `no-new-privileges`.
+
 ## Protocol
 
 The basic protocol is defined in `crates/plugin-macro/wit/plugin.wit`,
