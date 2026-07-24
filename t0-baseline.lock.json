@@ -169,11 +169,6 @@
       "workflow": ".github/workflows/biome.yml"
     },
     {
-      "action": "oven-sh/setup-bun",
-      "sha": "f4d14e03ff726c06358e5557344e1da148b56cf7",
-      "workflow": ".github/workflows/biome.yml"
-    },
-    {
       "action": "actions/checkout",
       "sha": "34e114876b0b11c390a56381ad16ebd13914f8d5",
       "workflow": ".github/workflows/build.yml"
@@ -214,5 +209,5 @@
       "workflow": ".github/workflows/rust.yml"
     }
   ],
-  "workflow_tree_sha256": "8ab2c771d981646ea4d0819603102082f94ded5d9b3caee4df91e03a1998c740"
+  "workflow_tree_sha256": "ce6c5c60e6619307389790e72476d5c594e8e6086ed9adb3a3adacbf134f28b8"
 }

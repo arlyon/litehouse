@@ -20,9 +20,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
         with:
           toolchain: nightly-2026-07-15
-      - name: Install documentation tools
+      - name: Install documentation tool
+        run: cargo install cargo-rdme --version 2.1.0 --locked
+      - name: Check cargo-rdme managed files
         run: |
-          cargo install cargo-rdme --version 2.1.0 --locked
-          cargo install cargo-workspaces --version 0.4.2 --locked
-      - name: Check cargo-rdme
-        run: cargo ws exec cargo rdme --check
+          mapfile -t readmes < <(git grep -l '<!-- cargo-rdme' -- '*.md')
+          test "${#readmes[@]}" -gt 0
+          for readme in "${readmes[@]}"; do
+            echo "checking $readme"
+            (cd "$(dirname "$readme")" && cargo rdme --check)
+          done
